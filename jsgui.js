@@ -130,7 +130,7 @@ function _isValidAndHigherThanComponentToRerender(metadata) {
   return curr === _rootMetadata;
 }
 
-// components
+// components // TODO: do away with new Component()?
 function span(text, styles, attributes, key) {
   return new Component(() => {
     const e = document.createElement('span');
