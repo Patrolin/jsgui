@@ -69,13 +69,12 @@ function _createElements(parentNode, component) {
     _createElements(parentNode, child);
   }
 }
-function _applyStyles(e, styles={}, attributes=[]) {
+function _applyStyles(e, styles={}, attributes={}) {
   for (let [k, v] of Object.entries(styles)) {
     e.style[k] = v;
   }
-  for (let [k, v] of attributes) {
-    if (v === false) v == "false";
-    e.addAttribute(k, v);
+  for (let [k, v] of Object.entries(attributes)) {
+    e.setAttribute(k, v);
   }
 }
 
