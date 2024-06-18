@@ -1,0 +1,6 @@
+* {
+  max-width: 100%; /* make ellipsis work */
+}
+span {
+  display: inline-block; /* make ellipsis work */
+}

@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<head>
+  <title>jsgui</title>
+  <script src="jsgui.js" type="text/javascript"></script>
+  <script>
+    function root() {
+      return new Component(function () {
+        const wrapper = this.append(div({ "display": "flex", "flex-direction": "column" }));
+        wrapper.append(span("Hello"));
+        wrapper.append(span("world"));
+      });
+    }
+    renderRoot(root());
+  </script>
+</head>
+<body></body>
