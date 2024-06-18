@@ -6,8 +6,16 @@
     function root() {
       return new Component(function () {
         const wrapper = this.append(div({ "display": "flex", "flex-direction": "column" }));
-        wrapper.append(span("Hello"));
-        wrapper.append(span("world"));
+        const state = this.useState({ i: 0 });
+        wrapper.append(span(`Hello ${state.i}`));
+        wrapper.append(span(`world ${state.i}`));
+        setTimeout(() => {
+          state.i += 1;
+          this.rerender();
+        }, 1000);
+        for (let j = 0; j < state.i; j++) {
+          wrapper.append(span(`foo ${j}`, {}, {}, j));
+        }
       });
     }
     renderRoot(root());
