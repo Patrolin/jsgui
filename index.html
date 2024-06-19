@@ -3,21 +3,23 @@
   <title>jsgui</title>
   <script src="jsgui.js" type="text/javascript"></script>
   <script>
-    function root() {
-      return new Component(function () {
-        const wrapper = this.append(div({ "display": "flex", "flex-direction": "column" }));
-        const state = this.useState({ i: 0 });
-        wrapper.append(span(`Hello ${state.i}`));
-        wrapper.append(span(`world ${state.i}`));
-        setTimeout(() => {
-          state.i += 1;
-          this.rerender();
-        }, 1000);
-        for (let j = 0; j < state.i; j++) {
-          wrapper.append(span(`foo ${j}`, {}, {}, j));
-        }
-      });
-    }
+    const root = makeComponent(function root() {
+      const wrapper = this.append(
+        div({
+          style: { "display": "flex", "flex-direction": "column" },
+        })
+      );
+      const state = this.useState({ i: 0 });
+      wrapper.append(span(`Hello ${state.i}`));
+      wrapper.append(span(`world ${state.i}`));
+      setTimeout(() => {
+        state.i += 1;
+        this.rerender();
+      }, 1000);
+      for (let j = 0; j < state.i; j++) {
+        wrapper.append(span(`foo ${j}`, { key: j }));
+      }
+    });
     renderRoot(root());
   </script>
 </head>
