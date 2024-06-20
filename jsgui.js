@@ -27,7 +27,6 @@ class Component {
       child._ = _.indexToChild[childIndex];
       child._.index = childIndex;
     }
-    child._.parent = this._;
     this.children.push(child);
     return child;
   }
@@ -49,7 +48,7 @@ function makeComponent(_render) {
 class ComponentMetadata {
   constructor() {
     // navigation
-    this.parent = null; // ComponentMetadata
+    this.rootComponent = null; // Component
     this.indexToChild = []; // ComponentMetadata[]
     this.keyToChild = {} // Record<string, ComponentMetadata>
     // metadata
@@ -63,15 +62,20 @@ class ComponentMetadata {
     this.prevNode = null; // HTMLElement | null;
   }
 }
+class RootComponentMetadata extends ComponentMetadata {
+  constructor() {
+    super();
+    this.rerenderList = [];
+  }
+}
 
 // render
-let _rootMetadata = null; // ComponentState | null;
-function renderRoot(rootComponent) {
-  _rootMetadata = new ComponentMetadata();
-  rootComponent._ = _rootMetadata;
-  window.onload = () => _renderElements(document.body, rootComponent);
+function renderRoot(rootComponent, parentNode = null) {
+  rootComponent._ = new RootComponentMetadata();
+  rootComponent._.rootComponent = rootComponent;
+  window.onload = () => _renderElements(rootComponent, parentNode ?? document.body);
 }
-function _renderElements(parentNode, component) {
+function _renderElements(component, parentNode, isStartNode = true) {
   // render elements
   const {_} = component;
   _.usedKeys = new Set(); // Set<string>
@@ -100,50 +104,51 @@ function _renderElements(parentNode, component) {
       node.setAttribute(k, v);
     }
     const prevNode = _.prevNode;
-    if (prevNode) {
+    if (isStartNode && prevNode) {
+      prevNode.before(node);
       prevNode.remove();
+    } else {
+      parentNode.append(node);
     }
-    parentNode.append(node)
     _.prevNode = node;
     parentNode = node;
+    isStartNode = false;
   }
   for (let child of component.children) {
-    _renderElements(parentNode, child);
+    _renderElements(child, parentNode, isStartNode);
   }
 }
 
-// rerender // TODO: merge rerenders?
-let _componentToRerender = null; // Component | null;
-let _metadataToRerender = null // ComponentMetadata | null;
+// rerender
 let _doRerenderNextFrame = false;
-function _rerender(_parentNode) {
-  _componentToRerender.children = [];
-  const parentNode = _parentNode ?? (_componentToRerender._ === _rootMetadata ? document.body : null);
-  _renderElements(parentNode, _componentToRerender);
-  _doRerenderNextFrame = false;
-  _componentToRerender = null;
-  _metadataToRerender = null;
-}
 function _rerenderNextFrame(component) {
+  const rootComponent = component._.rootComponent;
+  rootComponent._.rerenderList.push(component);
   if (!_doRerenderNextFrame) {
-    requestAnimationFrame(() => _rerender());
+    requestAnimationFrame(() => {
+      const rerenderList = rootComponent._.rerenderList;
+      walk(rootComponent, (component) => {
+        const shouldRerender = rerenderList.includes(component);
+        if (shouldRerender) {
+          component.children = [];
+          const parentNode = (component === rootComponent) ? document.body : null;
+          _renderElements(component, parentNode);
+        }
+        return shouldRerender;
+      });
+      rootComponent._.rerenderList = [];
+      _doRerenderNextFrame = false;
+    });
     _doRerenderNextFrame = true;
   }
-  if (_isValidAndHigherThanComponentToRerender(component._)) {
-    _componentToRerender = component;
-  }
 }
-function _isValidAndHigherThanComponentToRerender(_) {
-  let curr = _;
-  // TODO: _.key doesn't exist
-  if (_.parent && (_.parent.indexToChild.includes(_) || (_.key in _.parent.keyToChild))) {
-    for (; curr.parent != null; curr = curr.parent) {
-      if (curr === _metadataToRerender) {
-        return false;
-      }
-    }
+function walk(component, f) {
+  const shouldBreak = f(component);
+  if (!shouldBreak) {
+    for (let child of component.children) {
+      walk(child, f);
+    };
   }
-  return curr === _rootMetadata;
 }
 
 // components
