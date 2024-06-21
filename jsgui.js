@@ -120,7 +120,7 @@ function _renderElements(component, parentNode, isStartNode = true) {
   }
 }
 function _camelCaseToKebabCase(k) {
-  return k.match(/([A-Z]?[a-z]*)/g).slice(0, -1).map(v => v.toLowerCase()).join("-");
+  return k.match(/[A-Z][a-z]*|[a-z]+/g).map(v => v.toLowerCase()).join("-");
 }
 
 // rerender
