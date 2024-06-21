@@ -104,6 +104,9 @@ function _renderElements(component, parentNode, isStartNode = true) {
     for (let [k, v] of Object.entries(attribute)) {
       node.setAttribute(_camelCaseToKebabCase(k), v);
     }
+    if (component.name !== node.tagName.toLowerCase()) {
+      node.setAttribute("data-component", component.name);
+    }
     const prevNode = _.prevNode;
     if (isStartNode && prevNode) {
       prevNode.before(node);
