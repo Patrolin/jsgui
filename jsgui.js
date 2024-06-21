@@ -6,7 +6,7 @@ class Component {
     this.props = props; // Record<string, any>
     this.children = []; // Component[]
     this._render = _render; // function (...) {}
-    this._ = null; // ComponentMetadata
+    this._ = null; // ComponentMetadata | RootComponentMetadata
   }
   append(child) {
     const {_} = this;
