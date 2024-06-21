@@ -99,6 +99,7 @@ function _renderElements(component, parentNode, isStartNode = true) {
   const {style = {}, attribute = {}} = component.props;
   if (node) {
     for (let [k, v] of Object.entries(style)) {
+      // TODO: add px to numbers
       node.style[_camelCaseToKebabCase(k)] = v;
     }
     for (let [k, v] of Object.entries(attribute)) {
