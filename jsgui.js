@@ -40,8 +40,9 @@ class Component {
 }
 function makeComponent(_render) {
   return (...argsOrProps) => {
-    const args = argsOrProps.slice(0, _render.length);
-    const props = argsOrProps[_render.length];
+    const argCount = Math.max(0, _render.length - 1);
+    const args = argsOrProps.slice(0, argCount);
+    const props = argsOrProps[argCount];
     return new Component(_render, args, props);
   }
 }
@@ -91,7 +92,7 @@ function _renderElements(component, parentNode, isStartNode = true) {
     throw `Varying children should have a "key" prop.`;
   }
   // filter keyed items
-  const usedKeys = component.usedKeys;
+  const usedKeys = _.usedKeys;
   _.keyToChild = Object.fromEntries(Object.entries(_.keyToChild).filter(([k, _v]) => usedKeys.has(k)));
   _.prevState = {..._.state};
   // append elements
@@ -157,7 +158,24 @@ const span = makeComponent(function span(text, _props) {
   e.innerText = text;
   return e;
 });
-const div = makeComponent(function div() {
+const div = makeComponent(function div(_props) {
   return document.createElement('div');
+})
+const input = makeComponent(function input(props) {
+  const state = this.useState({ needFocus: false });
+  const e = this._?.prevNode ?? document.createElement('input');
+  e.type = props.type ?? "text";
+  if (props.onInput) e.oninput = (event) => {
+    props.onInput(event);
+    state.needFocus = true;
+  }
+  if (props.onChange) e.onchange = props.onChange;
+  setTimeout(() => {
+    if (state.needFocus) {
+      this._.prevNode.focus();
+      state.needFocus = false;
+    }
+  })
+  return e;
 })
 // TODO: input components
