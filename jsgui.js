@@ -99,10 +99,10 @@ function _renderElements(component, parentNode, isStartNode = true) {
   const {style = {}, attribute = {}} = component.props;
   if (node) {
     for (let [k, v] of Object.entries(style)) {
-      node.style[k] = v;
+      node.style[_camelCaseToKebabCase(k)] = v;
     }
     for (let [k, v] of Object.entries(attribute)) {
-      node.setAttribute(k, v);
+      node.setAttribute(_camelCaseToKebabCase(k), v);
     }
     const prevNode = _.prevNode;
     if (isStartNode && prevNode) {
@@ -118,6 +118,9 @@ function _renderElements(component, parentNode, isStartNode = true) {
   for (let child of component.children) {
     _renderElements(child, parentNode, isStartNode);
   }
+}
+function _camelCaseToKebabCase(k) {
+  return k.match(/([A-Z]?[a-z]*)/g).slice(0, -1).map(v => v.toLowerCase()).join("-");
 }
 
 // rerender
