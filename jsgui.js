@@ -178,7 +178,7 @@ const input = makeComponent(function input(props) {
       this._.prevNode.focus();
       state.needFocus = false;
     }
-  })
+  });
   return e;
 })
 // TODO: input components
