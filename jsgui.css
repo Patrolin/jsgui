@@ -1,8 +1,3 @@
-/* alphas:
-  (1-0.921) * 255 = ~20
-  (1-0.921) * 255 = ~60
-  (1-0.607) * 255 = ~100
-*/
 body {
   --gray-0: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
@@ -26,15 +21,6 @@ span {
 p {
   font-family: 'Times New Roman', Times, serif;
 }
-/*
-inputColor:            rgba(0, 0, 0, 0.87); // gray-1
-fieldSetBorder:        rgba(0, 0, 0, 0.23); // gray-?
-:hover.fieldsetBorder: rgba(0, 0, 0, 0.87); // gray-1
-:focus.fieldsetBorder: rgb(21, 79, 166);  // blue-0
-labelColor:            rgba(0, 0, 0, 0.6); // gray-3
-:hover.labelColor:     rgba(0, 0, 0, 0.6); // gray-3
-:focus.labelColor:     rgb(21, 79, 166);  // blue-0
-*/
 fieldset {
   margin: 0;
   padding: 0;
