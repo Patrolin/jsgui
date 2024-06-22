@@ -24,16 +24,17 @@ p {
 fieldset {
   margin: 0;
   padding: 0;
-  --fieldsetWidth: 200px;
   width: var(--fieldsetWidth);
-  height: 49px;
+  height: var(--fieldsetHeight);
   position: relative;
-  --fieldsetBorder: 1px solid var(--gray-2);
-  --labelColor: var(--gray-1);
-  --labelMarginLeft: 8px;
   border: var(--fieldsetBorder);
   border-radius: 4px;
   cursor: text;
+  --fieldsetWidth: 200px;
+  --fieldsetHeight: 46px;
+  --fieldsetBorder: 1px solid var(--gray-2);
+  --labelColor: var(--gray-1);
+  --labelMarginLeft: 8px;
 }
 fieldset:hover {
   --fieldsetBorder: 1px solid var(--gray-1);
@@ -63,6 +64,6 @@ fieldset input {
   border: none;
   outline: none;
   width: 100%;
-  height: 40px;
+  height: calc(var(--fieldsetHeight) - 9px);
   padding-inline: calc(4px + var(--labelMarginLeft)) 8px;
 }
