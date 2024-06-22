@@ -116,7 +116,7 @@ function renderRoot(component, parentNode = null) {
     _render(component, component._.parentNode);
   }
 }
-function _render(component, parentNode, isStartNode = true) {
+function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   // render elements
   const {_} = component;
   const node = component._render.bind(component)(...component.args, component.props);
@@ -130,17 +130,20 @@ function _render(component, parentNode, isStartNode = true) {
   _.prevState = {..._.state};
   _.prevComponent = component;
   // append elements
-  const {style = {}, attribute = {}} = component.props;
+  const {style = {}, attribute = {}} = component.props; // TODO: handle className
   if (node) {
     for (let [k, v] of Object.entries(style)) {
-      // TODO: add px to numbers
       node.style[_camelCaseToKebabCase(k)] = _addPx(v);
+    }
+    if (component.name !== node.tagName.toLowerCase()) {
+      ownerNames = [...ownerNames, component.name];
+    }
+    console.log('ayaya.node', component, ownerNames);
+    for (let ownerName of ownerNames) {
+      node.classList.add(ownerName);
     }
     for (let [k, v] of Object.entries(attribute)) {
       node.setAttribute(_camelCaseToKebabCase(k), v);
-    }
-    if (!component._hideClass && (component.name !== node.tagName.toLowerCase())) {
-      node.setAttribute("data-component", component.name);
     }
     const prevNode = _.prevNode;
     if (isStartNode && prevNode) {
@@ -152,9 +155,13 @@ function _render(component, parentNode, isStartNode = true) {
     _.prevNode = node;
     parentNode = node;
     isStartNode = false;
+    ownerNames = [];
+  } else {
+    ownerNames = [...ownerNames, component.name];
   }
+  console.log('ayaya', component, ownerNames);
   for (let child of component.children) {
-    _render(child, parentNode, isStartNode);
+    _render(child, parentNode, isStartNode, ownerNames);
   }
 }
 function _camelCaseToKebabCase(k) {
@@ -190,7 +197,7 @@ const div = makeComponent(function div(_props) {
 const input = makeComponent(function input(props) {
   const { type, value, onInput, onChange } = props;
   const state = this.useState({ needFocus: false });
-  const e = this._?.prevNode ?? document.createElement('input');
+  const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must never be called
   if (value != null) e.value = value;
   e.type = type ?? "text";
   if (onInput) e.oninput = (event) => {
@@ -224,7 +231,7 @@ const fieldset = makeComponent(function fieldset(props) {
   }
   return e;
 });
-const legend = makeComponent(function fieldset(text, _props) {
+const legend = makeComponent(function legend(text, _props) {
   const e = document.createElement('legend');
   e.innerText = text;
   return e;
@@ -239,4 +246,4 @@ const textInput = makeComponent(function textInput(props) {
   wrapper.append(legend(label));
   wrapper.append(inputComponent);
 });
-// TODO: input components
+// TODO: more input components
