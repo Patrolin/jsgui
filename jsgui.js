@@ -50,7 +50,20 @@ class Component {
     return mediaQueryList.matches;
   }
   rerender() {
-    _rerenderNextFrame(this);
+    const root_ = this._.root;
+    const rootComponent = root_.component;
+    const newGcFlag = !root_.gcFlag;
+    if (!rootComponent.willRerenderNextFrame) {
+      rootComponent.willRerenderNextFrame = true;
+      requestAnimationFrame(() => {
+        const newRootComponent = _copyComponent(rootComponent);
+        root_.gcFlag = newGcFlag;
+        root_.component = newRootComponent;
+        _render(newRootComponent, newRootComponent._.parentNode);
+        _unloadUnusedComponents(rootComponent, newGcFlag);
+        rootComponent.willRerenderNextFrame = false;
+      });
+    }
   }
 }
 function makeComponent(_render) {
@@ -100,10 +113,10 @@ function renderRoot(component, parentNode = null) {
   component._ = new RootComponentMetadata(component, parentNode);
   window.onload = () => {
     component._.parentNode = component._.parentNode ?? document.body;
-    _renderElements(component, component._.parentNode);
+    _render(component, component._.parentNode);
   }
 }
-function _renderElements(component, parentNode, isStartNode = true) {
+function _render(component, parentNode, isStartNode = true) {
   // render elements
   const {_} = component;
   const node = component._render.bind(component)(...component.args, component.props);
@@ -141,7 +154,7 @@ function _renderElements(component, parentNode, isStartNode = true) {
     isStartNode = false;
   }
   for (let child of component.children) {
-    _renderElements(child, parentNode, isStartNode);
+    _render(child, parentNode, isStartNode);
   }
 }
 function _camelCaseToKebabCase(k) {
@@ -162,23 +175,6 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
       delete child_.parent.keyToChild[child.key];
     }
     _unloadUnusedComponents(child, gcFlag);
-  }
-}
-let _doRerenderNextFrame = false;
-function _rerenderNextFrame(_component) {
-  const rootComponent = _component._.root.component;
-  const {_} = rootComponent;
-  const newGcFlag = !_.gcFlag;
-  if (!rootComponent.willRerenderNextFrame) {
-    rootComponent.willRerenderNextFrame = true;
-    requestAnimationFrame(() => {
-      const newRootComponent = _copyComponent(rootComponent);
-      _.gcFlag = newGcFlag;
-      _.component = newRootComponent;
-      _renderElements(newRootComponent, newRootComponent._.parentNode);
-      _unloadUnusedComponents(rootComponent, newGcFlag);
-      rootComponent.willRerenderNextFrame = false;
-    });
   }
 }
 
