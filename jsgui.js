@@ -139,7 +139,7 @@ function _render(component, parentNode, isStartNode = true) {
     for (let [k, v] of Object.entries(attribute)) {
       node.setAttribute(_camelCaseToKebabCase(k), v);
     }
-    if (component.name !== node.tagName.toLowerCase()) {
+    if (!component._hideClass && (component.name !== node.tagName.toLowerCase())) {
       node.setAttribute("data-component", component.name);
     }
     const prevNode = _.prevNode;
@@ -186,7 +186,7 @@ const span = makeComponent(function span(text, _props) {
 });
 const div = makeComponent(function div(_props) {
   return document.createElement('div');
-})
+});
 const input = makeComponent(function input(props) {
   const { type, value, onInput, onChange } = props;
   const state = this.useState({ needFocus: false });
@@ -206,5 +206,37 @@ const input = makeComponent(function input(props) {
     }
   });
   return e;
-})
+});
+const fieldset = makeComponent(function fieldset(props) {
+  const {redirectFocusTo} = props;
+  const e = document.createElement('fieldset');
+  if (redirectFocusTo) {
+    e.onmousedown = (event) => {
+      if (event.target !== redirectFocusTo._.prevNode) {
+        event.preventDefault();
+      }
+    }
+    e.onclick = (event) => {
+      if (event.target !== redirectFocusTo._.prevNode) {
+        redirectFocusTo._.prevNode.focus();
+      }
+    };
+  }
+  return e;
+});
+const legend = makeComponent(function fieldset(text, _props) {
+  const e = document.createElement('legend');
+  e.innerText = text;
+  return e;
+});
+const htmlLabel = makeComponent(function label(_props) {
+  return document.createElement("label");
+});
+const textInput = makeComponent(function textInput(props) {
+  const {label = "", value, onInput} = props;
+  const inputComponent = input({ type: "text", value, onInput });
+  const wrapper = this.append(fieldset({ redirectFocusTo: inputComponent }));
+  wrapper.append(legend(label));
+  wrapper.append(inputComponent);
+});
 // TODO: input components

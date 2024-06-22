@@ -1,6 +1,82 @@
+/* alphas:
+  (1-0.921) * 255 = ~20
+  (1-0.921) * 255 = ~60
+  (1-0.607) * 255 = ~100
+*/
+body {
+  --gray-0: rgb(0, 0, 0);
+  --gray-1: rgba(0, 0, 0, 0.7);
+  --gray-2: rgba(0, 0, 0, 0.4);
+  --blue-0: rgb(20, 80, 160);
+  --blue-1: rgba(20, 80, 160, 0.7);
+  --blue-2: rgba(20, 80, 160, 0.4);
+  color: var(--gray-0);
+}
 * {
   max-width: 100%; /* make ellipsis work */
+  box-sizing: border-box;
+  font-size: 14px;
+  line-height: 1.5;
+  font-family: sans-serif;
+  transition: color 0.05s;
 }
 span {
   display: inline-block; /* make ellipsis work */
+}
+p {
+  font-family: 'Times New Roman', Times, serif;
+}
+/*
+inputColor:            rgba(0, 0, 0, 0.87); // gray-1
+fieldSetBorder:        rgba(0, 0, 0, 0.23); // gray-?
+:hover.fieldsetBorder: rgba(0, 0, 0, 0.87); // gray-1
+:focus.fieldsetBorder: rgb(21, 79, 166);  // blue-0
+labelColor:            rgba(0, 0, 0, 0.6); // gray-3
+:hover.labelColor:     rgba(0, 0, 0, 0.6); // gray-3
+:focus.labelColor:     rgb(21, 79, 166);  // blue-0
+*/
+fieldset {
+  margin: 0;
+  padding: 0;
+  --fieldsetWidth: 200px;
+  width: var(--fieldsetWidth);
+  height: 49px;
+  position: relative;
+  --fieldsetBorder: 1px solid var(--gray-2);
+  --labelColor: var(--gray-1);
+  --labelMarginLeft: 8px;
+  border: var(--fieldsetBorder);
+  border-radius: 4px;
+  cursor: text;
+}
+fieldset:hover {
+  --fieldsetBorder: 1px solid var(--gray-1);
+  --labelColor: var(--gray-1);
+}
+fieldset:focus-within {
+  --fieldsetBorder: 2px solid var(--blue-0);
+  --labelColor: var(--blue-0);
+  --labelMarginLeft: 7px;
+}
+fieldset legend {
+  color: var(--labelColor);
+  user-select: none;
+  font-size: 12px;
+  margin-left: var(--labelMarginLeft);
+  padding-inline: 4px;
+  max-width: var(--fieldsetWidth);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+fieldset input {
+  position: absolute;
+  background: none;
+  top: -9px;
+  left: 0;
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 40px;
+  padding-inline: 12px var(--labelMarginLeft);
 }

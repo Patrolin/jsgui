@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <head>
   <title>jsgui</title>
-  <script src="jsgui.js" type="text/javascript"></script>
+  <script src="jsgui.js"></script>
+  <link rel="stylesheet" href="jsgui.css" />
   <script>
     const root = makeComponent(function root() {
       const wrapper = this.append(
@@ -10,13 +11,9 @@
         })
       );
       const state = this.useState({ i: 0 });
-      wrapper.append(span(`i: ${state.i}`));
-      if (state.i % 2 === 0) {
-        wrapper.append(someComponent({ key: "someComponent" }));
-      }
       wrapper.append(
-        input({
-          type: "text",
+        textInput({
+          label: "Username",
           value: state.foo,
           onInput: (event) => {
             state.foo = event.target.value;
@@ -25,6 +22,10 @@
           },
         })
       );
+      wrapper.append(span(`i: ${state.i}`));
+      if (state.i % 2 === 0) {
+        wrapper.append(someComponent({ key: "someComponent" }));
+      }
       for (let j = 0; j < state.i; j++) {
         wrapper.append(span(`foo ${j}`, { key: j }));
       }
