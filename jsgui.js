@@ -138,7 +138,6 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
     if (component.name !== node.tagName.toLowerCase()) {
       ownerNames = [...ownerNames, component.name];
     }
-    console.log('ayaya.node', component, ownerNames);
     for (let ownerName of ownerNames) {
       node.classList.add(ownerName);
     }
@@ -159,7 +158,6 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   } else {
     ownerNames = [...ownerNames, component.name];
   }
-  console.log('ayaya', component, ownerNames);
   for (let child of component.children) {
     _render(child, parentNode, isStartNode, ownerNames);
   }
