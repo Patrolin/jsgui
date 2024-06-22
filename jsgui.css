@@ -64,5 +64,5 @@ fieldset input {
   outline: none;
   width: 100%;
   height: 40px;
-  padding-inline: 12px var(--labelMarginLeft);
+  padding-inline: calc(4px + var(--labelMarginLeft)) 8px;
 }
