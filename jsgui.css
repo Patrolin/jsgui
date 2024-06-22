@@ -1,11 +1,11 @@
 body {
+  color: var(--gray-0);
   --gray-0: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
   --gray-2: rgba(0, 0, 0, 0.4);
   --blue-0: rgb(20, 80, 160);
   --blue-1: rgba(20, 80, 160, 0.7);
   --blue-2: rgba(20, 80, 160, 0.4);
-  color: var(--gray-0);
 }
 * {
   max-width: 100%; /* make ellipsis work */
