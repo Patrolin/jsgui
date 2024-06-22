@@ -158,6 +158,7 @@ function walk(component, f) {
     };
   }
 }
+// TODO: use https://developer.mozilla.org/en-US/docs/Web/API/MediaQueryList
 
 // components
 const span = makeComponent(function span(text, _props) {
