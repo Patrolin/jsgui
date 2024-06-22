@@ -10,8 +10,10 @@
         })
       );
       const state = this.useState({ i: 0 });
-      wrapper.append(span(`Hello ${state.i}`));
-      wrapper.append(span(`world ${state.i}`));
+      wrapper.append(span(`i: ${state.i}`));
+      if (state.i % 2 === 0) {
+        wrapper.append(someComponent({ key: "someComponent" }));
+      }
       wrapper.append(
         input({
           type: "text",
@@ -21,20 +23,15 @@
             state.i += 1;
             this.rerender();
           },
-          onChange: () => {
-            state.i += 1;
-            this.rerender();
-          },
         })
       );
-      /*
-      setTimeout(() => {
-        state.i += 1;
-        this.rerender();
-      }, 1000);*/
       for (let j = 0; j < state.i; j++) {
         wrapper.append(span(`foo ${j}`, { key: j }));
       }
+    });
+    const someComponent = makeComponent(function someComponent(_props) {
+      const lgOrBigger = this.useMedia({ minWidth: 1200 });
+      this.append(span(`lgOrBigger: ${lgOrBigger}`));
     });
     renderRoot(root());
   </script>
