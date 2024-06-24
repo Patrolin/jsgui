@@ -6,12 +6,12 @@
   <link rel="stylesheet" href="jsgui.css" />
   <script>
     const root = makeComponent(function root() {
+      const state = this.useState({ i: 0, username: "", count: 0 });
       const wrapper = this.append(
         div({
           style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
         })
       );
-      const state = this.useState({ i: 0, username: "", count: 0 });
       wrapper.append(
         textInput({
           label: "Username",
@@ -44,7 +44,7 @@
       }
       const iconsWrapper = wrapper.append(
         span("", {
-          size: "big",
+          fontSize: "big",
         })
       );
       iconsWrapper.append(icon("search"));

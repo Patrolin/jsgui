@@ -120,7 +120,7 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   const {style = {}, attribute = {}} = component.props; // TODO: handle className
   if (node) {
     for (let [k, v] of Object.entries(style)) {
-      node.style[_camelCaseToKebabCase(k)] = _addPx(v);
+      node.style[k] = _addPx(v);
     }
     if (component.name !== node.tagName.toLowerCase()) {
       ownerNames = [...ownerNames, component.name];
@@ -188,13 +188,17 @@ const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
 const span = makeComponent(function span(text, props) {
-  const { size, color, singleLine, fontFamily } = props;
+  const { fontSize, color, singleLine, fontFamily } = props;
   const e = document.createElement('span');
   e.innerText = text;
-  if (size) e.setAttribute("span-size", size);
-  if (color) e.setAttribute("span-color", color);
-  if (singleLine) e.setAttribute("span-singleline", singleLine);
-  if (fontFamily) e.setAttribute("span-fontfamily", fontFamily);
+  if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
+  if (color) e.style.color = `var(--${color})`;
+  if (singleLine) {
+    e.style.overflow = "hidden";
+    e.style.textOverflow = "ellipsis";
+    e.styles.whiteSpace = "nowrap";
+  }
+  if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
   return e;
 })
 const icon = makeComponent(function icon(iconName, _props) {
@@ -243,6 +247,7 @@ const input = makeComponent(function input(props) {
   });
   return e;
 });
+// TODO: simplify labeledInput
 const fieldset = makeComponent(function fieldset(props) {
   const {redirectFocusTo} = props;
   const e = document.createElement('fieldset');
@@ -268,10 +273,18 @@ const legend = makeComponent(function legend(text, _props) {
 const labeledInput = makeComponent(function labeledInput(props) {
   // TODO: left/right components
   const {label = "", inputComponent} = props;
-  const wrapper = this.append(fieldset({ redirectFocusTo: inputComponent }));
-  wrapper.append(legend(label));
-  wrapper.append(inputComponent);
-  // TODO: if(error) this.append(error);
+  const error = null; // TODO: validation api
+  //const error = "Username must have at least 4 characters.";
+  const hasError = (error != null);
+  const fieldsetAttribute = {};
+  if (hasError) fieldsetAttribute.fieldsetError = true;
+  const fieldsetWrapper = this.append(fieldset({
+    redirectFocusTo: inputComponent,
+    attribute: fieldsetAttribute,
+  }));
+  fieldsetWrapper.append(legend(label));
+  fieldsetWrapper.append(inputComponent);
+  if (hasError) this.append(span(error, {color: "red", fontSize: "small"}));
 })
 const textInput = makeComponent(function textInput(props) {
   const {label, ...extraProps} = props;
@@ -290,10 +303,16 @@ const numberInput = makeComponent(function numberInput(props) {
       allowChar: (c) => "-0123456789".includes(c),
       allowString: (value, prevAllowedValue) => {
         if (value === "") return clearable ? "" : prevAllowedValue;
-        const number = +value;
+        let number = +value;
         if (isNaN(number)) return prevAllowedValue;
-        const clampedNumber = Math.max(min ?? -1/0, Math.min(number, max ?? 1/0));
-        return String(clampedNumber);
+        // step and clamp
+        const stepOffset = min ?? max ?? 0;
+        if (step) {
+          number = number - ((number - stepOffset) % step);
+        }
+        number = Math.min(number, max ?? 1/0);
+        number = Math.max(min ?? -1/0, number);
+        return String(number);
       },
     }),
     // TODO: rightComponent to distinguish from textInput?

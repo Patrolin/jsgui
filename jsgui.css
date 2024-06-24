@@ -1,17 +1,20 @@
 body {
   font-size: var(--fontSize-normal);
-  color: var(--gray-0);
+  color: var(--gray);
   --fontFamily-sans: sans-serif;
   --fontFamily-serif: 'Times New Roman', Times, serif;
   --fontSize-small: 12px;
   --fontSize-normal: 14px;
   --fontSize-big: 16px;
-  --gray-0: rgb(0, 0, 0);
+  --gray: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
   --gray-2: rgba(0, 0, 0, 0.4);
-  --blue-0: rgb(20, 80, 160);
+  --blue: rgb(20, 80, 160);
   --blue-1: rgba(20, 80, 160, 0.7);
   --blue-2: rgba(20, 80, 160, 0.4);
+  --red: rgb(200, 50, 50);
+  --red-1: rgba(200, 50, 50, 0.7);
+  --red-2: rgba(200, 50, 50, 0.4);
 }
 * {
   max-width: 100%; /* fix ellipsis */
@@ -23,35 +26,6 @@ body {
 span {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
-}
-span[span-size="small"] {
-  font-size: var(--fontSize-small);
-}
-span[span-size="normal"] {
-  font-size: var(--fontSize-normal);
-}
-span[span-size="big"] {
-  font-size: var(--fontSize-big);
-}
-span[span-color="gray"] {
-  color: var(--gray-0);
-}
-span[span-color="blue"] {
-  color: var(--blue-0);
-}
-span[span-color="red"] {
-  color: var(--red-0);
-}
-span[span-singleline="true"] {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-span[span-fontfamily="sans"] {
-  font-family: var(--fontFamily-sans);
-}
-span[span-fontfamily="serif"] {
-  font-family: var(--fontFamily-serif);
 }
 span.icon {
   font-size: 1.5em;
@@ -79,9 +53,17 @@ fieldset:hover {
   --labelColor: var(--gray-1);
 }
 fieldset:focus-within {
-  --fieldsetBorder: 2px solid var(--blue-0);
-  --labelColor: var(--blue-0);
+  --fieldsetBorder: 2px solid var(--blue);
+  --labelColor: var(--blue);
   --labelMarginLeft: 7px;
+}
+fieldset[fieldset-error="true"] {
+  --fieldsetBorder: 1px solid var(--red);
+  --labelColor: var(--red);
+}
+fieldset[fieldset-error="true"]:focus-within {
+  --fieldsetBorder: 2px solid var(--red);
+  --labelColor: var(--red);
 }
 fieldset legend {
   color: var(--labelColor);
@@ -104,4 +86,5 @@ fieldset input {
   width: 100%;
   height: calc(var(--fieldsetHeight) - 9px);
   padding-inline: calc(4px + var(--labelMarginLeft)) 8px;
+  font-size: var(--fontSize-normal);
 }
