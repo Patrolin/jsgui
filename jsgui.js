@@ -209,10 +209,11 @@ const icon = makeComponent(function icon(iconName, _props) {
 })
 // https://fonts.google.com/icons
 const input = makeComponent(function input(props) {
-  const { type = "text", value, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
+  const { type = "text", value, autoFocus, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must not be called
   e.type = type;
+  if (autoFocus) e.autofocus = true;
   if (value != null) e.value = value;
   e.oninput = (event) => {
     if (allowChar && "data" in event) {
