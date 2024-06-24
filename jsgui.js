@@ -200,14 +200,14 @@ const span = makeComponent(function span(text, props) {
   }
   if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
   return e;
-})
+});
+// https://fonts.google.com/icons
 const icon = makeComponent(function icon(iconName, _props) {
   const icon = document.createElement('span');
   icon.classList.add("material-symbols-outlined");
   icon.innerText = iconName;
   return icon;
-})
-// https://fonts.google.com/icons
+});
 const input = makeComponent(function input(props) {
   const { type = "text", value, autoFocus, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
@@ -286,7 +286,7 @@ const labeledInput = makeComponent(function labeledInput(props) {
   fieldsetWrapper.append(legend(label));
   fieldsetWrapper.append(inputComponent);
   if (hasError) this.append(span(error, {color: "red", fontSize: "small"})); // TODO: padding
-})
+});
 const textInput = makeComponent(function textInput(props) {
   const {label, ...extraProps} = props;
   this.append(labeledInput({
