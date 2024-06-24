@@ -307,8 +307,8 @@ const numberInput = makeComponent(function numberInput(props) {
         let number = +value;
         if (isNaN(number)) return prevAllowedValue;
         // step and clamp
-        const stepOffset = min ?? max ?? 0;
         if (step) {
+          const stepOffset = min ?? max ?? 0;
           number = number - ((number - stepOffset) % step);
         }
         number = Math.min(number, max ?? 1/0);
