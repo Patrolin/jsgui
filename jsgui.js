@@ -193,8 +193,8 @@ const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
 const input = makeComponent(function input(props) {
-  const { type = "text", value, onInput, onChange, allowChar, allowString } = props;
-  const state = this.useState({ lastValidState: value ?? '', needFocus: false });
+  const { type = "text", value, onInput, onChange, allowChar, allowString = (value, lastValidValue) => value } = props;
+  const state = this.useState({ lastValidValue: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must never be called
   e.type = type;
   if (value != null) e.value = value;
@@ -203,25 +203,22 @@ const input = makeComponent(function input(props) {
       if ((event.data !== null) && !allowChar(event.data)) {
         event.preventDefault();
         event.stopPropagation();
-        e.value = state.lastValidState;
+        e.value = state.lastValidValue;
         return;
       }
     }
-    if (!allowString || allowString(e.value)) {
-      state.lastValidState = e.value ?? '';
+    if (allowString(e.value, state.lastValidValue) === e.value) {
+      state.lastValidValue = e.value ?? '';
       onInput(e.value, event);
     }
     state.needFocus = true;
   }
   e.onchange = (event) => {
-    if (allowString) {
-      if (allowString(e.value)) {
-        if (onChange) onChange(e.value, event);
-      } else {
-        e.value = state.lastValidState;
-      }
-    } else {
+    const allowedValue = allowString(e.value, state.lastValidValue);
+    if (e.value === allowedValue) {
       if (onChange) onChange(e.value, event);
+    } else {
+      e.value = allowedValue;
     }
   };
   setTimeout(() => {
@@ -272,13 +269,18 @@ const textInput = makeComponent(function textInput(props) {
 });
 const numberInput = makeComponent(function numberInput(props) {
   const { label, min, max, step, disableClearable, ...extraProps } = props;
-  const allowNegative = (min < 0);
   this.append(labeledInput({
     label,
     inputComponent: input({
       ...extraProps,
       allowChar: (c) => "-0123456789".includes(c),
-      allowString: (v) => v.match(allowNegative ? /^-?\d+$/ : /^\d+$/) || (!disableClearable && v === ""),
+      allowString: (value, lastValidValue) => {
+        if (value === "") return disableClearable ? lastValidValue : "";
+        const number = +value;
+        if (isNaN(number)) return lastValidValue;
+        const clampedNumber = Math.max(min ?? -1/0, Math.min(number, max ?? 1/0))
+        return String(clampedNumber);
+      },
     }),
     // TODO: rightComponent to distinguish from textInput?
   }));

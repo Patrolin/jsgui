@@ -32,7 +32,6 @@
           },
         })
       );
-      wrapper.append(span(`i: ${state.i}`));
       wrapper.append(span(`state: ${JSON.stringify(state)}`));
       if (state.i % 2 === 0) {
         wrapper.append(someComponent({ key: "someComponent" }));
