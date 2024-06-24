@@ -211,7 +211,7 @@ const icon = makeComponent(function icon(iconName, _props) {
 const input = makeComponent(function input(props) {
   const { type = "text", value, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
-  const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must never be called
+  const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must not be called
   e.type = type;
   if (value != null) e.value = value;
   e.oninput = (event) => {
@@ -241,7 +241,6 @@ const input = makeComponent(function input(props) {
   };
   setTimeout(() => {
     if (state.needFocus) {
-      //e.setSelectionRange(e.value.length, e.value.length);
       e.focus();
       state.needFocus = false;
     }
@@ -287,7 +286,7 @@ const textInput = makeComponent(function textInput(props) {
 });
 const numberInput = makeComponent(function numberInput(props) {
   const { label, min, max, step, clearable = true, ...extraProps } = props;
-  // TODO: handle up/down arrows
+  // TODO: handle up/down arrows keys
   this.append(labeledInput({
     label,
     inputComponent: input({
