@@ -319,7 +319,7 @@ const numberInput = makeComponent(function numberInput(props) {
     // TODO: rightComponent to distinguish from textInput?
   }));
 });
-// TODO: more input components (buttons, radios, checkboxes, switches, selects)
+// TODO: more input components (buttons, radios, checkboxes, switches, selects, date/date range input, file input)
 // TODO: tooltips, badges, dialogs, loading spinners
 // TODO: links
 // TODO: flexbox table
