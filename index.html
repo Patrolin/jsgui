@@ -2,6 +2,7 @@
 <head>
   <title>jsgui</title>
   <script src="jsgui.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
   <link rel="stylesheet" href="jsgui.css" />
   <script>
     const root = makeComponent(function root() {
@@ -41,6 +42,15 @@
       for (let j = 0; j < state.i; j++) {
         wrapper.append(span(`foo ${j}`, { key: j }));
       }
+      const iconsWrapper = wrapper.append(
+        typography("", {
+          size: "big",
+        })
+      );
+      iconsWrapper.append(icon("search"));
+      iconsWrapper.append(icon("arrow_drop_up"));
+      iconsWrapper.append(icon("arrow_drop_down"));
+      console.log("iconsWrapper", iconsWrapper);
     });
     const someComponent = makeComponent(function someComponent(_props) {
       const lgOrBigger = this.useMedia({ minWidth: 1200 });

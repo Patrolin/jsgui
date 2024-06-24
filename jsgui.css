@@ -1,5 +1,9 @@
 body {
+  font-size: var(--fontSize-normal);
   color: var(--gray-0);
+  --fontSize-small: 12px;
+  --fontSize-normal: 14px;
+  --fontSize-big: 16px;
   --gray-0: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
   --gray-2: rgba(0, 0, 0, 0.4);
@@ -8,15 +12,44 @@ body {
   --blue-2: rgba(20, 80, 160, 0.4);
 }
 * {
-  max-width: 100%; /* make ellipsis work */
+  max-width: 100%; /* fix ellipsis */
   box-sizing: border-box;
-  font-size: 14px;
   line-height: 1.5;
   font-family: sans-serif;
   transition: color 0.05s;
 }
 span {
-  display: inline-block; /* make ellipsis work */
+  display: inline-block; /* fix ellipsis */
+  vertical-align: top; /* fix inline-block */
+}
+span.typography[tg-size="small"] {
+  font-size: var(--fontSize-small);
+}
+span.typography[tg-size="normal"] {
+  font-size: var(--fontSize-normal);
+}
+span.typography[tg-size="big"] {
+  font-size: var(--fontSize-big);
+}
+span.typography[tg-color="gray"] {
+  color: var(--gray-0);
+}
+span.typography[tg-color="blue"] {
+  color: var(--blue-0);
+}
+span.typography[tg-color="red"] {
+  color: var(--red-0);
+}
+span.typography[tg-singleline="true"] {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+span.icon {
+  font-size: 1.5em;
+  line-height: 1;
+  color: var(--gray-1);
+  user-select: none;
 }
 p {
   font-family: 'Times New Roman', Times, serif;
@@ -48,7 +81,7 @@ fieldset:focus-within {
 fieldset legend {
   color: var(--labelColor);
   user-select: none;
-  font-size: 12px;
+  font-size: var(--fontSize-small);
   margin-left: var(--labelMarginLeft);
   padding-inline: 4px;
   max-width: var(--fieldsetWidth);

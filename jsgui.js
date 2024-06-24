@@ -184,16 +184,32 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
 }
 
 // components
+const div = makeComponent(function div(_props) {
+  return document.createElement('div');
+});
 const span = makeComponent(function span(text, _props) {
   const e = document.createElement('span');
   e.innerText = text;
   return e;
 });
-const div = makeComponent(function div(_props) {
-  return document.createElement('div');
-});
+const typography = makeComponent(function typography(text, props) {
+  const { size, color, singleLine } = props;
+  const e = document.createElement('span');
+  e.innerText = text;
+  if (size) e.setAttribute("tg-size", size);
+  if (color) e.setAttribute("tg-color", color);
+  if (singleLine) e.setAttribute("tg-singleline", singleLine);
+  return e;
+})
+const icon = makeComponent(function icon(iconName, _props) {
+  const icon = document.createElement('span');
+  icon.classList.add("material-symbols-outlined");
+  icon.innerText = iconName;
+  return icon;
+})
+// https://fonts.google.com/icons
 const input = makeComponent(function input(props) {
-  const { type = "text", value, onInput, onChange, allowChar, allowString = (value, prevAllowedValue) => value } = props;
+  const { type = "text", value, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must never be called
   e.type = type;
@@ -290,8 +306,7 @@ const numberInput = makeComponent(function numberInput(props) {
 });
 // TODO: more input components (buttons, radios, checkboxes, switches, selects)
 // TODO: tooltips, badges, dialogs, loading spinners
-// TODO: typography (small-normal-big, black-red, normal-singleLine), links
+// TODO: links
 // TODO: flexbox table
 // TODO: history api
 // TODO: snackbar api
-// TODO: google icons?
