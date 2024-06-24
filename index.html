@@ -10,19 +10,30 @@
           style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
         })
       );
-      const state = this.useState({ i: 0 });
+      const state = this.useState({ i: 0, count: null });
       wrapper.append(
         textInput({
           label: "Username",
-          value: state.foo,
-          onInput: (event) => {
-            state.foo = event.target.value;
+          value: state.username,
+          onInput: (newUsername) => {
+            state.username = newUsername;
             state.i += 1;
             this.rerender();
           },
         })
       );
+      wrapper.append(
+        numberInput({
+          label: "Count",
+          value: state.count,
+          onInput: (newCount) => {
+            state.count = newCount === "" ? null : +newCount;
+            this.rerender();
+          },
+        })
+      );
       wrapper.append(span(`i: ${state.i}`));
+      wrapper.append(span(`state: ${JSON.stringify(state)}`));
       if (state.i % 2 === 0) {
         wrapper.append(someComponent({ key: "someComponent" }));
       }

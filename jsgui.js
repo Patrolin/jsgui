@@ -12,19 +12,6 @@ class Component {
     this._usedKeys = new Set(); // Set<string>
   }
   append(child) {
-    let {_, _usedKeys} = this;
-    let key = child.key;
-    if (key === null) {
-      key = `${child.name}-${this._indexedChildCount++}`;
-    }
-    if (_usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, this);
-    _usedKeys.add(key);
-    const child_ = _.keyToChild[key] ?? new ComponentMetadata();
-    _.keyToChild[key] = child_;
-    child._ = child_;
-    child_.root = _.root;
-    child_.parent = _;
-    child_.gcFlag = _.gcFlag;
     this.children.push(child);
     return child;
   }
@@ -158,7 +145,20 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   } else {
     ownerNames = [...ownerNames, component.name];
   }
+  const usedKeys = new Set();
   for (let child of component.children) {
+    let key = child.key;
+    if (key === null) {
+      key = `${child.name}-${component._indexedChildCount++}`;
+    }
+    if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
+    usedKeys.add(key);
+    const child_ = _.keyToChild[key] ?? new ComponentMetadata();
+    _.keyToChild[key] = child_;
+    child._ = child_;
+    child_.root = _.root;
+    child_.parent = _;
+    child_.gcFlag = _.gcFlag;
     _render(child, parentNode, isStartNode, ownerNames);
   }
 }
@@ -193,16 +193,37 @@ const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
 const input = makeComponent(function input(props) {
-  const { type, value, onInput, onChange } = props;
-  const state = this.useState({ needFocus: false });
+  const { type = "text", value, onInput, onChange, allowChar, allowString } = props;
+  const state = this.useState({ lastValidState: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must never be called
+  e.type = type;
   if (value != null) e.value = value;
-  e.type = type ?? "text";
   if (onInput) e.oninput = (event) => {
-    onInput(event);
+    if (allowChar && "data" in event) {
+      if ((event.data !== null) && !allowChar(event.data)) {
+        event.preventDefault();
+        event.stopPropagation();
+        e.value = state.lastValidState;
+        return;
+      }
+    }
+    if (!allowString || allowString(e.value)) {
+      state.lastValidState = e.value ?? '';
+      onInput(e.value, event);
+    }
     state.needFocus = true;
   }
-  if (onChange) e.onchange = onChange;
+  e.onchange = (event) => {
+    if (allowString) {
+      if (allowString(e.value)) {
+        if (onChange) onChange(e.value, event);
+      } else {
+        e.value = state.lastValidState;
+      }
+    } else {
+      if (onChange) onChange(e.value, event);
+    }
+  };
   setTimeout(() => {
     if (state.needFocus) {
       //e.setSelectionRange(e.value.length, e.value.length);
@@ -234,14 +255,38 @@ const legend = makeComponent(function legend(text, _props) {
   e.innerText = text;
   return e;
 });
-const htmlLabel = makeComponent(function label(_props) {
-  return document.createElement("label");
-});
-const textInput = makeComponent(function textInput(props) {
-  const {label = "", value, onInput} = props;
-  const inputComponent = input({ type: "text", value, onInput });
+const labeledInput = makeComponent(function labeledInput(props) {
+  // TODO: left/right components
+  const {label = "", inputComponent} = props;
   const wrapper = this.append(fieldset({ redirectFocusTo: inputComponent }));
   wrapper.append(legend(label));
   wrapper.append(inputComponent);
+  // TODO: if(error) this.append(error);
+})
+const textInput = makeComponent(function textInput(props) {
+  const {label, ...extraProps} = props;
+  this.append(labeledInput({
+    label,
+    inputComponent: input(extraProps),
+  }));
 });
-// TODO: more input components
+const numberInput = makeComponent(function numberInput(props) {
+  const { label, min, max, step, disableClearable, ...extraProps } = props;
+  const allowNegative = (min < 0);
+  this.append(labeledInput({
+    label,
+    inputComponent: input({
+      ...extraProps,
+      allowChar: (c) => "-0123456789".includes(c),
+      allowString: (v) => v.match(allowNegative ? /^-?\d+$/ : /^\d+$/) || (!disableClearable && v === ""),
+    }),
+    // TODO: rightComponent to distinguish from textInput?
+  }));
+});
+// TODO: more input components (buttons, radios, checkboxes, switches, selects)
+// TODO: tooltips, badges, dialogs, loading spinners
+// TODO: typography (small-normal-big, black-red, normal-singleLine), links
+// TODO: flexbox table
+// TODO: history api
+// TODO: snackbar api
+// TODO: google icons?
