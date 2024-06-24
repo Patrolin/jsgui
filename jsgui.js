@@ -285,7 +285,7 @@ const labeledInput = makeComponent(function labeledInput(props) {
   }));
   fieldsetWrapper.append(legend(label));
   fieldsetWrapper.append(inputComponent);
-  if (hasError) this.append(span(error, {color: "red", fontSize: "small"}));
+  if (hasError) this.append(span(error, {color: "red", fontSize: "small"})); // TODO: padding
 })
 const textInput = makeComponent(function textInput(props) {
   const {label, ...extraProps} = props;
