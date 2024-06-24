@@ -187,18 +187,14 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
 const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
-const span = makeComponent(function span(text, _props) {
+const span = makeComponent(function span(text, props) {
+  const { size, color, singleLine, fontFamily } = props;
   const e = document.createElement('span');
   e.innerText = text;
-  return e;
-});
-const typography = makeComponent(function typography(text, props) {
-  const { size, color, singleLine } = props;
-  const e = document.createElement('span');
-  e.innerText = text;
-  if (size) e.setAttribute("tg-size", size);
-  if (color) e.setAttribute("tg-color", color);
-  if (singleLine) e.setAttribute("tg-singleline", singleLine);
+  if (size) e.setAttribute("span-size", size);
+  if (color) e.setAttribute("span-color", color);
+  if (singleLine) e.setAttribute("span-singleline", singleLine);
+  if (fontFamily) e.setAttribute("span-fontfamily", fontFamily);
   return e;
 })
 const icon = makeComponent(function icon(iconName, _props) {

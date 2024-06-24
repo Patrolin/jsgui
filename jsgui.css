@@ -1,6 +1,8 @@
 body {
   font-size: var(--fontSize-normal);
   color: var(--gray-0);
+  --fontFamily-sans: sans-serif;
+  --fontFamily-serif: 'Times New Roman', Times, serif;
   --fontSize-small: 12px;
   --fontSize-normal: 14px;
   --fontSize-big: 16px;
@@ -15,44 +17,47 @@ body {
   max-width: 100%; /* fix ellipsis */
   box-sizing: border-box;
   line-height: 1.5;
-  font-family: sans-serif;
+  font-family: var(--fontFamily-sans);
   transition: color 0.05s;
 }
 span {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
 }
-span.typography[tg-size="small"] {
+span[span-size="small"] {
   font-size: var(--fontSize-small);
 }
-span.typography[tg-size="normal"] {
+span[span-size="normal"] {
   font-size: var(--fontSize-normal);
 }
-span.typography[tg-size="big"] {
+span[span-size="big"] {
   font-size: var(--fontSize-big);
 }
-span.typography[tg-color="gray"] {
+span[span-color="gray"] {
   color: var(--gray-0);
 }
-span.typography[tg-color="blue"] {
+span[span-color="blue"] {
   color: var(--blue-0);
 }
-span.typography[tg-color="red"] {
+span[span-color="red"] {
   color: var(--red-0);
 }
-span.typography[tg-singleline="true"] {
+span[span-singleline="true"] {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+span[span-fontfamily="sans"] {
+  font-family: var(--fontFamily-sans);
+}
+span[span-fontfamily="serif"] {
+  font-family: var(--fontFamily-serif);
 }
 span.icon {
   font-size: 1.5em;
   line-height: 1;
   color: var(--gray-1);
   user-select: none;
-}
-p {
-  font-family: 'Times New Roman', Times, serif;
 }
 fieldset {
   margin: 0;
