@@ -193,28 +193,30 @@ const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
 const input = makeComponent(function input(props) {
-  const { type = "text", value, onInput, onChange, allowChar, allowString = (value, lastValidValue) => value } = props;
-  const state = this.useState({ lastValidValue: value ?? '', needFocus: false });
+  const { type = "text", value, onInput, onChange, allowChar, allowString = (value, prevAllowedValue) => value } = props;
+  const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must never be called
   e.type = type;
   if (value != null) e.value = value;
-  if (onInput) e.oninput = (event) => {
+  e.oninput = (event) => {
     if (allowChar && "data" in event) {
       if ((event.data !== null) && !allowChar(event.data)) {
         event.preventDefault();
         event.stopPropagation();
-        e.value = state.lastValidValue;
+        e.value = state.prevAllowedValue;
         return;
       }
     }
-    if (allowString(e.value, state.lastValidValue) === e.value) {
-      state.lastValidValue = e.value ?? '';
-      onInput(e.value, event);
-    }
+    const allowedValue = allowString(e.value, state.prevAllowedValue);
+    state.prevAllowedValue = allowedValue;
     state.needFocus = true;
+    if (allowedValue === e.value) {
+      if (onInput) onInput(allowedValue, event);
+    }
   }
   e.onchange = (event) => {
-    const allowedValue = allowString(e.value, state.lastValidValue);
+    const allowedValue = allowString(e.value, state.prevAllowedValue);
+    state.prevAllowedValue = allowedValue;
     if (e.value === allowedValue) {
       if (onChange) onChange(e.value, event);
     } else {
@@ -274,11 +276,11 @@ const numberInput = makeComponent(function numberInput(props) {
     inputComponent: input({
       ...extraProps,
       allowChar: (c) => "-0123456789".includes(c),
-      allowString: (value, lastValidValue) => {
-        if (value === "") return disableClearable ? lastValidValue : "";
+      allowString: (value, prevAllowedValue) => {
+        if (value === "") return disableClearable ? prevAllowedValue : "";
         const number = +value;
-        if (isNaN(number)) return lastValidValue;
-        const clampedNumber = Math.max(min ?? -1/0, Math.min(number, max ?? 1/0))
+        if (isNaN(number)) return prevAllowedValue;
+        const clampedNumber = Math.max(min ?? -1/0, Math.min(number, max ?? 1/0));
         return String(clampedNumber);
       },
     }),

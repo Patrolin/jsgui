@@ -30,6 +30,7 @@
             state.count = newCount === "" ? null : +newCount;
             this.rerender();
           },
+          min: 0,
         })
       );
       wrapper.append(span(`state: ${JSON.stringify(state)}`));
