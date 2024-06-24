@@ -270,14 +270,15 @@ const textInput = makeComponent(function textInput(props) {
   }));
 });
 const numberInput = makeComponent(function numberInput(props) {
-  const { label, min, max, step, disableClearable, ...extraProps } = props;
+  const { label, min, max, step, clearable = true, ...extraProps } = props;
+  // TODO: handle up/down arrows
   this.append(labeledInput({
     label,
     inputComponent: input({
       ...extraProps,
       allowChar: (c) => "-0123456789".includes(c),
       allowString: (value, prevAllowedValue) => {
-        if (value === "") return disableClearable ? prevAllowedValue : "";
+        if (value === "") return clearable ? "" : prevAllowedValue;
         const number = +value;
         if (isNaN(number)) return prevAllowedValue;
         const clampedNumber = Math.max(min ?? -1/0, Math.min(number, max ?? 1/0));
