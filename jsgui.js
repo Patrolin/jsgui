@@ -377,11 +377,16 @@ const numberInput = makeComponent(function numberInput(props) {
 // TODO: history api
 // TODO: snackbar api
 /*
-// TODO: document validation api
-const validate = () => {
-  const {errors} = state;
-  if (state.username.length < 4) state.errors.username = "Username must have at least 4 characters."
-  this.rerender();
+// TODO: validation api
+const validate = this.useValidate((errors) => {
+  if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
+});
+const onSubmit = () => {
+  if (validate()) {
+    // ...
+  } else {
+    this.rerender();
+  }
 }
 */
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
