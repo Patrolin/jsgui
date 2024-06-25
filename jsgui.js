@@ -228,7 +228,7 @@ const input = makeComponent(function input(props) {
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = value;
   e.onkeydown = (event) => {
-    onKeyDown(event);
+    if (onKeyDown) onKeyDown(event);
     state.needFocus = true;
   };
   e.oninput = (event) => {
@@ -304,7 +304,7 @@ const numberArrows = makeComponent(function numberArrows(props) {
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
 })
 const numberInput = makeComponent(function numberInput(props) {
-  const { label, value, error, min, max, step, clearable = true, onInput, onChange, ...extraProps } = props;
+  const { label, value, error, min, max, step, clearable = true, onInput, onChange, leftComponent, ...extraProps } = props;
   const stepAndClamp = (number) => {
     if (step) {
       const stepOffset = min ?? max ?? 0;
@@ -321,6 +321,7 @@ const numberInput = makeComponent(function numberInput(props) {
   }
   this.append(labeledInput({
     label,
+    leftComponent,
     inputComponent: input({
       value,
       onInput,
