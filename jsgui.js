@@ -261,12 +261,9 @@ const input = makeComponent(function input(props) {
     }
   };
   setTimeout(() => {
-    console.log('ayaya.needFocus.0', state)
     if (state.needFocus) {
       e.focus();
-      console.log('ayaya.needFocus.1')
       if (e !== document.activeElement) {
-        console.log('ayaya.needFocus.2')
         e.select();
         e.setSelectionRange(-1, -1);
       }
