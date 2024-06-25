@@ -216,7 +216,11 @@ const icon = makeComponent(function icon(iconName, props) {
   e.innerText = iconName;
   if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
   if (color) e.style.color = `var(--${color})`;
-  if (onClick) e.onclick = onClick;
+  if (onClick) {
+    e.onclick = onClick;
+    e.setAttribute("tabindex", "-1"); // allow having focus¨
+    // TODO: keep focus after rerender
+  }
   e.setAttribute("clickable", onClick != null);
   return e;
 });
@@ -257,8 +261,15 @@ const input = makeComponent(function input(props) {
     }
   };
   setTimeout(() => {
+    console.log('ayaya.needFocus.0', state)
     if (state.needFocus) {
       e.focus();
+      console.log('ayaya.needFocus.1')
+      if (e !== document.activeElement) {
+        console.log('ayaya.needFocus.2')
+        e.select();
+        e.setSelectionRange(-1, -1);
+      }
       state.needFocus = false;
     }
   });
@@ -304,7 +315,7 @@ const numberArrows = makeComponent(function numberArrows(props) {
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
 })
 const numberInput = makeComponent(function numberInput(props) {
-  const { label, value, error, min, max, step, clearable = true, onInput, onChange, leftComponent, ...extraProps } = props;
+  const { label, value, error, min, max, step, clearable = true, onKeyDown, onInput, onChange, leftComponent, ...extraProps } = props;
   const stepAndClamp = (number) => {
     if (step) {
       const stepOffset = min ?? max ?? 0;
@@ -319,38 +330,44 @@ const numberInput = makeComponent(function numberInput(props) {
     if (onInput) onInput(newValue, event);
     if (onChange) onChange(newValue, event);
   }
+  const inputComponent = input({
+    value,
+    onKeyDown: (event) => {
+      switch (event.key) {
+        case "ArrowUp":
+          incrementValue(step ?? 1);
+          break;
+        case "ArrowDown":
+          incrementValue(-(step ?? 1));
+          break;
+      }
+      if (onKeyDown) onKeyDown(event);
+    },
+    onInput,
+    onChange,
+    ...extraProps,
+    allowChar: (c) => "-0123456789".includes(c),
+    allowString: (value, prevAllowedValue) => {
+      if (value === "") return clearable ? "" : prevAllowedValue;
+      let number = +value;
+      if (isNaN(number)) return prevAllowedValue;
+      return String(stepAndClamp(number));
+    },
+  });
   this.append(labeledInput({
     label,
     leftComponent,
-    inputComponent: input({
-      value,
-      onInput,
-      onChange,
-      onKeyDown: (event) => {
-        switch (event.key) {
-          case "ArrowUp":
-            incrementValue(step ?? 1);
-            break;
-          case "ArrowDown":
-            incrementValue(-(step ?? 1));
-            break;
-        }
-      },
-      ...extraProps,
-      allowChar: (c) => "-0123456789".includes(c),
-      allowString: (value, prevAllowedValue) => {
-        if (value === "") return clearable ? "" : prevAllowedValue;
-        let number = +value;
-        if (isNaN(number)) return prevAllowedValue;
-        return String(stepAndClamp(number));
-      },
-    }),
+    inputComponent,
     rightComponent: numberArrows({
-      onClickUp: (event) => {
+      onClickUp: (_event) => {
         incrementValue(step ?? 1);
+        inputComponent._.state.needFocus = true; // TODO: this flashes :focus-within on and off...
+        inputComponent.rerender();
       },
-      onClickDown: (event) => {
+      onClickDown: (_event) => {
         incrementValue(-(step ?? 1));
+        inputComponent._.state.needFocus = true;
+        inputComponent.rerender();
       },
     }),
   }));
