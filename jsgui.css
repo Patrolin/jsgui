@@ -9,12 +9,15 @@ body {
   --gray: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
   --gray-2: rgba(0, 0, 0, 0.4);
+  --gray-3: rgba(0, 0, 0, 0.1);
   --blue: rgb(20, 80, 160);
   --blue-1: rgba(20, 80, 160, 0.7);
   --blue-2: rgba(20, 80, 160, 0.4);
+  --blue-3: rgba(20, 80, 160, 0.1);
   --red: rgb(200, 50, 50);
   --red-1: rgba(200, 50, 50, 0.7);
   --red-2: rgba(200, 50, 50, 0.4);
+  --red-3: rgba(200, 50, 50, 0.1);
 }
 * {
   max-width: 100%; /* fix ellipsis */
@@ -27,45 +30,51 @@ span {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
 }
-span.icon {
+.icon {
   font-size: 1.5em;
   line-height: 1;
+  width: 1em;
+  height: 1em;
   color: var(--gray-1);
   user-select: none;
 }
-fieldset {
+.icon[clickable="true"] {
+  cursor: pointer;
+}
+.labeledInput {
   margin: 0;
   padding: 0;
   width: var(--fieldsetWidth);
   height: var(--fieldsetHeight);
-  position: relative;
   border: var(--fieldsetBorder);
   border-radius: 4px;
   cursor: text;
-  --fieldsetWidth: 200px;
-  --fieldsetHeight: 46px;
+  display: flex;
+  justify-content: space-between;
+  --fieldsetWidth: 194px;
+  --fieldsetHeight: 45px;
   --fieldsetBorder: 1px solid var(--gray-2);
   --labelColor: var(--gray-1);
   --labelMarginLeft: 8px;
 }
-fieldset:hover {
+.labeledInput:hover {
   --fieldsetBorder: 1px solid var(--gray-1);
   --labelColor: var(--gray-1);
 }
-fieldset:focus-within {
+.labeledInput:focus-within {
   --fieldsetBorder: 2px solid var(--blue);
   --labelColor: var(--blue);
   --labelMarginLeft: 7px;
 }
-fieldset[fieldset-error="true"] {
+.labeledInput[fieldset-error="true"] {
   --fieldsetBorder: 1px solid var(--red);
   --labelColor: var(--red);
 }
-fieldset[fieldset-error="true"]:focus-within {
+.labeledInput[fieldset-error="true"]:focus-within {
   --fieldsetBorder: 2px solid var(--red);
   --labelColor: var(--red);
 }
-fieldset legend {
+.labeledInput legend {
   color: var(--labelColor);
   user-select: none;
   font-size: var(--fontSize-small);
@@ -76,15 +85,37 @@ fieldset legend {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-fieldset input {
-  position: absolute;
+.labeledInput > :not(legend) {
+  position: relative;
   background: none;
   top: -9px;
-  left: 0;
-  border: none;
-  outline: none;
+  height: calc(var(--fieldsetHeight) - 9px);
+}
+.numberArrows {
+  display: flex;
+  flex-direction: column;
+  font-size: var(--fontSize-small);
+  color: var(--gray-1);
+}
+.numberArrows .icon {
+  border-left: 1px solid var(--gray-3);
+}
+.numberArrows .icon.upIcon {
+  border-bottom: 1px solid var(--gray-3);
+}
+.numberArrows .icon.downIcon {
+  padding-bottom: 1px;
+}
+.numberArrows .icon:hover {
+  color: var(--gray);
+  background: var(--gray-3);
+}
+.labeledInput input {
   width: 100%;
   height: calc(var(--fieldsetHeight) - 9px);
-  padding-inline: calc(4px + var(--labelMarginLeft)) 8px;
+  border: none;
+  outline: none;
+  flex: 1;
+  padding-inline: calc(4px + var(--labelMarginLeft)) 9px;
   font-size: var(--fontSize-normal);
 }

@@ -117,7 +117,7 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   _.prevState = {..._.state};
   _.prevComponent = component;
   // append elements
-  const {style = {}, attribute = {}} = component.props; // TODO: handle className
+  const {style = {}, className, attribute = {}} = component.props;
   if (node) {
     for (let [k, v] of Object.entries(style)) {
       node.style[k] = _addPx(v);
@@ -127,6 +127,13 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
     }
     for (let ownerName of ownerNames) {
       node.classList.add(ownerName);
+    }
+    if (Array.isArray(className)) {
+      for (let v of className) {
+        node.classList.add(v);
+      }
+    } else if (className) {
+      node.classList.add(className);
     }
     for (let [k, v] of Object.entries(attribute)) {
       node.setAttribute(_camelCaseToKebabCase(k), v);
@@ -202,19 +209,28 @@ const span = makeComponent(function span(text, props) {
   return e;
 });
 // https://fonts.google.com/icons
-const icon = makeComponent(function icon(iconName, _props) {
-  const icon = document.createElement('span');
-  icon.classList.add("material-symbols-outlined");
-  icon.innerText = iconName;
-  return icon;
+const icon = makeComponent(function icon(iconName, props) {
+  const {fontSize, color, onClick} = props;
+  const e = document.createElement('span');
+  e.classList.add("material-symbols-outlined");
+  e.innerText = iconName;
+  if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
+  if (color) e.style.color = `var(--${color})`;
+  if (onClick) e.onclick = onClick;
+  e.setAttribute("clickable", onClick != null);
+  return e;
 });
 const input = makeComponent(function input(props) {
-  const { type = "text", value, autoFocus, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
+  const { type = "text", value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must not be called
   e.type = type;
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = value;
+  e.onkeydown = (event) => {
+    onKeyDown(event);
+    state.needFocus = true;
+  };
   e.oninput = (event) => {
     if (allowChar && "data" in event) {
       if ((event.data !== null) && !allowChar(event.data)) {
@@ -248,76 +264,96 @@ const input = makeComponent(function input(props) {
   });
   return e;
 });
-// TODO: simplify labeledInput
-const fieldset = makeComponent(function fieldset(props) {
-  const {redirectFocusTo} = props;
-  const e = document.createElement('fieldset');
-  if (redirectFocusTo) {
-    e.onmousedown = (event) => {
-      if (event.target !== redirectFocusTo._.prevNode) {
-        event.preventDefault();
-      }
-    }
-    e.onclick = (event) => {
-      if (event.target !== redirectFocusTo._.prevNode) {
-        redirectFocusTo._.prevNode.focus();
-      }
-    };
-  }
-  return e;
-});
-const legend = makeComponent(function legend(text, _props) {
-  const e = document.createElement('legend');
-  e.innerText = text;
-  return e;
-});
 const labeledInput = makeComponent(function labeledInput(props) {
-  // TODO: left/right components
-  const {label = "", inputComponent} = props;
-  const error = null; // TODO: validation api
-  //const error = "Username must have at least 4 characters.";
-  const hasError = (error != null);
-  const fieldsetAttribute = {};
-  if (hasError) fieldsetAttribute.fieldsetError = true;
-  const fieldsetWrapper = this.append(fieldset({
-    redirectFocusTo: inputComponent,
-    attribute: fieldsetAttribute,
-  }));
-  fieldsetWrapper.append(legend(label));
-  fieldsetWrapper.append(inputComponent);
-  if (hasError) this.append(span(error, {color: "red", fontSize: "small"})); // TODO: padding
+  const {label = "", leftComponent, inputComponent, rightComponent} = props;
+  const fieldset = document.createElement("fieldset");
+  fieldset.onmousedown = (event) => {
+    if (event.target !== inputComponent._.prevNode) {
+      event.preventDefault();
+    }
+  }
+  fieldset.onclick = (event) => {
+    if (event.target !== inputComponent._.prevNode) {
+      inputComponent._.prevNode.focus();
+    }
+  };
+  const legend = document.createElement("legend");
+  legend.innerText = label;
+  fieldset.append(legend);
+  //const inputWrapper = this.append(div());
+  if (leftComponent) this.append(leftComponent);
+  this.append(inputComponent);
+  if (rightComponent) this.append(rightComponent);
+  return fieldset;
+})
+const errorMessage = makeComponent(function errorMessage(error, props) {
+  this.append(span(error, {color: "red", fontSize: "small", ...props}));
 });
 const textInput = makeComponent(function textInput(props) {
-  const {label, ...extraProps} = props;
+  const {label, error, ...extraProps} = props;
   this.append(labeledInput({
     label,
     inputComponent: input(extraProps),
   }));
+  if (error) this.append(errorMessage(error));
 });
+const numberArrows = makeComponent(function numberArrows(props) {
+  const { onClickUp, onClickDown } = props;
+  const wrapper = this.append(div());
+  wrapper.append(icon("arrow_drop_up", {className: "upIcon", onClick: onClickUp}));
+  wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
+})
 const numberInput = makeComponent(function numberInput(props) {
-  const { label, min, max, step, clearable = true, ...extraProps } = props;
-  // TODO: handle up/down arrows keys
+  const { label, value, error, min, max, step, clearable = true, onInput, onChange, ...extraProps } = props;
+  const stepAndClamp = (number) => {
+    if (step) {
+      const stepOffset = min ?? max ?? 0;
+      number = number - ((number - stepOffset) % step);
+    }
+    number = Math.min(number, max ?? 1/0);
+    return Math.max(min ?? -1/0, number);
+  };
+  const incrementValue = (by) => {
+    const number = stepAndClamp(+(value ?? 0) + by);
+    const newValue = String(number);
+    if (onInput) onInput(newValue, event);
+    if (onChange) onChange(newValue, event);
+  }
   this.append(labeledInput({
     label,
     inputComponent: input({
+      value,
+      onInput,
+      onChange,
+      onKeyDown: (event) => {
+        switch (event.key) {
+          case "ArrowUp":
+            incrementValue(step ?? 1);
+            break;
+          case "ArrowDown":
+            incrementValue(-(step ?? 1));
+            break;
+        }
+      },
       ...extraProps,
       allowChar: (c) => "-0123456789".includes(c),
       allowString: (value, prevAllowedValue) => {
         if (value === "") return clearable ? "" : prevAllowedValue;
         let number = +value;
         if (isNaN(number)) return prevAllowedValue;
-        // step and clamp
-        if (step) {
-          const stepOffset = min ?? max ?? 0;
-          number = number - ((number - stepOffset) % step);
-        }
-        number = Math.min(number, max ?? 1/0);
-        number = Math.max(min ?? -1/0, number);
-        return String(number);
+        return String(stepAndClamp(number));
       },
     }),
-    // TODO: rightComponent to distinguish from textInput?
+    rightComponent: numberArrows({
+      onClickUp: (event) => {
+        incrementValue(step ?? 1);
+      },
+      onClickDown: (event) => {
+        incrementValue(-(step ?? 1));
+      },
+    }),
   }));
+  if (error) this.append(errorMessage(error));
 });
 // TODO: more input components (buttons, radios, checkboxes, switches, selects, date/date range input, file input)
 // TODO: tooltips, badges, dialogs, loading spinners
@@ -325,3 +361,11 @@ const numberInput = makeComponent(function numberInput(props) {
 // TODO: flexbox table
 // TODO: history api
 // TODO: snackbar api
+/*
+// TODO: document validation api
+const validate = () => {
+  const {errors} = state;
+  if (state.username.length < 4) state.errors.username = "Username must have at least 4 characters."
+  this.rerender();
+}
+*/
