@@ -2,6 +2,7 @@
 class Component {
   constructor(onRender, onMount, args, key, props) {
     this.name = onRender.name; // string
+    if (!this.name) throw `Function name cannot be empty: ${onRender}`;
     this.args = args // any[]
     this.key = (key != null) ? String(key) : null;
     this.props = props; // Record<string, any>
@@ -116,10 +117,11 @@ function renderRoot(component, parentNode = null) {
     _render(component, component._.parentNode);
   }
 }
-function _render(component, parentNode, isStartNode = true, ownerNames = []) {
+function _render(component, parentNode, isStartNode = true, ownerNames = [], cssVars = {}) {
   // render elements
   const {_, name, args, props, onRender, onMount, _indexedChildCount} = component;
-  const node = onRender.bind(component)(...args, props);
+  let node = onRender.bind(component)(...args, props);
+  if (!(node instanceof Element)) node = null;
   // set prev state
   const prevIndexedChildCount = _.prevIndexedChildCount;
   if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
@@ -130,10 +132,21 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   _.prevComponent = component;
   // append elements
   const {style = {}, className, attribute = {}} = props;
+  if (props.cssVars)
+    cssVars = {...cssVars, ...(props.cssVars ?? {})};
   if (node) {
     for (let [k, v] of Object.entries(style)) {
-      node.style[k] = _addPx(v);
+      if (v != null) {
+        node.style[k] = _addPx(v);
+      }
     }
+    for (let [k, v] of Object.entries(cssVars)) {
+      if (v != null) {
+        console.log(k, v);
+        node.style.setProperty(`--${k}`, _addPx(v));
+      }
+    }
+    cssVars = {};
     if (name !== node.tagName.toLowerCase()) {
       ownerNames = [...ownerNames, name];
     }
@@ -145,7 +158,9 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
         node.classList.add(v);
       }
     } else if (className) {
-      node.classList.add(className);
+      for (let v of className.split(" ")) {
+        if (v) node.classList.add(v);
+      }
     }
     for (let [k, v] of Object.entries(attribute)) {
       node.setAttribute(_camelCaseToKebabCase(k), v);
@@ -178,7 +193,7 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
     child_.root = _.root;
     child_.parent = _;
     child_.gcFlag = _.gcFlag;
-    _render(child, parentNode, isStartNode, ownerNames);
+    _render(child, parentNode, isStartNode, ownerNames, cssVars);
   }
 }
 function _camelCaseToKebabCase(k) {
@@ -202,7 +217,7 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
   }
 }
 
-// components
+// basic components
 const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
@@ -214,7 +229,6 @@ const span = makeComponent(function span(text, props) {
   if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
   if (isLink) {
     e.href = href;
-    e.style.color = `var(--blue)`;
   }
   if (color) e.style.color = `var(--${color})`;
   if (singleLine) {
@@ -240,6 +254,10 @@ const icon = makeComponent(function icon(iconName, props) {
   e.setAttribute("clickable", onClick != null);
   return e;
 });
+const loadingSpinner = makeComponent(function loadingSpinner(props) {
+  this.append(icon("progress_activity", {color: 'blue', ...props}));
+})
+// inputs
 const input = makeComponent(function input(props) {
   const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
@@ -383,6 +401,43 @@ const numberInput = makeComponent(function numberInput(props) {
   }));
   if (error) this.append(errorMessage(error));
 });
+// table
+const table = makeComponent(function table(props) {
+  // TODO: set minHeight to fit N rows
+  // TODO: actions, filters, search, paging, selection
+  const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
+  const tableWrapper = this.append(div({
+    attribute: {useMaxHeight, isLoading},
+    style: {minHeight},
+  }));
+  const makeRow = (className) => div({className});
+  const makeCell = (column) => div({
+    className: "cell",
+    style: {flex: column.flex ?? "1 1 0", minWidth: column.minWidth, maxWidth: column.maxWidth},
+  });
+  if (label) {
+    tableWrapper.append(span(label, {className: "label"}))
+  }
+  if (isLoading) {
+    tableWrapper.append(loadingSpinner());
+  } else {
+    const headerWrapper = tableWrapper.append(makeRow("row header"));
+    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+      const column = columns[columnIndex];
+      const cellWrapper = headerWrapper.append(makeCell(column));
+      cellWrapper.append(span(column.label));
+    }
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      let row = rows[rowIndex];
+      const rowWrapper = tableWrapper.append(makeRow("row body"));
+      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+        let column = columns[columnIndex];
+        const cellWrapper = rowWrapper.append(makeCell(column));
+        cellWrapper.append(column.onRender({row, rowIndex, column, columnIndex}));
+      }
+    }
+  }
+})
 /*
 TODO: documentation
   div({...})
@@ -403,7 +458,6 @@ TODO: documentation
 */
 // TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
 // TODO: tooltips, badges, dialogs, loading spinners
-// TODO: flexbox table
 // TODO: history api
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?

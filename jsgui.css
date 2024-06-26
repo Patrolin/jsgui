@@ -1,11 +1,13 @@
 body {
+  font-family: var(--fontFamily-sans);
   font-size: var(--fontSize-normal);
   color: var(--gray);
-  --fontFamily-sans: sans-serif;
-  --fontFamily-serif: 'Times New Roman', Times, serif;
+  --fontFamily-sans: "Roboto", "Helvetica", "Arial", sans-serif;
+  --fontFamily-serif: Times, 'Times New Roman', serif;
   --fontSize-small: 12px;
   --fontSize-normal: 14px;
   --fontSize-big: 16px;
+  --fontSize-massive: 24px;
   --gray: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
   --gray-2: rgba(0, 0, 0, 0.4);
@@ -23,12 +25,14 @@ body {
   max-width: 100%; /* fix ellipsis */
   box-sizing: border-box;
   line-height: 1.5;
-  font-family: var(--fontFamily-sans);
   transition: color 0.05s;
 }
 span {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
+}
+a {
+  color: var(--blue);
 }
 .icon {
   font-size: 1.5em;
@@ -40,6 +44,17 @@ span {
 }
 .icon[clickable="true"] {
   cursor: pointer;
+}
+.loadingSpinner {
+  animation: 2s linear 0s infinite normal none running spin-animation;
+}
+@keyframes spin-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 .labeledInput {
   margin: var(--fieldsetMargin);
@@ -119,5 +134,49 @@ span {
   outline: none;
   flex: 1;
   padding-inline: calc(4px + var(--labelMarginLeft)) 9px;
+  font-family: var(--fontFamily-sans);
   font-size: var(--fontSize-normal);
+}
+.table {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: flex-start;
+  border: var(--tableBorder);
+  border-radius: 4px;
+  --tableBorder: 1px solid var(--gray-2);
+  --labelColor: rgb(0, 0, 0, 0.874);
+  --labelPadding: 8px 0 2px 16px;
+  --rowPadding: 2px 0 2px 18px;
+  --cellPadding: 0 14px 0 0;
+}
+.table[use-max-height="true"] {
+  height: 100%;
+}
+.table[is-loading="true"] {
+  justify-content: center;
+  align-items: center;
+}
+.table .label {
+  padding: var(--labelPadding);
+  font-size: var(--fontSize-massive);
+  color: var(--labelColor);
+}
+.table .row {
+  width: 100%;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: stretch;
+  border-bottom: var(--tableBorder);
+  padding: var(--rowPadding);
+}
+.table .row.body {
+  font-family: var(--fontFamily-serif);
+  font-size: var(--fontSize-big);
+}
+.table .cell {
+  flex: 1;
+  padding: var(--cellPadding);
 }

@@ -37,18 +37,33 @@
         })
       );
       wrapper.append(span(`state: ${JSON.stringify(state)}`));
+      wrapper.append(span("Google", { href: "" }));
+      const rows = Array(state.i)
+        .fill()
+        .map((_, i) => i);
+      wrapper.append(
+        table({
+          label: "Stuff",
+          rows,
+          columns: [
+            {
+              label: "#",
+              onRender: (props) => span(props.rowIndex + 1),
+            },
+            {
+              label: "Name",
+              onRender: (props) => span(`foo ${props.row}`),
+            },
+            {
+              label: "Count",
+              onRender: (props) => span(props.row),
+            },
+          ],
+        })
+      );
       if (state.i % 2 === 0) {
         wrapper.append(someComponent({ key: "someComponent" }));
       }
-      for (let j = 0; j < state.i; j++) {
-        wrapper.append(span(`foo ${j}`, { key: j }));
-      }
-      wrapper.append(span("Google", { href: "" }));
-      const iconsWrapper = wrapper.append(
-        span("", {
-          fontSize: "big",
-        })
-      );
     });
     const someComponent = makeComponent(function someComponent(_props) {
       const lgOrBigger = this.useMedia({ minWidth: 1200 });
