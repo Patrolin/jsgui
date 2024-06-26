@@ -42,7 +42,7 @@ span {
   cursor: pointer;
 }
 .labeledInput {
-  margin: 0;
+  margin: var(--fieldsetMargin);
   padding: 0;
   width: var(--fieldsetWidth);
   height: var(--fieldsetHeight);
@@ -53,6 +53,7 @@ span {
   justify-content: space-between;
   --fieldsetWidth: 194px;
   --fieldsetHeight: 45px;
+  --fieldsetMargin: 0 1px;
   --fieldsetBorder: 1px solid var(--gray-2);
   --labelColor: var(--gray-1);
   --labelMarginLeft: 8px;
@@ -62,9 +63,10 @@ span {
   --labelColor: var(--gray-1);
 }
 .labeledInput:focus-within {
+  width: calc(var(--fieldsetWidth) + 2px);
   --fieldsetBorder: 2px solid var(--blue);
+  --fieldsetMargin: 0px;
   --labelColor: var(--blue);
-  --labelMarginLeft: 7px;
 }
 .labeledInput[fieldset-error="true"] {
   --fieldsetBorder: 1px solid var(--red);

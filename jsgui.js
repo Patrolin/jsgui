@@ -1,12 +1,13 @@
 // base component
 class Component {
-  constructor(_render, args = [], key = null, props = {}) {
-    this.name = _render.name; // string
+  constructor(onRender, onMount, args, key, props) {
+    this.name = onRender.name; // string
     this.args = args // any[]
     this.key = (key != null) ? String(key) : null;
     this.props = props; // Record<string, any>
     this.children = []; // Component[]
-    this._render = _render; // function (...) {}
+    this.onRender = onRender; // function (...) {}
+    this.onMount = onMount;
     this._ = null; // ComponentMetadata | RootComponentMetadata
     this._indexedChildCount = 0; // number
     this._usedKeys = new Set(); // Set<string>
@@ -53,18 +54,18 @@ class Component {
     }
   }
 }
-function makeComponent(_render) {
+function makeComponent(onRender, onMount = null) {
   return (...argsOrProps) => {
-    const argCount = Math.max(0, _render.length - 1);
+    const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
     const props = {...argsOrProps[argCount]};
     const key = props.key;
     delete props.key;
-    return new Component(_render, args, key, props);
+    return new Component(onRender, onMount, args, key, props);
   }
 }
 function _copyComponent(component) {
-  const newComponent = new Component(component._render, component.args, component.key, component.props);
+  const newComponent = new Component(component.onRender, component.onMount, component.args, component.key, component.props);
   newComponent._ = component._;
   return newComponent;
 }
@@ -105,25 +106,24 @@ function renderRoot(component, parentNode = null) {
 }
 function _render(component, parentNode, isStartNode = true, ownerNames = []) {
   // render elements
-  const {_} = component;
-  const node = component._render.bind(component)(...component.args, component.props);
+  const {_, name, args, props, onRender, onMount, _indexedChildCount} = component;
+  const node = onRender.bind(component)(...args, props);
   // set prev state
-  const indexedChildCount = component._indexedChildCount;
   const prevIndexedChildCount = _.prevIndexedChildCount;
-  if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
-    console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, _.prevComponent, component);
+  if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
+    console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${_indexedChildCount})`, _.prevComponent, component);
   }
-  _.prevIndexedChildCount = indexedChildCount;
+  _.prevIndexedChildCount = _indexedChildCount;
   _.prevState = {..._.state};
   _.prevComponent = component;
   // append elements
-  const {style = {}, className, attribute = {}} = component.props;
+  const {style = {}, className, attribute = {}} = props;
   if (node) {
     for (let [k, v] of Object.entries(style)) {
       node.style[k] = _addPx(v);
     }
-    if (component.name !== node.tagName.toLowerCase()) {
-      ownerNames = [...ownerNames, component.name];
+    if (name !== node.tagName.toLowerCase()) {
+      ownerNames = [...ownerNames, name];
     }
     for (let ownerName of ownerNames) {
       node.classList.add(ownerName);
@@ -140,17 +140,17 @@ function _render(component, parentNode, isStartNode = true, ownerNames = []) {
     }
     const prevNode = _.prevNode;
     if (isStartNode && prevNode) {
-      prevNode.after(node);
-      prevNode.remove();
+      prevNode.replaceWith(node);
     } else {
       parentNode.append(node);
     }
+    if (onMount) onMount(node, _.state);
     _.prevNode = node;
     parentNode = node;
     isStartNode = false;
     ownerNames = [];
   } else {
-    ownerNames = [...ownerNames, component.name];
+    ownerNames = [...ownerNames, name];
   }
   const usedKeys = new Set();
   for (let child of component.children) {
@@ -218,8 +218,7 @@ const icon = makeComponent(function icon(iconName, props) {
   if (color) e.style.color = `var(--${color})`;
   if (onClick) {
     e.onclick = onClick;
-    e.setAttribute("tabindex", "-1"); // allow having focus¨
-    // TODO: keep focus after rerender
+    e.setAttribute("tabindex", "-1"); // NOTE: allow having focus
   }
   e.setAttribute("clickable", onClick != null);
   return e;
@@ -260,17 +259,16 @@ const input = makeComponent(function input(props) {
       e.value = allowedValue;
     }
   };
-  setTimeout(() => {
-    if (state.needFocus) {
-      e.focus();
-      if (e !== document.activeElement) {
-        e.select();
-        e.setSelectionRange(-1, -1);
-      }
-      state.needFocus = false;
-    }
-  });
   return e;
+}, (e, state) => {
+  if (state.needFocus) {
+    e.focus();
+    if (e !== document.activeElement) {
+      e.select();
+      e.setSelectionRange(-1, -1);
+    }
+    state.needFocus = false;
+  }
 });
 const labeledInput = makeComponent(function labeledInput(props) {
   const {label = "", leftComponent, inputComponent, rightComponent} = props;
