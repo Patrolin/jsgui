@@ -306,14 +306,15 @@ const numberArrows = makeComponent(function numberArrows(props) {
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
 })
 const numberInput = makeComponent(function numberInput(props) {
-  const { label, value, error, min, max, step, clearable = true, onKeyDown, onInput, onChange, leftComponent, ...extraProps } = props;
+  const { label, value, error, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, leftComponent, ...extraProps } = props;
   const stepAndClamp = (number) => {
     if (step) {
       const stepOffset = min ?? max ?? 0;
-      number = number - ((number - stepOffset) % step);
+      number = stepOffset + Math.round((number - stepOffset) / step) * step;
     }
     number = Math.min(number, max ?? 1/0);
-    return Math.max(min ?? -1/0, number);
+    number = Math.max(min ?? -1/0, number);
+    return number.toFixed(stepPrecision ?? String(step).split(".")[1].length);
   };
   const incrementValue = (by) => {
     const number = stepAndClamp(+(value ?? 0) + by);
