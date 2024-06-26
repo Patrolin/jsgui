@@ -195,10 +195,15 @@ const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
 const span = makeComponent(function span(text, props) {
-  const { fontSize, color, singleLine, fontFamily } = props;
-  const e = document.createElement('span');
+  const { fontSize, color, singleLine, fontFamily, href } = props;
+  const isLink = (href != null);
+  const e = document.createElement(isLink ? 'a' : 'span');
   e.innerText = text;
   if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
+  if (isLink) {
+    e.href = href;
+    e.style.color = `var(--blue)`;
+  }
   if (color) e.style.color = `var(--${color})`;
   if (singleLine) {
     e.style.overflow = "hidden";
@@ -313,7 +318,8 @@ const numberInput = makeComponent(function numberInput(props) {
     }
     number = Math.min(number, max ?? 1/0);
     number = Math.max(min ?? -1/0, number);
-    return number.toFixed(stepPrecision ?? String(step).split(".")[1].length);
+    const defaultStepPrecision = step ? String(step).split(".")[1].length : 0;
+    return number.toFixed(stepPrecision ?? defaultStepPrecision);
   };
   const incrementValue = (by) => {
     const number = stepAndClamp(+(value ?? 0) + by);
@@ -364,6 +370,7 @@ const numberInput = makeComponent(function numberInput(props) {
   }));
   if (error) this.append(errorMessage(error));
 });
+// TODO: documentation (div, span(text, {href}), icon, textInput, numberInput)
 // TODO: more input components (buttons, radios, checkboxes, switches, selects, date/date range input, file input)
 // TODO: tooltips, badges, dialogs, loading spinners
 // TODO: links

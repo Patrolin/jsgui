@@ -43,6 +43,7 @@
       for (let j = 0; j < state.i; j++) {
         wrapper.append(span(`foo ${j}`, { key: j }));
       }
+      wrapper.append(span("Google", { href: "" }));
       const iconsWrapper = wrapper.append(
         span("", {
           fontSize: "big",
