@@ -20,6 +20,18 @@ class Component {
     if (this._.state === null) this._.state = defaultState;
     return this._.state;
   }
+  useValidate(getErrors) {
+    return () => {
+      let errors = {};
+      this._.state.errors = getErrors(errors);
+      this._.state.didValidate = true;
+      const hasErrors = Object.keys(errors).length > 0;
+      if (hasErrors) {
+        this.rerender();
+      }
+      return !hasErrors;
+    }
+  }
   useMedia(mediaQuery) {
     const mediaQueryString = Object.entries(mediaQuery).map(([k, v]) => `(${_camelCaseToKebabCase(k)}: ${_addPx(v)})`).join(' and ');
     let mediaQueryList = _mediaQueryLists[mediaQueryString];
@@ -229,10 +241,11 @@ const icon = makeComponent(function icon(iconName, props) {
   return e;
 });
 const input = makeComponent(function input(props) {
-  const { type = "text", value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
+  const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
   const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must not be called
   e.type = type;
+  if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = value;
   e.onkeydown = (event) => {
@@ -370,25 +383,28 @@ const numberInput = makeComponent(function numberInput(props) {
   }));
   if (error) this.append(errorMessage(error));
 });
-// TODO: documentation (div, span(text, {href}), icon, textInput, numberInput)
-// TODO: more input components (buttons, radios, checkboxes, switches, selects, date/date range input, file input)
+/*
+TODO: documentation
+  div({...})
+  span(text)
+  span(text, {href})
+  icon(iconName)
+  textInput({label, value})
+  numberInput({label, value})
+  validation api
+    const validate = this.useValidate((errors) => {
+      if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
+    });
+    const onSubmit = () => {
+      if (validate()) {
+        // ...
+      }
+    }
+*/
+// TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
 // TODO: tooltips, badges, dialogs, loading spinners
-// TODO: links
 // TODO: flexbox table
 // TODO: history api
 // TODO: snackbar api
-/*
-// TODO: validation api
-const validate = this.useValidate((errors) => {
-  if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
-});
-const onSubmit = () => {
-  if (validate()) {
-    // ...
-  } else {
-    this.rerender();
-  }
-}
-*/
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
