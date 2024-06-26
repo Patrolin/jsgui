@@ -356,7 +356,7 @@ const numberInput = makeComponent(function numberInput(props) {
     rightComponent: numberArrows({
       onClickUp: (_event) => {
         incrementValue(step ?? 1);
-        inputComponent._.state.needFocus = true; // TODO: this flashes :focus-within on and off...
+        inputComponent._.state.needFocus = true;
         inputComponent.rerender();
       },
       onClickDown: (_event) => {
