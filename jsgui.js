@@ -263,10 +263,6 @@ const input = makeComponent(function input(props) {
 }, (e, state) => {
   if (state.needFocus) {
     e.focus();
-    if (e !== document.activeElement) {
-      e.select();
-      e.setSelectionRange(-1, -1);
-    }
     state.needFocus = false;
   }
 });
