@@ -282,7 +282,6 @@ const labeledInput = makeComponent(function labeledInput(props) {
   const legend = document.createElement("legend");
   legend.innerText = label;
   fieldset.append(legend);
-  //const inputWrapper = this.append(div());
   if (leftComponent) this.append(leftComponent);
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent);
