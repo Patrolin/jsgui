@@ -26,7 +26,7 @@ body {
   max-width: 100%; /* fix ellipsis */
   box-sizing: border-box;
   line-height: 1.5;
-  transition: color 0.05s var(--timing-d0);
+  transition: color 0.1s var(--timing-d0);
 }
 span {
   display: inline-block; /* fix ellipsis */
