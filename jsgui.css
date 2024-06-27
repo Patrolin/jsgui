@@ -20,12 +20,13 @@ body {
   --red-1: rgba(200, 50, 50, 0.7);
   --red-2: rgba(200, 50, 50, 0.4);
   --red-3: rgba(200, 50, 50, 0.1);
+  --timing-d0: cubic-bezier(.14, 0, .14, 1);
 }
 * {
   max-width: 100%; /* fix ellipsis */
   box-sizing: border-box;
   line-height: 1.5;
-  transition: color 0.05s;
+  transition: color 0.05s var(--timing-d0);
 }
 span {
   display: inline-block; /* fix ellipsis */
