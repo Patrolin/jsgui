@@ -1,5 +1,5 @@
 // base component
-function parseJsonOrNull() {
+function parseJsonOrNull(jsonString) {
   try {
     return JSON.parse(jsonString);
   } catch {
@@ -53,10 +53,10 @@ class Component {
     return dispatchTarget.state.matches;
   }
   useLocalStorage(key, defaultValue) {
-    dispatchTarget.addListener(key, this._.localStorageListeners, () => this.rerender());
-    const value = parseJsonOrNull(localStorage[key]) ?? defaultValue;
+    _localStorageDispatchTarget.addListener(key, this._.localStorageListeners, () => this.rerender());
+    const value = parseJsonOrNull(localStorage[key])?.[0] ?? defaultValue;
     const setValue = (newValue) => {
-      localStorage.setItem(key, JSON.stringify(newValue));
+      localStorage.setItem(key, JSON.stringify([newValue]));
     }
     return [value, setValue];
   }
@@ -124,9 +124,7 @@ class DispatchTarget {
   }
 }
 const _mediaQueryDispatchTargets = {}; // Record<string, DispatchTarget>
-const _localStorageDispatchTarget = new DispatchTarget((_state, dispatch) => {
-  window.addEventListener("storage", dispatch);
-});
+const _localStorageDispatchTarget = new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch));
 class ComponentMetadata {
   constructor() {
     // navigation
