@@ -1,4 +1,11 @@
 // base component
+function parseJsonOrNull() {
+  try {
+    return JSON.parse(jsonString);
+  } catch {
+    return null;
+  }
+}
 class Component {
   constructor(onRender, onMount, args, key, props) {
     this.name = onRender.name; // string
@@ -34,21 +41,24 @@ class Component {
     }
   }
   useMedia(mediaQuery) {
-    const mediaQueryString = Object.entries(mediaQuery).map(([k, v]) => `(${_camelCaseToKebabCase(k)}: ${_addPx(v)})`).join(' and ');
-    let mediaQueryList = _mediaQueryLists[mediaQueryString];
-    if (!mediaQueryList) {
-      mediaQueryList = window.matchMedia(mediaQueryString);
-      _mediaQueryLists[mediaQueryString] = mediaQueryList;
+    const key = Object.entries(mediaQuery).map(([k, v]) => `(${_camelCaseToKebabCase(k)}: ${_addPx(v)})`).join(' and ');
+    const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
+      const mediaQueryList = window.matchMedia(key);
+      mediaQueryList.addEventListener("change", dispatch);
+      return mediaQueryList;
+    });
+    dispatchTarget.addListener(key, this._.mediaListeners, () => {
+      this.rerender();
+    });
+    return dispatchTarget.state.matches;
+  }
+  useLocalStorage(key, defaultValue) {
+    dispatchTarget.addListener(key, this._.localStorageListeners, () => this.rerender());
+    const value = parseJsonOrNull(localStorage[key]) ?? defaultValue;
+    const setValue = (newValue) => {
+      localStorage.setItem(key, JSON.stringify(newValue));
     }
-    let listener = this._.mediaListeners[mediaQueryString];
-    if (!listener) {
-      listener = () => {
-        this.rerender();
-      };
-      mediaQueryList.addEventListener("change", listener);
-      this._.mediaListeners[mediaQueryString] = listener;
-    }
-    return mediaQueryList.matches;
+    return [value, setValue];
   }
   rerender() {
     const root_ = this._.root;
@@ -82,7 +92,41 @@ function _copyComponent(component) {
   newComponent._ = component._;
   return newComponent;
 }
-const _mediaQueryLists = {} // Record<string, MediaQueryList>
+class DispatchTarget {
+  constructor(addListeners) {
+    this.listeners = []; // (() => void)[]
+    this.state = addListeners(() => this.dispatch()); // any
+  }
+  static init(key, store, addListeners) {
+    const oldDT = store[key];
+    if (oldDT != null) return oldDT;
+    const newDT = new DispatchTarget(addListeners);
+    store[key] = newDT;
+    return newDT;
+  }
+  addListener(key, store, listener) {
+    const oldListener = store[key];
+    if (oldListener == null) {
+      store[key] = listener;
+      this.listeners.push(listener);
+    }
+  }
+  removeListener(key, store) {
+    const listener = store[key];
+    delete store[key];
+    const i = this.listeners.indexOf(listener);
+    this.listeners.splice(i, 1);
+  }
+  dispatch(key) {
+    for (let listener of (this.listeners ?? [])) {
+      listener(this.state);
+    }
+  }
+}
+const _mediaQueryDispatchTargets = {}; // Record<string, DispatchTarget>
+const _localStorageDispatchTarget = new DispatchTarget((_state, dispatch) => {
+  window.addEventListener("storage", dispatch);
+});
 class ComponentMetadata {
   constructor() {
     // navigation
@@ -97,6 +141,7 @@ class ComponentMetadata {
     this.prevNode = null; // HTMLElement | null
     this.gcFlag = false; // boolean
     this.mediaListeners = {} // Record<string, () => void>
+    this.localStorageListeners = {}; // Record<string, () => void>
   }
 }
 class RootComponentMetadata extends ComponentMetadata {
@@ -208,8 +253,11 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
   for (let child of prevComponent.children) {
     const child_ = child._;
     if (child_.gcFlag !== gcFlag) {
-      for (let [k, listener] of Object.entries(child_.mediaListeners)) {
-        _mediaQueryLists[k].removeEventListener('change', listener);
+      for (let key in child_.mediaListeners) {
+        _mediaQueryDispatchTargets[key].removeListener(key, child_.mediaListeners);
+      }
+      for (let key in child_.localStorageListeners) {
+        _localStorageDispatchTarget[key].removeListener(key, child_.localStorageListeners);
       }
       delete child_.parent.keyToChild[child.key];
     }
