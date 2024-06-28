@@ -302,7 +302,7 @@ const icon = makeComponent(function icon(iconName, props) {
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props) {
   this.append(icon("progress_activity", {color: 'blue', ...props}));
-})
+});
 // inputs
 const input = makeComponent(function input(props) {
   const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
@@ -385,7 +385,7 @@ const numberArrows = makeComponent(function numberArrows(props) {
   const wrapper = this.append(div());
   wrapper.append(icon("arrow_drop_up", {className: "upIcon", onClick: onClickUp}));
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
-})
+});
 const numberInput = makeComponent(function numberInput(props) {
   const { label, value, error, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, leftComponent, ...extraProps } = props;
   const stepAndClamp = (number) => {
@@ -483,7 +483,7 @@ const table = makeComponent(function table(props) {
       }
     }
   }
-})
+});
 /*
 TODO: documentation
   div({...})
