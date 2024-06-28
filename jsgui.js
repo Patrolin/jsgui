@@ -492,6 +492,7 @@ TODO: documentation
   icon(iconName)
   textInput({label, value})
   numberInput({label, value})
+  loadingSpinner()
   validation api
     const validate = this.useValidate((errors) => {
       if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
@@ -501,10 +502,12 @@ TODO: documentation
         // ...
       }
     }
+  useState()
+  useLocalStorage()
 */
-// TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
-// TODO: tooltips, badges, dialogs, loading spinners
 // TODO: history api
+// TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
+// TODO: tooltips, badges, dialogs
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
