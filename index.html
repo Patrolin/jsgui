@@ -6,6 +6,17 @@
   <link rel="stylesheet" href="jsgui.css" />
   <script>
     const root = makeComponent(function root() {
+      this.append(
+        router({
+          routes: {
+            ".*": {
+              component: () => mainPage(),
+            },
+          },
+        })
+      );
+    });
+    const mainPage = makeComponent(function root() {
       const state = this.useState({ username: "" });
       const [count, setCount] = this.useLocalStorage("count", 0);
       const wrapper = this.append(
@@ -37,7 +48,8 @@
         })
       );
       wrapper.append(span(`state: ${JSON.stringify(state)}`));
-      wrapper.append(span("Link", { href: "" }));
+      wrapper.append(span("Foo", { id: "foo" }));
+      wrapper.append(span("Bar", { id: "bar" }));
       const rows = Array(+count)
         .fill()
         .map((_, i) => i);
@@ -61,7 +73,7 @@
           ],
         })
       );
-      if (state.count % 2 === 0) {
+      if (count % 2 === 0) {
         wrapper.append(someComponent({ key: "someComponent" }));
       }
     });

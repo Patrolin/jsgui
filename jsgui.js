@@ -6,9 +6,12 @@ function parseJsonOrNull(jsonString) {
     return null;
   }
 }
+const _NAME_OVERRIDES = {
+  htmlSpan: "span",
+};
 class Component {
   constructor(onRender, onMount, args, key, props) {
-    this.name = onRender.name; // string
+    this.name = _NAME_OVERRIDES[onRender.name] || onRender.name; // string
     if (!this.name) throw `Function name cannot be empty: ${onRender}`;
     this.args = args // any[]
     this.key = (key != null) ? String(key) : null;
@@ -47,18 +50,22 @@ class Component {
       mediaQueryList.addEventListener("change", dispatch);
       return mediaQueryList;
     });
-    dispatchTarget.addListener(key, this._.mediaListeners, () => {
-      this.rerender();
-    });
+    dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches;
   }
   useLocalStorage(key, defaultValue) {
-    _localStorageDispatchTarget.addListener(key, this._.localStorageListeners, () => this.rerender());
+    _localStorageDispatchTarget.addComponent(this);
     const value = parseJsonOrNull(localStorage[key])?.[0] ?? defaultValue;
     const setValue = (newValue) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
     }
     return [value, setValue];
+  }
+  useNavigate() {
+    return {
+      navigate: (url) => location.href = url,
+      replace: (url) => location.replace(url),
+    }
   }
   rerender() {
     const root_ = this._.root;
@@ -94,7 +101,7 @@ function _copyComponent(component) {
 }
 class DispatchTarget {
   constructor(addListeners) {
-    this.listeners = []; // (() => void)[]
+    this.components = []; // Component[]
     this.state = addListeners(() => this.dispatch()); // any
   }
   static init(key, store, addListeners) {
@@ -104,27 +111,31 @@ class DispatchTarget {
     store[key] = newDT;
     return newDT;
   }
-  addListener(key, store, listener) {
-    const oldListener = store[key];
-    if (oldListener == null) {
-      store[key] = listener;
-      this.listeners.push(listener);
-    }
+  addComponent(component) {
+    this.components.push(component);
   }
-  removeListener(key, store) {
-    const listener = store[key];
-    delete store[key];
-    const i = this.listeners.indexOf(listener);
-    this.listeners.splice(i, 1);
+  removeComponent(component) {
+    const i = this.components.indexOf(component);
+    if (i !== -1) this.component.splice(i, 1);
   }
-  dispatch(key) {
-    for (let listener of (this.listeners ?? [])) {
-      listener(this.state);
+  dispatch() {
+    for (let component of this.components) {
+      component.rerender();
     }
   }
 }
 const _mediaQueryDispatchTargets = {}; // Record<string, DispatchTarget>
 const _localStorageDispatchTarget = new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch));
+function _scrollToLocationHash() {
+  const element = document.getElementById(location.hash);
+  if (element) element.scrollTo();
+}
+const _locationHashDispatchTarget = new DispatchTarget((dispatch) => {
+  window.addEventListener("hashchange", () => {
+    _scrollToLocationHash();
+    dispatch();
+  });
+});
 class ComponentMetadata {
   constructor() {
     // navigation
@@ -140,6 +151,7 @@ class ComponentMetadata {
     this.gcFlag = false; // boolean
     this.mediaListeners = {} // Record<string, () => void>
     this.localStorageListeners = {}; // Record<string, () => void>
+    this.locationHashListener = null; // (() => void) | null
   }
 }
 class RootComponentMetadata extends ComponentMetadata {
@@ -158,11 +170,13 @@ function renderRoot(component, parentNode = null) {
   window.onload = () => {
     component._.parentNode = component._.parentNode ?? document.body;
     _render(component, component._.parentNode);
+    _scrollToLocationHash();
   }
 }
 function _render(component, parentNode, isStartNode = true, ownerNames = [], cssVars = {}) {
   // render elements
   const {_, name, args, props, onRender, onMount, _indexedChildCount} = component;
+  console.log('_render', component, args, props)
   let node = onRender.bind(component)(...args, props);
   if (!(node instanceof Element)) node = null;
   // set prev state
@@ -252,11 +266,10 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
     const child_ = child._;
     if (child_.gcFlag !== gcFlag) {
       for (let key in child_.mediaListeners) {
-        _mediaQueryDispatchTargets[key].removeListener(key, child_.mediaListeners);
+        _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
-      for (let key in child_.localStorageListeners) {
-        _localStorageDispatchTarget[key].removeListener(key, child_.localStorageListeners);
-      }
+      _localStorageDispatchTarget.removeComponent(prevComponent);
+      _locationHashDispatchTarget.removeComponent(prevComponent);
       delete child_.parent.keyToChild[child.key];
     }
     _unloadUnusedComponents(child, gcFlag);
@@ -264,17 +277,24 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
 }
 
 // basic components
+const fragment = makeComponent(function fragment(_props) {})
 const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
-const span = makeComponent(function span(text, props) {
-  const { fontSize, color, singleLine, fontFamily, href } = props;
+const span = makeComponent(function htmlSpan(text, props) {
+  const { fontSize, color, singleLine, fontFamily, href, replacePath, id } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
   e.innerText = text;
   if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
   if (isLink) {
     e.href = href;
+    if (replacePath) {
+      e.onclick = (event) => {
+        event.preventDefault();
+        this.useNavigate().replace(href);
+      }
+    }
   }
   if (color) e.style.color = `var(--${color})`;
   if (singleLine) {
@@ -283,6 +303,10 @@ const span = makeComponent(function span(text, props) {
     e.styles.whiteSpace = "nowrap";
   }
   if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
+  if (id) {
+    const selfLink = this.append(span("", { href: `#${id}` }));
+    selfLink.append(icon("tag", {fontSize: "small"})); // TODO: smaller icon / icon button?
+  }
   return e;
 });
 // https://fonts.google.com/icons
@@ -484,6 +508,46 @@ const table = makeComponent(function table(props) {
     }
   }
 });
+// router
+// type Route = { path: string, component: () => Component, roles: string[], wrapper?: boolean };
+const router = makeComponent(function router(props) {
+  const {
+    routes,
+    wrapperComponent = fragment(),
+    roles,
+    isLoggedIn,
+    notLoggedInRoute = { path: ".*", component: fragment },
+    unauthorizedRoute = { path: ".*", component: fragment },
+  } = props;
+  let lPath = location.pathname;
+  if (location.protocol === "file:") {
+    const acc = lPath.split("/");
+    lPath = `/${acc[acc.length - 1]}`;
+  }
+  if (lPath.endsWith("/index.html")) lPath = lPath.slice(0, -10);
+  let route = null, params = {};
+  for (let [k, v] of Object.entries(routes)) {
+    const regex = k.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
+    const match = lPath.match(new RegExp(`^${regex}$`));
+    if (match != null) {
+      params = match.groups;
+      if (v.roles && !(roles ?? []).some(role => v.roles.includes(role))) {
+        route = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
+      } else {
+        route = v;
+      }
+      break;
+    }
+  }
+  if (route) {
+    if (route.wrapper ?? true) {
+      this.append(wrapperComponent);
+      wrapperComponent.append(route.component({params}));
+    } else {
+      this.append(route.component({params}));
+    }
+  }
+})
 /*
 TODO: documentation
   div({...})
@@ -493,6 +557,7 @@ TODO: documentation
   textInput({label, value})
   numberInput({label, value})
   loadingSpinner()
+  router()
   validation api
     const validate = this.useValidate((errors) => {
       if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
