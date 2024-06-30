@@ -278,7 +278,7 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
 }
 
 // basic components
-const fragment = makeComponent(function fragment(_props) {})
+const fragment = makeComponent(function fragment(_props) {});
 const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
@@ -400,7 +400,7 @@ const labeledInput = makeComponent(function labeledInput(props) {
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent);
   return fieldset;
-})
+});
 const errorMessage = makeComponent(function errorMessage(error, props) {
   this.append(span(error, {color: "red", fontSize: "small", ...props}));
 });
@@ -555,7 +555,7 @@ const router = makeComponent(function router(props) {
       this.append(route.component({params}));
     }
   }
-})
+});
 /*
 TODO: documentation
   div({...})
