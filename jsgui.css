@@ -66,6 +66,7 @@ span:hover > .selfLink {
   cursor: pointer;
 }
 .loadingSpinner {
+  color: var(--blue);
   animation: 2s linear 0s infinite normal none running spin-animation;
 }
 @keyframes spin-animation {

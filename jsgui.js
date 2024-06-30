@@ -297,7 +297,7 @@ const span = makeComponent(function htmlSpan(text, props) {
   if (singleLine) {
     e.style.overflow = "hidden";
     e.style.textOverflow = "ellipsis";
-    e.styles.whiteSpace = "nowrap";
+    e.style.whiteSpace = "nowrap";
   }
   if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
   if (isLink) {
@@ -332,7 +332,7 @@ const icon = makeComponent(function icon(iconName, props) {
   this.append(span("", {iconName, ...props}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props) {
-  this.append(span("", {iconName: "progress_activity", color: "blue", ...props}));
+  this.append(span("", {iconName: "progress_activity", ...props}));
 });
 // inputs
 const input = makeComponent(function input(props) {
