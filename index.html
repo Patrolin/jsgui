@@ -49,7 +49,7 @@
       );
       wrapper.append(span(`state: ${JSON.stringify(state)}`));
       wrapper.append(span("Foo", { id: "foo" }));
-      wrapper.append(span("Bar", { id: "bar" }));
+      wrapper.append(span("link to bar", { href: "#bar" }));
       const rows = Array(+count)
         .fill()
         .map((_, i) => i);
@@ -76,6 +76,7 @@
       if (count % 2 === 0) {
         wrapper.append(someComponent({ key: "someComponent" }));
       }
+      wrapper.append(span("Bar", { id: "bar" }));
     });
     const someComponent = makeComponent(function someComponent(_props) {
       const lgOrBigger = this.useMedia({ minWidth: 1200 });

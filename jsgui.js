@@ -127,8 +127,8 @@ class DispatchTarget {
 const _mediaQueryDispatchTargets = {}; // Record<string, DispatchTarget>
 const _localStorageDispatchTarget = new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch));
 function _scrollToLocationHash() {
-  const element = document.getElementById(location.hash);
-  if (element) element.scrollTo();
+  const element = document.getElementById(location.hash.slice(1));
+  if (element) element.scrollIntoView();
 }
 const _locationHashDispatchTarget = new DispatchTarget((dispatch) => {
   window.addEventListener("hashchange", () => {
@@ -170,13 +170,14 @@ function renderRoot(component, parentNode = null) {
   window.onload = () => {
     component._.parentNode = component._.parentNode ?? document.body;
     _render(component, component._.parentNode);
-    _scrollToLocationHash();
+    setTimeout(() => {
+      _scrollToLocationHash();
+    })
   }
 }
 function _render(component, parentNode, isStartNode = true, ownerNames = [], cssVars = {}) {
   // render elements
   const {_, name, args, props, onRender, onMount, _indexedChildCount} = component;
-  console.log('_render', component, args, props)
   let node = onRender.bind(component)(...args, props);
   if (!(node instanceof Element)) node = null;
   // set prev state
@@ -282,19 +283,15 @@ const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
 const span = makeComponent(function htmlSpan(text, props) {
-  const { fontSize, color, singleLine, fontFamily, href, replacePath, id } = props;
+  const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
-  e.innerText = text;
-  if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
-  if (isLink) {
-    e.href = href;
-    if (replacePath) {
-      e.onclick = (event) => {
-        event.preventDefault();
-        this.useNavigate().replace(href);
-      }
-    }
+  e.innerText = iconName || text;
+  if (iconName) {
+    e.classList.add("material-symbols-outlined");
+    if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
+  } else {
+    if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
   }
   if (color) e.style.color = `var(--${color})`;
   if (singleLine) {
@@ -303,26 +300,35 @@ const span = makeComponent(function htmlSpan(text, props) {
     e.styles.whiteSpace = "nowrap";
   }
   if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
+  if (isLink) {
+    e.href = href;
+    if (replacePath) {
+      e.onclick = (event) => {
+        event.preventDefault();
+        this.useNavigate().replace(href);
+        if (onClick) onClick(event);
+      }
+    }
+  } else {
+    if (onClick) {
+      e.onclick = onClick;
+      e.setAttribute("tabindex", "-1");
+      e.setAttribute("clickable", true);
+    }
+  }
   if (id) {
-    const selfLink = this.append(span("", { href: `#${id}` }));
-    selfLink.append(icon("tag", {fontSize: "small"})); // TODO: smaller icon / icon button?
+    e.id = id;
+    this.append(span("tag", {
+      className: "icon selfLink",
+      href: `#${id}`,
+      fontSize: `${fontSize || "normal"}-1`,
+    }));
   }
   return e;
 });
 // https://fonts.google.com/icons
 const icon = makeComponent(function icon(iconName, props) {
-  const {fontSize, color, onClick} = props;
-  const e = document.createElement('span');
-  e.classList.add("material-symbols-outlined");
-  e.innerText = iconName;
-  if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
-  if (color) e.style.color = `var(--${color})`;
-  if (onClick) {
-    e.onclick = onClick;
-    e.setAttribute("tabindex", "-1"); // NOTE: allow having focus
-  }
-  e.setAttribute("clickable", onClick != null);
-  return e;
+  this.append(span("", { iconName, ...props }));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props) {
   this.append(icon("progress_activity", {color: 'blue', ...props}));

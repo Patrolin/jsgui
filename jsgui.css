@@ -8,6 +8,10 @@ body {
   --fontSize-normal: 14px;
   --fontSize-big: 16px;
   --fontSize-massive: 24px;
+  --fontSize-small-1: var(--fontSize-small);
+  --fontSize-normal-1: var(--fontSize-small);
+  --fontSize-big-1: var(--fontSize-normal);
+  --fontSize-massive-1: var(--fontSize-big);
   --gray: rgb(0, 0, 0);
   --gray-1: rgba(0, 0, 0, 0.7);
   --gray-2: rgba(0, 0, 0, 0.4);
@@ -28,11 +32,26 @@ body {
   line-height: 1.5;
   transition: color 0.1s var(--timing-d0);
 }
-span {
+span, a {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
 }
 a {
+  color: var(--blue);
+}
+.selfLink {
+  visibility: hidden;
+}
+span:hover > .selfLink {
+  visibility: visible;
+}
+.selfLink {
+  margin: 0 3px;
+  vertical-align: sub;
+  color: var(--gray-2);
+  text-decoration: none;
+}
+.selfLink:hover {
   color: var(--blue);
 }
 .icon {
