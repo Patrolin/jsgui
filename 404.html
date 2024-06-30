@@ -12,6 +12,9 @@
             "/": {
               component: () => mainPage(),
             },
+            ".*": {
+              component: () => notFoundPage(),
+            },
           },
         })
       );
@@ -25,6 +28,9 @@
         })
       );
       wrapper.append(span("TODO: documentation"));
+    });
+    const notFoundPage = makeComponent(function notFoundPage() {
+      this.append(span("Page not found"));
     });
     renderRoot(root());
   </script>
