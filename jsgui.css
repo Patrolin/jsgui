@@ -45,13 +45,13 @@ a {
 span:hover > .selfLink {
   visibility: visible;
 }
-.selfLink {
-  margin: 0 3px;
+.icon.selfLink {
+  padding: 0 2px;
   vertical-align: sub;
   color: var(--gray-2);
   text-decoration: none;
 }
-.selfLink:hover {
+.icon.selfLink:hover {
   color: var(--blue);
 }
 .icon {

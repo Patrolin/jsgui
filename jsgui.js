@@ -318,7 +318,8 @@ const span = makeComponent(function htmlSpan(text, props) {
   }
   if (id) {
     e.id = id;
-    this.append(span("tag", {
+    this.append(span("", {
+      iconName: "tag",
       className: "icon selfLink",
       href: `#${id}`,
       fontSize: `${fontSize || "normal"}-1`,
@@ -328,10 +329,10 @@ const span = makeComponent(function htmlSpan(text, props) {
 });
 // https://fonts.google.com/icons
 const icon = makeComponent(function icon(iconName, props) {
-  this.append(span("", { iconName, ...props }));
+  this.append(span("", {iconName, ...props}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props) {
-  this.append(icon("progress_activity", {color: 'blue', ...props}));
+  this.append(span("", {iconName: "progress_activity", color: "blue", ...props}));
 });
 // inputs
 const input = makeComponent(function input(props) {

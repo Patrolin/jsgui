@@ -77,6 +77,7 @@
         wrapper.append(someComponent({ key: "someComponent" }));
       }
       wrapper.append(span("Bar", { id: "bar" }));
+      wrapper.append(loadingSpinner());
     });
     const someComponent = makeComponent(function someComponent(_props) {
       const lgOrBigger = this.useMedia({ minWidth: 1200 });
