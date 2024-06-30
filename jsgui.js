@@ -435,7 +435,7 @@ const numberInput = makeComponent(function numberInput(props) {
     const newValue = String(number);
     if (onInput) onInput(newValue, event);
     if (onChange) onChange(newValue, event);
-  }
+  };
   const inputComponent = input({
     value,
     onKeyDown: (event) => {
@@ -494,7 +494,7 @@ const table = makeComponent(function table(props) {
     style: {flex: column.flex ?? "1 1 0", minWidth: column.minWidth, maxWidth: column.maxWidth},
   });
   if (label) {
-    tableWrapper.append(span(label, {className: "label"}))
+    tableWrapper.append(span(label, {className: "label"}));
   }
   if (isLoading) {
     tableWrapper.append(loadingSpinner());
