@@ -332,7 +332,7 @@ const icon = makeComponent(function icon(iconName, props) {
   this.append(span("", {iconName, ...props}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props) {
-  this.append(span("", {iconName: "progress_activity", ...props}));
+  this.append(icon("progress_activity", props));
 });
 // inputs
 const input = makeComponent(function input(props) {
