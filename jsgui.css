@@ -47,7 +47,6 @@ span:hover > .selfLink {
 }
 .icon.selfLink {
   padding: 0 2px;
-  vertical-align: sub;
   color: var(--gray-2);
   text-decoration: none;
 }

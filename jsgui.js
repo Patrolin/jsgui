@@ -323,6 +323,7 @@ const span = makeComponent(function htmlSpan(text, props) {
       className: "icon selfLink",
       href: `#${id}`,
       fontSize: `${fontSize || "normal"}-1`,
+      style: {height: `calc(1.5 * var(--fontSize-${fontSize || "normal"}) - 1px)`, paddingTop: 1},
     }));
   }
   return e;
