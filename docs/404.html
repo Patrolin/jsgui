@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<head>
+  <title>jsgui</title>
+  <script src="jsgui.js"></script>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+  <link rel="stylesheet" href="jsgui.css" />
+  <script>
+    const root = makeComponent(function root() {
+      this.append(
+        router({
+          routes: {
+            "/": {
+              component: () => mainPage(),
+            },
+          },
+        })
+      );
+    });
+    const mainPage = makeComponent(function root() {
+      const state = this.useState({ username: "" });
+      const [count, setCount] = this.useLocalStorage("count", 0);
+      const wrapper = this.append(
+        div({
+          style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
+        })
+      );
+      wrapper.append(span("TODO: documentation"));
+    });
+    renderRoot(root());
+  </script>
+</head>
+<body></body>
