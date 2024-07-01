@@ -451,10 +451,8 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
     if (props === void 0) { props = {}; }
     this.append(icon("progress_activity", props));
 });
-// inputs // TODO: fix input types
 var input = makeComponent(function input(props) {
     var _a, _b;
-    if (props === void 0) { props = {}; }
     var _c = props.type, type = _c === void 0 ? "text" : _c, placeholder = props.placeholder, value = props.value, autoFocus = props.autoFocus, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, allowChar = props.allowChar, _d = props.allowString, allowString = _d === void 0 ? function (value, _prevAllowedValue) { return value; } : _d;
     var state = this.useState({ prevAllowedValue: value !== null && value !== void 0 ? value : '', needFocus: false });
     var e = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : document.createElement('input')); // NOTE: e.remove() must not be called
@@ -470,7 +468,8 @@ var input = makeComponent(function input(props) {
             onKeyDown(event);
         state.needFocus = true;
     };
-    e.oninput = function (event) {
+    e.oninput = function (_event) {
+        var event = _event;
         if (allowChar && "data" in event) {
             if ((event.data !== null) && !allowChar(event.data)) {
                 event.preventDefault();
@@ -487,7 +486,8 @@ var input = makeComponent(function input(props) {
                 onInput(allowedValue, event);
         }
     };
-    e.onchange = function (event) {
+    e.onchange = function (_event) {
+        var event = _event;
         var allowedValue = allowString(e.value, state.prevAllowedValue);
         state.prevAllowedValue = allowedValue;
         if (e.value === allowedValue) {
@@ -509,7 +509,6 @@ var input = makeComponent(function input(props) {
     },
 });
 var labeledInput = makeComponent(function labeledInput(props) {
-    if (props === void 0) { props = {}; }
     var _a = props.label, label = _a === void 0 ? "" : _a, leftComponent = props.leftComponent, inputComponent = props.inputComponent, rightComponent = props.rightComponent;
     var fieldset = document.createElement("fieldset");
     fieldset.onmousedown = function (event) {
@@ -518,8 +517,9 @@ var labeledInput = makeComponent(function labeledInput(props) {
         }
     };
     fieldset.onclick = function (event) {
-        if (event.target !== inputComponent._.prevNode) {
-            inputComponent._.prevNode.focus();
+        var prevNode = inputComponent._.prevNode;
+        if (prevNode && (event.target !== prevNode)) {
+            prevNode.focus();
         }
     };
     var legend = document.createElement("legend");
@@ -537,11 +537,12 @@ var errorMessage = makeComponent(function errorMessage(error, props) {
     this.append(span(error, __assign({ color: "red", fontSize: "small" }, props)));
 });
 var textInput = makeComponent(function textInput(props) {
-    if (props === void 0) { props = {}; }
-    var label = props.label, error = props.error, extraProps = __rest(props, ["label", "error"]);
+    var label = props.label, leftComponent = props.leftComponent, rightComponent = props.rightComponent, error = props.error, extraProps = __rest(props, ["label", "leftComponent", "rightComponent", "error"]);
     this.append(labeledInput({
         label: label,
+        leftComponent: leftComponent,
         inputComponent: input(extraProps),
+        rightComponent: rightComponent,
     }));
     if (error)
         this.append(errorMessage(error));
@@ -555,7 +556,9 @@ var numberArrows = makeComponent(function numberArrows(props) {
 });
 var numberInput = makeComponent(function numberInput(props) {
     if (props === void 0) { props = {}; }
-    var label = props.label, value = props.value, error = props.error, min = props.min, max = props.max, step = props.step, stepPrecision = props.stepPrecision, _a = props.clearable, clearable = _a === void 0 ? true : _a, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, leftComponent = props.leftComponent, extraProps = __rest(props, ["label", "value", "error", "min", "max", "step", "stepPrecision", "clearable", "onKeyDown", "onInput", "onChange", "leftComponent"]);
+    var label = props.label, leftComponent = props.leftComponent, customRightComponent = props.rightComponent, error = props.error, // labeledInput
+    value = props.value, min = props.min, max = props.max, step = props.step, stepPrecision = props.stepPrecision, _a = props.clearable, clearable = _a === void 0 ? true : _a, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, extraProps = __rest(props, ["label", "leftComponent", "rightComponent", "error", "value", "min", "max", "step", "stepPrecision", "clearable", "onKeyDown", "onInput", "onChange"]) // numberInput
+    ;
     var stepAndClamp = function (number) {
         var _a;
         if (step) {
@@ -594,22 +597,26 @@ var numberInput = makeComponent(function numberInput(props) {
                 return prevAllowedValue;
             return String(stepAndClamp(number));
         } }));
+    var rightComponent = fragment();
+    if (customRightComponent)
+        rightComponent.append(customRightComponent);
+    rightComponent.append(numberArrows({
+        onClickUp: function (_event) {
+            incrementValue(step !== null && step !== void 0 ? step : 1);
+            inputComponent._.state.needFocus = true;
+            inputComponent.rerender();
+        },
+        onClickDown: function (_event) {
+            incrementValue(-(step !== null && step !== void 0 ? step : 1));
+            inputComponent._.state.needFocus = true;
+            inputComponent.rerender();
+        },
+    }));
     this.append(labeledInput({
         label: label,
         leftComponent: leftComponent,
         inputComponent: inputComponent,
-        rightComponent: numberArrows({
-            onClickUp: function (_event) {
-                incrementValue(step !== null && step !== void 0 ? step : 1);
-                inputComponent._.state.needFocus = true;
-                inputComponent.rerender();
-            },
-            onClickDown: function (_event) {
-                incrementValue(-(step !== null && step !== void 0 ? step : 1));
-                inputComponent._.state.needFocus = true;
-                inputComponent.rerender();
-            },
-        }),
+        rightComponent: rightComponent,
     }));
     if (error)
         this.append(errorMessage(error));

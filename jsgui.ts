@@ -339,8 +339,8 @@ type SpanProps = {
   replacePath?: boolean;
   id?: string;
   onClick?: (event: MouseEvent) => void;
-}
-const span = makeComponent(function _span(text: string, props: SpanProps & BaseProps = {}) {
+} & BaseProps;
+const span = makeComponent(function _span(text: string, props: SpanProps = {}) {
   const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
@@ -387,14 +387,25 @@ const span = makeComponent(function _span(text: string, props: SpanProps & BaseP
   return e;
 }, { name: "span" });
 // https://fonts.google.com/icons
-const icon = makeComponent(function icon(iconName: string, props: ObjectLike = {}) {
+const icon = makeComponent(function icon(iconName: string, props: SpanProps = {}) {
   this.append(span("", {iconName, ...props}));
 });
-const loadingSpinner = makeComponent(function loadingSpinner(props: ObjectLike = {}) {
+const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = {}) {
   this.append(icon("progress_activity", props));
 });
-// inputs // TODO: fix input types
-const input = makeComponent(function input(props: ObjectLike = {}) {
+// inputs
+type InputProps = {
+  type?: "text";
+  placeholder?: string;
+  value: string;
+  autoFocus?: boolean;
+  onKeyDown?: (event: KeyboardEvent) => void;
+  onInput?: (newAllowedValue: string, event: InputEvent) => void;
+  onChange?: (newAllowedValue: string, event: KeyboardEvent) => void;
+  allowChar?: (char: string) => boolean;
+  allowString?: (value: string, prevAllowedValue: string) => string;
+} & BaseProps;
+const input = makeComponent(function input(props: InputProps) {
   const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
   const e = (this._?.prevNode ?? document.createElement('input')) as HTMLInputElement; // NOTE: e.remove() must not be called
@@ -402,11 +413,12 @@ const input = makeComponent(function input(props: ObjectLike = {}) {
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = value;
-  e.onkeydown = (event) => {
+  e.onkeydown = (event: KeyboardEvent) => {
     if (onKeyDown) onKeyDown(event);
     state.needFocus = true;
   };
-  e.oninput = (event) => {
+  e.oninput = (_event: Event) => {
+    const event = _event as InputEvent;
     if (allowChar && "data" in event) {
       if ((event.data !== null) && !allowChar(event.data)) {
         event.preventDefault();
@@ -422,7 +434,8 @@ const input = makeComponent(function input(props: ObjectLike = {}) {
       if (onInput) onInput(allowedValue, event);
     }
   }
-  e.onchange = (event) => {
+  e.onchange = (_event: Event) => {
+    const event = _event as KeyboardEvent;
     const allowedValue = allowString(e.value, state.prevAllowedValue);
     state.prevAllowedValue = allowedValue;
     if (e.value === allowedValue) {
@@ -441,7 +454,13 @@ const input = makeComponent(function input(props: ObjectLike = {}) {
     }
   },
 });
-const labeledInput = makeComponent(function labeledInput(props: ObjectLike = {}) {
+type LabeledInputProps = {
+  label?: string;
+  leftComponent?: Component;
+  inputComponent: Component;
+  rightComponent?: Component;
+} & BaseProps;
+const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
   const {label = "", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = document.createElement("fieldset");
   fieldset.onmousedown = (event) => {
@@ -450,8 +469,9 @@ const labeledInput = makeComponent(function labeledInput(props: ObjectLike = {})
     }
   }
   fieldset.onclick = (event) => {
-    if (event.target !== inputComponent._.prevNode) {
-      inputComponent._.prevNode.focus();
+    const prevNode = inputComponent._.prevNode;
+    if (prevNode && (event.target !== prevNode)) {
+      prevNode.focus();
     }
   };
   const legend = document.createElement("legend");
@@ -462,25 +482,36 @@ const labeledInput = makeComponent(function labeledInput(props: ObjectLike = {})
   if (rightComponent) this.append(rightComponent);
   return fieldset;
 });
-const errorMessage = makeComponent(function errorMessage(error: string, props: ObjectLike = {}) {
+const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
   this.append(span(error, {color: "red", fontSize: "small", ...props}));
 });
-const textInput = makeComponent(function textInput(props: ObjectLike = {}) {
-  const {label, error, ...extraProps} = props;
+type TextInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {error?: string};
+const textInput = makeComponent(function textInput(props: TextInputProps) {
+  const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
     label,
+    leftComponent,
     inputComponent: input(extraProps),
+    rightComponent,
   }));
   if (error) this.append(errorMessage(error));
 });
-const numberArrows = makeComponent(function numberArrows(props: ObjectLike = {}) {
+type NumberArrowProps = {
+  onClickUp?: (event: MouseEvent) => void;
+  onClickDown?: (event: MouseEvent) => void;
+} & BaseProps;
+const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
   const wrapper = this.append(div());
   wrapper.append(icon("arrow_drop_up", {className: "upIcon", onClick: onClickUp}));
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
 });
+type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {error?: string};
 const numberInput = makeComponent(function numberInput(props: ObjectLike = {}) {
-  const { label, value, error, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, leftComponent, ...extraProps } = props;
+  const {
+    label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
+    value, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, ...extraProps // numberInput
+  } = props;
   const stepAndClamp = (number: number) => {
     if (step) {
       const stepOffset = min ?? max ?? 0;
@@ -513,30 +544,33 @@ const numberInput = makeComponent(function numberInput(props: ObjectLike = {}) {
     onInput,
     onChange,
     ...extraProps,
-    allowChar: (c: string) => "-0123456789".includes(c), // TODO: infer types here
-    allowString: (value: string, prevAllowedValue: string) => {
+    allowChar: (c) => "-0123456789".includes(c),
+    allowString: (value, prevAllowedValue) => {
       if (value === "") return clearable ? "" : prevAllowedValue;
       let number = +value;
       if (isNaN(number)) return prevAllowedValue;
       return String(stepAndClamp(number));
     },
   });
+  const rightComponent = fragment();
+  if (customRightComponent) rightComponent.append(customRightComponent);
+  rightComponent.append(numberArrows({
+    onClickUp: (_event: MouseEvent) => {
+      incrementValue(step ?? 1);
+      inputComponent._.state.needFocus = true;
+      inputComponent.rerender();
+    },
+    onClickDown: (_event: MouseEvent) => {
+      incrementValue(-(step ?? 1));
+      inputComponent._.state.needFocus = true;
+      inputComponent.rerender();
+    },
+  }));
   this.append(labeledInput({
     label,
     leftComponent,
     inputComponent,
-    rightComponent: numberArrows({
-      onClickUp: (_event: MouseEvent) => {
-        incrementValue(step ?? 1);
-        inputComponent._.state.needFocus = true;
-        inputComponent.rerender();
-      },
-      onClickDown: (_event: MouseEvent) => {
-        incrementValue(-(step ?? 1));
-        inputComponent._.state.needFocus = true;
-        inputComponent.rerender();
-      },
-    }),
+    rightComponent: rightComponent,
   }));
   if (error) this.append(errorMessage(error));
 });
