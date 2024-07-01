@@ -172,7 +172,7 @@ function renderRoot(component, parentNode = null) {
     })
   }
 }
-function _render(component, parentNode, isStartNode = true, ownerNames = [], cssVars = {}) {
+function _render(component, parentNode, isTopNode = true, inheritedCssVars = {}, inheritedNames = []) {
   // render elements
   const {_, name, args, props, onRender, options, _indexedChildCount} = component;
   const {onMount} = options;
@@ -186,28 +186,28 @@ function _render(component, parentNode, isStartNode = true, ownerNames = [], css
   _.prevIndexedChildCount = _indexedChildCount;
   _.prevState = {..._.state};
   _.prevComponent = component;
-  // append elements
+  // append element
   const {style = {}, className, attribute = {}} = props;
   if (props.cssVars)
-    cssVars = {...cssVars, ...(props.cssVars ?? {})};
+    inheritedCssVars = {...inheritedCssVars, ...(props.cssVars ?? {})};
   if (node) {
+    // style
     for (let [k, v] of Object.entries(style)) {
       if (v != null) {
         node.style[k] = _addPx(v);
       }
     }
-    for (let [k, v] of Object.entries(cssVars)) {
+    for (let [k, v] of Object.entries(inheritedCssVars)) {
       if (v != null) {
-        console.log(k, v);
         node.style.setProperty(`--${k}`, _addPx(v));
       }
     }
-    cssVars = {};
+    // class
     if (name !== node.tagName.toLowerCase()) {
-      ownerNames = [...ownerNames, name];
+      inheritedNames = [...inheritedNames, name];
     }
-    for (let ownerName of ownerNames) {
-      node.classList.add(ownerName);
+    for (let inheritedName of inheritedNames) {
+      node.classList.add(inheritedName);
     }
     if (Array.isArray(className)) {
       for (let v of className) {
@@ -218,23 +218,28 @@ function _render(component, parentNode, isStartNode = true, ownerNames = [], css
         if (v) node.classList.add(v);
       }
     }
+    // attribute
     for (let [k, v] of Object.entries(attribute)) {
       node.setAttribute(_camelCaseToKebabCase(k), v);
     }
+    // append
     const prevNode = _.prevNode;
-    if (isStartNode && prevNode) {
+    if (isTopNode && prevNode) {
       prevNode.replaceWith(node);
     } else {
       parentNode.append(node);
     }
-    if (onMount) onMount(node, _.state);
+    if (onMount) onMount(component, node);
     _.prevNode = node;
+    // inherit
     parentNode = node;
-    isStartNode = false;
-    ownerNames = [];
+    isTopNode = false;
+    inheritedCssVars = {};
+    inheritedNames = [];
   } else {
-    ownerNames = [...ownerNames, name];
+    inheritedNames = [...inheritedNames, name];
   }
+  // children
   const usedKeys = new Set();
   for (let child of component.children) {
     let key = child.key;
@@ -249,7 +254,7 @@ function _render(component, parentNode, isStartNode = true, ownerNames = [], css
     child_.root = _.root;
     child_.parent = _;
     child_.gcFlag = _.gcFlag;
-    _render(child, parentNode, isStartNode, ownerNames, cssVars);
+    _render(child, parentNode, isTopNode, inheritedCssVars, inheritedNames);
   }
 }
 function _camelCaseToKebabCase(k) {
@@ -373,7 +378,8 @@ const input = makeComponent(function input(props) {
   };
   return e;
 }, {
-  onMount(e, state) {
+  onMount(component, e) {
+    const {state} = component._;
     if (state.needFocus) {
       e.focus();
       state.needFocus = false;
