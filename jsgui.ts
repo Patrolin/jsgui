@@ -1,39 +1,82 @@
-// base component
-function parseJsonOrNull(jsonString) {
+// TODO: make a typescript compiler to compile packages like odin
+// utils
+type Nullsy = undefined | null;
+type ObjectLike<T = any> = Record<string, T>;
+type JSONValue = string | number | any[] | ObjectLike | null;
+function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
   } catch {
     return null;
   }
 }
+function camelCaseToKebabCase(key: string) {
+  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
+}
+function addPx(value: string | number) {
+  return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
+}
+// base component
+type ElementType = HTMLElement;
+type BaseFragmentProps = {
+  cssVars?: ObjectLike<string | number | undefined>;
+};
+type BaseProps = BaseFragmentProps & { // TODO: pass through all base props
+  style?: ObjectLike<string | number | undefined>;
+  className?: string | string[];
+  attribute?: ObjectLike<string | boolean>;
+}
+type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => ElementType | void;
+type ComponentOptions = {
+  name?: string;
+  onMount?: (component: Component, node: ElementType) => void;
+};
+type GetErrorsFunction = (errors: ObjectLike<string>) => void;
 class Component {
-  constructor(onRender, args, key, props, options) {
-    this.name = options.name || onRender.name; // string
-    if (!this.name) throw `Function name cannot be empty: ${onRender}`;
-    this.args = args // any[]
+  name: string;
+  args: any[];
+  key: string|null;
+  props: ObjectLike;
+  children: Component[];
+  onRender: RenderFunction<any[]>;
+  options: ComponentOptions;
+  _: ComponentMetadata | RootComponentMetadata;
+  _indexedChildCount: number;
+  _usedKeys: Set<string>;
+  _mediaKeys: string[];
+  constructor(onRender: RenderFunction<any[]>, args: any[], key: string | Nullsy, props: ObjectLike, options: ComponentOptions) {
+    this.name = options.name ?? onRender.name;
+    if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
+    this.args = args
     this.key = (key != null) ? String(key) : null;
-    this.props = props; // Record<string, any>
-    this.children = []; // Component[]
-    this.onRender = onRender; // function (...) {}
+    this.props = props;
+    this.children = [];
+    this.onRender = onRender;
     this.options = options;
-    this._ = null; // ComponentMetadata | RootComponentMetadata
-    this._indexedChildCount = 0; // number
-    this._usedKeys = new Set(); // Set<string>
-    this._mediaKeys = [] // string[]
+    this._ = null as any;
+    this._indexedChildCount = 0;
+    this._usedKeys = new Set();
+    this._mediaKeys = [];
   }
-  append(child) {
+  append(child: Component) {
     this.children.push(child);
     return child;
   }
-  useState(defaultState) {
-    if (this._.state === null) this._.state = defaultState;
-    return this._.state;
+  useState(defaultState: ObjectLike) {
+    const {_} = this;
+    if (!_.stateIsInitialized) {
+      _.state = defaultState;
+      _.stateIsInitialized = true;
+    }
+    return _.state;
   }
-  useValidate(getErrors) {
+  useValidate(getErrors: GetErrorsFunction) {
     return () => {
       let errors = {};
-      this._.state.errors = getErrors(errors);
-      this._.state.didValidate = true;
+      getErrors(errors);
+      const {state} = this._;
+      state.errors = errors;
+      state.didValidate = true;
       const hasErrors = Object.keys(errors).length > 0;
       if (hasErrors) {
         this.rerender();
@@ -41,8 +84,8 @@ class Component {
       return !hasErrors;
     }
   }
-  useMedia(mediaQuery) {
-    const key = Object.entries(mediaQuery).map(([k, v]) => `(${_camelCaseToKebabCase(k)}: ${_addPx(v)})`).join(' and ');
+  useMedia(mediaQuery: ObjectLike<string | number>) {
+    const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
     this._mediaKeys.push(key);
     const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
       const mediaQueryList = window.matchMedia(key);
@@ -52,39 +95,40 @@ class Component {
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches;
   }
-  useLocalStorage(key, defaultValue) {
+  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] {
     _localStorageDispatchTarget.addComponent(this);
-    const value = parseJsonOrNull(localStorage[key])?.[0] ?? defaultValue;
-    const setValue = (newValue) => {
+    const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
+    const setValue = (newValue: T) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
     }
     return [value, setValue];
   }
   useNavigate() {
     return {
-      navigate: (url) => location.href = url,
-      replace: (url) => location.replace(url),
+      navigate: (url: string) => location.href = url,
+      replace: (url: string) => location.replace(url),
     }
   }
   rerender() {
     const root_ = this._.root;
     const rootComponent = root_.component;
     const newGcFlag = !root_.gcFlag;
-    if (!rootComponent.willRerenderNextFrame) {
-      rootComponent.willRerenderNextFrame = true;
+    if (!root_.willRerenderNextFrame) {
+      root_.willRerenderNextFrame = true;
       requestAnimationFrame(() => {
         const newRootComponent = _copyComponent(rootComponent);
+        newRootComponent._ = root_;
         root_.gcFlag = newGcFlag;
         root_.component = newRootComponent;
-        _render(newRootComponent, newRootComponent._.parentNode);
+        _render(newRootComponent, root_.parentNode);
         _unloadUnusedComponents(rootComponent, newGcFlag);
-        rootComponent.willRerenderNextFrame = false;
+        root_.willRerenderNextFrame = false;
       });
     }
   }
 }
-function makeComponent(onRender, options = {}) {
-  return (...argsOrProps) => {
+function makeComponent<T extends any[]>(onRender: RenderFunction<T>, options: ComponentOptions = {}): ((...args: T) => Component) { // TODO: make this be typed properly
+  return (...argsOrProps: any[]) => {
     const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
     const props = {...argsOrProps[argCount]};
@@ -93,29 +137,32 @@ function makeComponent(onRender, options = {}) {
     return new Component(onRender, args, key, props, options);
   }
 }
-function _copyComponent(component) {
+function _copyComponent(component: Component) {
   const newComponent = new Component(component.onRender, component.args, component.key, component.props, component.options);
   newComponent._ = component._;
   return newComponent;
 }
+type DispatchTargetAddListeners = (dispatch: () => void) => any;
 class DispatchTarget {
-  constructor(addListeners) {
-    this.components = []; // Component[]
-    this.state = addListeners(() => this.dispatch()); // any
+  components: Component[];
+  state: any;
+  constructor(addListeners: DispatchTargetAddListeners) {
+    this.components = [];
+    this.state = addListeners(() => this.dispatch());
   }
-  static init(key, store, addListeners) {
+  static init(key: string, store: ObjectLike<DispatchTarget>, addListeners: DispatchTargetAddListeners) {
     const oldDT = store[key];
     if (oldDT != null) return oldDT;
     const newDT = new DispatchTarget(addListeners);
     store[key] = newDT;
     return newDT;
   }
-  addComponent(component) {
+  addComponent(component: Component) {
     this.components.push(component);
   }
-  removeComponent(component) {
+  removeComponent(component: Component) {
     const i = this.components.indexOf(component);
-    if (i !== -1) this.component.splice(i, 1);
+    if (i !== -1) this.components.splice(i, 1);
   }
   dispatch() {
     for (let component of this.components) {
@@ -123,7 +170,7 @@ class DispatchTarget {
     }
   }
 }
-const _mediaQueryDispatchTargets = {}; // Record<string, DispatchTarget>
+const _mediaQueryDispatchTargets: ObjectLike<DispatchTarget> = {};
 const _localStorageDispatchTarget = new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch));
 function _scrollToLocationHash() {
   const element = document.getElementById(location.hash.slice(1));
@@ -136,47 +183,53 @@ const _locationHashDispatchTarget = new DispatchTarget((dispatch) => {
   });
 });
 class ComponentMetadata {
-  constructor() {
-    // navigation
-    this.prevComponent = null; // Component | null
-    this.root = null; // RootComponentMetadata
-    this.parent = null // ComponentMetadata | null
-    this.keyToChild = {}; // Record<string, ComponentMetadata>
-    this.prevIndexedChildCount = null; // number | null
-    // state
-    this.state = null; // any
-    this.prevState = null; // any | null
-    this.prevNode = null; // HTMLElement | null
-    this.gcFlag = false; // boolean
+  // state
+  stateIsInitialized: boolean = false
+  state: ObjectLike = {};
+  prevState: any | null = null;
+  prevNode: ElementType | null = null;
+  gcFlag: boolean = false;
+  // navigation
+  prevComponent: Component | null = null;
+  keyToChild: ObjectLike<ComponentMetadata> = {};
+  prevIndexedChildCount: number | null = null;
+  parent: ComponentMetadata | RootComponentMetadata | null;
+  root: RootComponentMetadata;
+  constructor(parent: ComponentMetadata | RootComponentMetadata | null) {
+    this.parent = parent;
+    this.root = parent?.root ?? null as any;
   }
 }
 class RootComponentMetadata extends ComponentMetadata {
-  constructor(component, parentNode) {
-    super();
-    this.root = this
+  component: Component;
+  parentNode: ElementType;
+  willRerenderNextFrame: boolean = false;
+  constructor(component: Component, parentNode: ElementType) {
+    super(null);
+    this.root = this;
     this.component = component;
     this.parentNode = parentNode;
-    this.willRerenderNextFrame = false;
   }
 }
 
 // render
-function renderRoot(component, parentNode = null) {
-  component._ = new RootComponentMetadata(component, parentNode);
+function renderRoot(component: Component, parentNode = null) {
+  const root_ = new RootComponentMetadata(component, parentNode as any);
+  component._ = root_;
   window.onload = () => {
-    component._.parentNode = component._.parentNode ?? document.body;
-    _render(component, component._.parentNode);
+    root_.parentNode = root_.parentNode ?? document.body;
+    _render(component, root_.parentNode);
     setTimeout(() => {
       _scrollToLocationHash();
     })
   }
 }
-function _render(component, parentNode, isTopNode = true, inheritedCssVars = {}, inheritedNames = []) {
+function _render(component: Component, parentNode: ElementType, isTopNode = true, inheritedCssVars: BaseProps['cssVars'] = {}, inheritedNames: string[] = []) {
   // render elements
   const {_, name, args, props, onRender, options, _indexedChildCount} = component;
   const {onMount} = options;
   let node = onRender.bind(component)(...args, props);
-  if (!(node instanceof Element)) node = null;
+  if (!(node instanceof Element)) node = undefined;
   // set prev state
   const prevIndexedChildCount = _.prevIndexedChildCount;
   if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
@@ -186,19 +239,18 @@ function _render(component, parentNode, isTopNode = true, inheritedCssVars = {},
   _.prevState = {..._.state};
   _.prevComponent = component;
   // append element
-  const {style = {}, className, attribute = {}} = props;
-  if (props.cssVars)
-    inheritedCssVars = {...inheritedCssVars, ...(props.cssVars ?? {})};
+  const {style = {}, className, attribute = {}, cssVars} = props as BaseProps;
+  if (cssVars) inheritedCssVars = {...inheritedCssVars, ...cssVars};
   if (node) {
     // style
     for (let [k, v] of Object.entries(style)) {
       if (v != null) {
-        node.style[k] = _addPx(v);
+        node.style[k as any] = addPx(v);
       }
     }
     for (let [k, v] of Object.entries(inheritedCssVars)) {
       if (v != null) {
-        node.style.setProperty(`--${k}`, _addPx(v));
+        node.style.setProperty(`--${k}`, addPx(v));
       }
     }
     // class
@@ -219,7 +271,7 @@ function _render(component, parentNode, isTopNode = true, inheritedCssVars = {},
     }
     // attribute
     for (let [k, v] of Object.entries(attribute)) {
-      node.setAttribute(_camelCaseToKebabCase(k), v);
+      node.setAttribute(camelCaseToKebabCase(k), String(v));
     }
     // append
     const prevNode = _.prevNode;
@@ -236,7 +288,7 @@ function _render(component, parentNode, isTopNode = true, inheritedCssVars = {},
     inheritedCssVars = {};
     inheritedNames = [];
   } else {
-    inheritedNames = [...inheritedNames, name];
+    if (name) inheritedNames = [...inheritedNames, name];
   }
   // children
   const usedKeys = new Set();
@@ -247,24 +299,16 @@ function _render(component, parentNode, isTopNode = true, inheritedCssVars = {},
     }
     if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
     usedKeys.add(key);
-    const child_ = _.keyToChild[key] ?? new ComponentMetadata();
+    const child_ = _.keyToChild[key] ?? new ComponentMetadata(_);
     _.keyToChild[key] = child_;
     child._ = child_;
-    child_.root = _.root;
-    child_.parent = _;
     child_.gcFlag = _.gcFlag;
     _render(child, parentNode, isTopNode, inheritedCssVars, inheritedNames);
   }
 }
-function _camelCaseToKebabCase(k) {
-  return k.match(/[A-Z][a-z]*|[a-z]+/g).map(v => v.toLowerCase()).join("-");
-}
-function _addPx(v) {
-  return (v?.constructor?.name === "Number") ? `${v}px` : v;
-}
 
 // rerender
-function _unloadUnusedComponents(prevComponent, gcFlag) {
+function _unloadUnusedComponents(prevComponent: Component, gcFlag: boolean) {
   for (let child of prevComponent.children) {
     const child_ = child._;
     if (child_.gcFlag !== gcFlag) {
@@ -272,18 +316,29 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
         _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
       _localStorageDispatchTarget.removeComponent(prevComponent);
-      delete child_.parent.keyToChild[child.key];
+      delete child_.parent?.keyToChild[child.key as any];
     }
     _unloadUnusedComponents(child, gcFlag);
   }
 }
 
 // basic components
-const fragment = makeComponent(function fragment(_props) {});
-const div = makeComponent(function div(_props) {
+const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
+const div = makeComponent(function div(_props: BaseProps = {}) {
   return document.createElement('div');
 });
-const span = makeComponent(function _span(text, props) {
+type SpanProps = {
+  iconName?: string;
+  fontSize?: string;
+  color?: string;
+  singleLine?: string;
+  fontFamily?: string;
+  href?: string;
+  replacePath?: boolean;
+  id?: string;
+  onClick?: (event: MouseEvent) => void;
+}
+const span = makeComponent(function _span(text, props: SpanProps & BaseProps = {}) {
   const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
@@ -302,7 +357,7 @@ const span = makeComponent(function _span(text, props) {
   }
   if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
   if (isLink) {
-    e.href = href;
+    (e as HTMLAnchorElement).href = href;
     if (replacePath) {
       e.onclick = (event) => {
         event.preventDefault();
@@ -314,7 +369,7 @@ const span = makeComponent(function _span(text, props) {
     if (onClick) {
       e.onclick = onClick;
       e.setAttribute("tabindex", "-1");
-      e.setAttribute("clickable", true);
+      e.setAttribute("clickable", "true");
     }
   }
   if (id) {
@@ -330,17 +385,17 @@ const span = makeComponent(function _span(text, props) {
   return e;
 }, { name: "span" });
 // https://fonts.google.com/icons
-const icon = makeComponent(function icon(iconName, props) {
+const icon = makeComponent(function icon(iconName, props: ObjectLike = {}) {
   this.append(span("", {iconName, ...props}));
 });
-const loadingSpinner = makeComponent(function loadingSpinner(props) {
+const loadingSpinner = makeComponent(function loadingSpinner(props: ObjectLike = {}) {
   this.append(icon("progress_activity", props));
 });
-// inputs
-const input = makeComponent(function input(props) {
-  const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value, _prevAllowedValue) => value } = props;
+// inputs // TODO: fix input types
+const input = makeComponent(function input(props: ObjectLike = {}) {
+  const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
   const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
-  const e = this._?.prevNode ?? document.createElement('input'); // NOTE: e.remove() must not be called
+  const e = (this._?.prevNode ?? document.createElement('input')) as HTMLInputElement; // NOTE: e.remove() must not be called
   e.type = type;
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
@@ -377,14 +432,14 @@ const input = makeComponent(function input(props) {
   return e;
 }, {
   onMount(component, e) {
-    const {state} = component._;
+    const state = component._.state;
     if (state.needFocus) {
       e.focus();
       state.needFocus = false;
     }
   }
 });
-const labeledInput = makeComponent(function labeledInput(props) {
+const labeledInput = makeComponent(function labeledInput(props: ObjectLike = {}) {
   const {label = "", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = document.createElement("fieldset");
   fieldset.onmousedown = (event) => {
@@ -405,10 +460,10 @@ const labeledInput = makeComponent(function labeledInput(props) {
   if (rightComponent) this.append(rightComponent);
   return fieldset;
 });
-const errorMessage = makeComponent(function errorMessage(error, props) {
+const errorMessage = makeComponent(function errorMessage(error, props: ObjectLike = {}) {
   this.append(span(error, {color: "red", fontSize: "small", ...props}));
 });
-const textInput = makeComponent(function textInput(props) {
+const textInput = makeComponent(function textInput(props: ObjectLike = {}) {
   const {label, error, ...extraProps} = props;
   this.append(labeledInput({
     label,
@@ -416,15 +471,15 @@ const textInput = makeComponent(function textInput(props) {
   }));
   if (error) this.append(errorMessage(error));
 });
-const numberArrows = makeComponent(function numberArrows(props) {
+const numberArrows = makeComponent(function numberArrows(props: ObjectLike = {}) {
   const { onClickUp, onClickDown } = props;
   const wrapper = this.append(div());
   wrapper.append(icon("arrow_drop_up", {className: "upIcon", onClick: onClickUp}));
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
 });
-const numberInput = makeComponent(function numberInput(props) {
+const numberInput = makeComponent(function numberInput(props: ObjectLike = {}) {
   const { label, value, error, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, leftComponent, ...extraProps } = props;
-  const stepAndClamp = (number) => {
+  const stepAndClamp = (number: number) => {
     if (step) {
       const stepOffset = min ?? max ?? 0;
       number = stepOffset + Math.round((number - stepOffset) / step) * step;
@@ -434,7 +489,7 @@ const numberInput = makeComponent(function numberInput(props) {
     const defaultStepPrecision = step ? String(step).split(".")[1].length : 0;
     return number.toFixed(stepPrecision ?? defaultStepPrecision);
   };
-  const incrementValue = (by) => {
+  const incrementValue = (by: number) => {
     const number = stepAndClamp(+(value ?? 0) + by);
     const newValue = String(number);
     if (onInput) onInput(newValue, event);
@@ -442,7 +497,7 @@ const numberInput = makeComponent(function numberInput(props) {
   };
   const inputComponent = input({
     value,
-    onKeyDown: (event) => {
+    onKeyDown: (event: KeyboardEvent) => {
       switch (event.key) {
         case "ArrowUp":
           incrementValue(step ?? 1);
@@ -456,8 +511,8 @@ const numberInput = makeComponent(function numberInput(props) {
     onInput,
     onChange,
     ...extraProps,
-    allowChar: (c) => "-0123456789".includes(c),
-    allowString: (value, prevAllowedValue) => {
+    allowChar: (c: string) => "-0123456789".includes(c), // TODO: infer types here
+    allowString: (value: string, prevAllowedValue: string) => {
       if (value === "") return clearable ? "" : prevAllowedValue;
       let number = +value;
       if (isNaN(number)) return prevAllowedValue;
@@ -469,12 +524,12 @@ const numberInput = makeComponent(function numberInput(props) {
     leftComponent,
     inputComponent,
     rightComponent: numberArrows({
-      onClickUp: (_event) => {
+      onClickUp: (_event: MouseEvent) => {
         incrementValue(step ?? 1);
         inputComponent._.state.needFocus = true;
         inputComponent.rerender();
       },
-      onClickDown: (_event) => {
+      onClickDown: (_event: MouseEvent) => {
         incrementValue(-(step ?? 1));
         inputComponent._.state.needFocus = true;
         inputComponent.rerender();
@@ -484,7 +539,22 @@ const numberInput = makeComponent(function numberInput(props) {
   if (error) this.append(errorMessage(error));
 });
 // table
-const table = makeComponent(function table(props) {
+type TableColumn = {
+  label: string;
+  onRender: (data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}) => Component;
+  minWidth?: string | number;
+  maxWidth?: string | number;
+  flex?: string | number;
+};
+type TableProps = {
+  label?: string;
+  columns: TableColumn[];
+  rows: any[];
+  isLoading?: boolean;
+  minHeight?: number;
+  useMaxHeight?: boolean;
+} & BaseProps;
+const table = makeComponent(function table(props: TableProps & BaseProps) {
   // TODO: set minHeight to fit N rows
   // TODO: actions, filters, search, paging, selection
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
@@ -492,10 +562,10 @@ const table = makeComponent(function table(props) {
     attribute: {useMaxHeight, isLoading},
     style: {minHeight},
   }));
-  const makeRow = (className) => div({className});
-  const makeCell = (column) => div({
+  const makeRow = (className: string) => div({className});
+  const makeCell = (column: TableColumn) => div({
     className: "cell",
-    style: {flex: column.flex ?? "1 1 0", minWidth: column.minWidth, maxWidth: column.maxWidth},
+    style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
   });
   if (label) {
     tableWrapper.append(span(label, {className: "label"}));
@@ -521,14 +591,28 @@ const table = makeComponent(function table(props) {
   }
 });
 // router
-// type Route = { path: string, component: () => Component, roles: string[], wrapper?: boolean };
-const router = makeComponent(function router(props) {
+type Route = {
+  component: (props?: BaseProps) => Component;
+  roles?: string[];
+  wrapper?: boolean;
+};
+type RouterProps = {
+  routes: ObjectLike<Route>;
+  wrapperComponent?: Component;
+  currentRoles?: string[];
+  isLoggedIn?: boolean;
+  notLoggedInRoute?: Route;
+  notFoundRoute?: Route;
+  unauthorizedRoute?: Route;
+};
+const router = makeComponent(function router(props: RouterProps) {
   const {
     routes,
     wrapperComponent = fragment(),
-    roles,
+    currentRoles,
     isLoggedIn,
     notLoggedInRoute = { path: ".*", component: fragment },
+    notFoundRoute = { path: ".*", component: () => span("404 Not found") },
     unauthorizedRoute = { path: ".*", component: fragment },
   } = props;
   let lPath = location.pathname;
@@ -537,13 +621,13 @@ const router = makeComponent(function router(props) {
     lPath = `/${acc[acc.length - 1]}`;
   }
   if (lPath.endsWith("/index.html")) lPath = lPath.slice(0, -10);
-  let route = null, params = {};
+  let route: Route | null = null, params = {};
   for (let [k, v] of Object.entries(routes)) {
     const regex = k.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
     const match = lPath.match(new RegExp(`^${regex}$`));
     if (match != null) {
-      params = match.groups;
-      if (v.roles && !(roles ?? []).some(role => v.roles.includes(role))) {
+      params = match.groups ?? {};
+      if (v.roles && !(currentRoles ?? []).some(role => !v.roles?.length || v.roles.includes(role))) {
         route = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
       } else {
         route = v;
@@ -551,12 +635,13 @@ const router = makeComponent(function router(props) {
       break;
     }
   }
+  route = route ?? notFoundRoute;
   if (route) {
     if (route.wrapper ?? true) {
       this.append(wrapperComponent);
-      wrapperComponent.append(route.component({params}));
+      wrapperComponent.append(route.component()); // TODO: save params in RootComponentMetadata?
     } else {
-      this.append(route.component({params}));
+      this.append(route.component());
     }
   }
 });
