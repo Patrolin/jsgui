@@ -14,7 +14,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         ext = request_file_path.suffix
         if not request_file_path.is_file() and not pattern.match(ext):
-          self.path = 'index.html'
+          self.path = '404.html'
 
         return http.server.SimpleHTTPRequestHandler.do_GET(self)
 

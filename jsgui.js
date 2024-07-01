@@ -6,19 +6,16 @@ function parseJsonOrNull(jsonString) {
     return null;
   }
 }
-const _NAME_OVERRIDES = {
-  htmlSpan: "span",
-};
 class Component {
-  constructor(onRender, onMount, args, key, props) {
-    this.name = _NAME_OVERRIDES[onRender.name] || onRender.name; // string
+  constructor(onRender, args, key, props, options) {
+    this.name = options.name || onRender.name; // string
     if (!this.name) throw `Function name cannot be empty: ${onRender}`;
     this.args = args // any[]
     this.key = (key != null) ? String(key) : null;
     this.props = props; // Record<string, any>
     this.children = []; // Component[]
     this.onRender = onRender; // function (...) {}
-    this.onMount = onMount;
+    this.options = options;
     this._ = null; // ComponentMetadata | RootComponentMetadata
     this._indexedChildCount = 0; // number
     this._usedKeys = new Set(); // Set<string>
@@ -84,18 +81,18 @@ class Component {
     }
   }
 }
-function makeComponent(onRender, onMount = null) {
+function makeComponent(onRender, options = {}) {
   return (...argsOrProps) => {
     const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
     const props = {...argsOrProps[argCount]};
     const key = props.key;
     delete props.key;
-    return new Component(onRender, onMount, args, key, props);
+    return new Component(onRender, args, key, props, options);
   }
 }
 function _copyComponent(component) {
-  const newComponent = new Component(component.onRender, component.onMount, component.args, component.key, component.props);
+  const newComponent = new Component(component.onRender, component.args, component.key, component.props, component.options);
   newComponent._ = component._;
   return newComponent;
 }
@@ -177,7 +174,8 @@ function renderRoot(component, parentNode = null) {
 }
 function _render(component, parentNode, isStartNode = true, ownerNames = [], cssVars = {}) {
   // render elements
-  const {_, name, args, props, onRender, onMount, _indexedChildCount} = component;
+  const {_, name, args, props, onRender, options, _indexedChildCount} = component;
+  const {onMount} = options;
   let node = onRender.bind(component)(...args, props);
   if (!(node instanceof Element)) node = null;
   // set prev state
@@ -282,7 +280,7 @@ const fragment = makeComponent(function fragment(_props) {});
 const div = makeComponent(function div(_props) {
   return document.createElement('div');
 });
-const span = makeComponent(function htmlSpan(text, props) {
+const span = makeComponent(function _span(text, props) {
   const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
@@ -327,7 +325,7 @@ const span = makeComponent(function htmlSpan(text, props) {
     }));
   }
   return e;
-});
+}, { name: "span" });
 // https://fonts.google.com/icons
 const icon = makeComponent(function icon(iconName, props) {
   this.append(span("", {iconName, ...props}));
@@ -374,10 +372,12 @@ const input = makeComponent(function input(props) {
     }
   };
   return e;
-}, (e, state) => {
-  if (state.needFocus) {
-    e.focus();
-    state.needFocus = false;
+}, {
+  onMount(e, state) {
+    if (state.needFocus) {
+      e.focus();
+      state.needFocus = false;
+    }
   }
 });
 const labeledInput = makeComponent(function labeledInput(props) {
