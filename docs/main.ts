@@ -42,15 +42,15 @@ const mainPage = makeComponent(function root() {
       columns: [
         {
           label: "#",
-          onRender: (props: any) => span(props.rowIndex + 1),
+          onRender: (props) => span(props.rowIndex + 1),
         },
         {
           label: "Name",
-          onRender: (props: any) => span(`foo ${props.row}`),
+          onRender: (props) => span(`foo ${props.row}`),
         },
         {
           label: "Count",
-          onRender: (props: any) => span(props.row),
+          onRender: (props) => span(props.row),
         },
       ],
     })

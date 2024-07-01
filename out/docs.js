@@ -393,7 +393,7 @@ var span = makeComponent(function _span(text, props) {
     var iconName = props.iconName, fontSize = props.fontSize, color = props.color, singleLine = props.singleLine, fontFamily = props.fontFamily, href = props.href, replacePath = props.replacePath, id = props.id, onClick = props.onClick;
     var isLink = (href != null);
     var e = document.createElement(isLink ? 'a' : 'span');
-    e.innerText = iconName || text;
+    e.innerText = iconName || String(text);
     if (iconName) {
         e.classList.add("material-symbols-outlined");
         if (fontSize)
@@ -665,10 +665,6 @@ var router = makeComponent(function router(props) {
     var _a, _b;
     var routes = props.routes, _c = props.wrapperComponent, wrapperComponent = _c === void 0 ? fragment() : _c, currentRoles = props.currentRoles, isLoggedIn = props.isLoggedIn, _d = props.notLoggedInRoute, notLoggedInRoute = _d === void 0 ? { path: ".*", component: fragment } : _d, _e = props.notFoundRoute, notFoundRoute = _e === void 0 ? { path: ".*", component: function () { return span("404 Not found"); } } : _e, _f = props.unauthorizedRoute, unauthorizedRoute = _f === void 0 ? { path: ".*", component: fragment } : _f;
     var lPath = location.pathname;
-    if (location.protocol === "file:") {
-        var acc = lPath.split("/");
-        lPath = "/".concat(acc[acc.length - 1]);
-    }
     if (lPath.endsWith("/index.html"))
         lPath = lPath.slice(0, -10);
     var route = null, params = {};
@@ -692,7 +688,10 @@ var router = makeComponent(function router(props) {
         if (state_1 === "break")
             break;
     }
-    route = route !== null && route !== void 0 ? route : notFoundRoute;
+    if (!route) {
+        console.warn("Route '".concat(lPath, "' not found."));
+        route = notFoundRoute;
+    }
     if (route) {
         if ((_b = route.wrapper) !== null && _b !== void 0 ? _b : true) {
             this.append(wrapperComponent);

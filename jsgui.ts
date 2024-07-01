@@ -340,11 +340,11 @@ type SpanProps = {
   id?: string;
   onClick?: (event: MouseEvent) => void;
 } & BaseProps;
-const span = makeComponent(function _span(text: string, props: SpanProps = {}) {
+const span = makeComponent(function _span(text: string | number, props: SpanProps = {}) {
   const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
-  e.innerText = iconName || text;
+  e.innerText = iconName || String(text);
   if (iconName) {
     e.classList.add("material-symbols-outlined");
     if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
@@ -652,10 +652,6 @@ const router = makeComponent(function router(props: RouterProps) {
     unauthorizedRoute = { path: ".*", component: fragment },
   } = props;
   let lPath = location.pathname;
-  if (location.protocol === "file:") {
-    const acc = lPath.split("/");
-    lPath = `/${acc[acc.length - 1]}`;
-  }
   if (lPath.endsWith("/index.html")) lPath = lPath.slice(0, -10);
   let route: Route | null = null, params = {};
   for (let [k, v] of Object.entries(routes)) {
@@ -671,7 +667,10 @@ const router = makeComponent(function router(props: RouterProps) {
       break;
     }
   }
-  route = route ?? notFoundRoute;
+  if (!route) {
+    console.warn(`Route '${lPath}' not found.`);
+    route = notFoundRoute;
+  }
   if (route) {
     if (route.wrapper ?? true) {
       this.append(wrapperComponent);
