@@ -273,7 +273,6 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
         _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
       _localStorageDispatchTarget.removeComponent(prevComponent);
-      _locationHashDispatchTarget.removeComponent(prevComponent);
       delete child_.parent.keyToChild[child.key];
     }
     _unloadUnusedComponents(child, gcFlag);
