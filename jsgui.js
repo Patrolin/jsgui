@@ -19,6 +19,7 @@ class Component {
     this._ = null; // ComponentMetadata | RootComponentMetadata
     this._indexedChildCount = 0; // number
     this._usedKeys = new Set(); // Set<string>
+    this._mediaKeys = [] // string[]
   }
   append(child) {
     this.children.push(child);
@@ -42,6 +43,7 @@ class Component {
   }
   useMedia(mediaQuery) {
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${_camelCaseToKebabCase(k)}: ${_addPx(v)})`).join(' and ');
+    this._mediaKeys.push(key);
     const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
       const mediaQueryList = window.matchMedia(key);
       mediaQueryList.addEventListener("change", dispatch);
@@ -146,9 +148,6 @@ class ComponentMetadata {
     this.prevState = null; // any | null
     this.prevNode = null; // HTMLElement | null
     this.gcFlag = false; // boolean
-    this.mediaListeners = {} // Record<string, () => void>
-    this.localStorageListeners = {}; // Record<string, () => void>
-    this.locationHashListener = null; // (() => void) | null
   }
 }
 class RootComponentMetadata extends ComponentMetadata {
@@ -269,7 +268,7 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
   for (let child of prevComponent.children) {
     const child_ = child._;
     if (child_.gcFlag !== gcFlag) {
-      for (let key in child_.mediaListeners) {
+      for (let key of child._mediaKeys) {
         _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
       _localStorageDispatchTarget.removeComponent(prevComponent);
@@ -582,8 +581,8 @@ TODO: documentation
     }
   useState()
   useLocalStorage()
+  useNavigate()
 */
-// TODO: history api
 // TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
 // TODO: tooltips, badges, dialogs
 // TODO: snackbar api
