@@ -21,12 +21,14 @@ type ElementType = HTMLElement;
 type BaseFragmentProps = {
   cssVars?: ObjectLike<string | number | undefined>;
 };
-type BaseProps = BaseFragmentProps & { // TODO: pass through all base props
+type _BaseProps = { // TODO: pass through all base props
   style?: ObjectLike<string | number | undefined>;
   className?: string | string[];
   attribute?: ObjectLike<string | boolean>;
-}
+};
+type BaseProps = BaseFragmentProps & _BaseProps;
 type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => ElementType | void;
+type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
 type ComponentOptions = {
   name?: string;
   onMount?: (component: Component, node: ElementType) => void;
@@ -127,7 +129,7 @@ class Component {
     }
   }
 }
-function makeComponent<T extends any[]>(onRender: RenderFunction<T>, options: ComponentOptions = {}): ((...args: T) => Component) { // TODO: make this be typed properly
+function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> { // TODO: make this be typed properly
   return (...argsOrProps: any[]) => {
     const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
@@ -338,7 +340,7 @@ type SpanProps = {
   id?: string;
   onClick?: (event: MouseEvent) => void;
 }
-const span = makeComponent(function _span(text, props: SpanProps & BaseProps = {}) {
+const span = makeComponent(function _span(text: string, props: SpanProps & BaseProps = {}) {
   const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
@@ -385,7 +387,7 @@ const span = makeComponent(function _span(text, props: SpanProps & BaseProps = {
   return e;
 }, { name: "span" });
 // https://fonts.google.com/icons
-const icon = makeComponent(function icon(iconName, props: ObjectLike = {}) {
+const icon = makeComponent(function icon(iconName: string, props: ObjectLike = {}) {
   this.append(span("", {iconName, ...props}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props: ObjectLike = {}) {
@@ -437,7 +439,7 @@ const input = makeComponent(function input(props: ObjectLike = {}) {
       e.focus();
       state.needFocus = false;
     }
-  }
+  },
 });
 const labeledInput = makeComponent(function labeledInput(props: ObjectLike = {}) {
   const {label = "", leftComponent, inputComponent, rightComponent} = props;
@@ -460,7 +462,7 @@ const labeledInput = makeComponent(function labeledInput(props: ObjectLike = {})
   if (rightComponent) this.append(rightComponent);
   return fieldset;
 });
-const errorMessage = makeComponent(function errorMessage(error, props: ObjectLike = {}) {
+const errorMessage = makeComponent(function errorMessage(error: string, props: ObjectLike = {}) {
   this.append(span(error, {color: "red", fontSize: "small", ...props}));
 });
 const textInput = makeComponent(function textInput(props: ObjectLike = {}) {

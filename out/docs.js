@@ -506,7 +506,7 @@ var input = makeComponent(function input(props) {
             e.focus();
             state.needFocus = false;
         }
-    }
+    },
 });
 var labeledInput = makeComponent(function labeledInput(props) {
     if (props === void 0) { props = {}; }
