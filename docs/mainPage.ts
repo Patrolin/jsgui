@@ -1,3 +1,36 @@
+type MainPageSection = {
+  id: string;
+  onRender: (wrapper: Component) => void;
+}
+const MAIN_PAGE_SECTIONS: StringMap<MainPageSection> = {
+  "Span": {
+    id: "span",
+    onRender: (wrapper: Component) => {
+      for (let href of [undefined, "https://www.google.com"]) {
+        let row = wrapper.append(div({className: "displayRow"}))
+        row.append(span("Small", {fontSize: "small", href}));
+        row.append(span("Normal", {fontSize: "normal", href}));
+        row.append(span("Big", {fontSize: "big", href}));
+        row.append(span("Bigger", {fontSize: "bigger", href}));
+      }
+    }
+  },
+  "Icon": {
+    id: "icon",
+    onRender: (wrapper: Component) => {
+      let row = wrapper.append(div({className: "displayRow"}));
+      row.append(icon("link", {fontSize: "small"}));
+      row.append(icon("link", {fontSize: "normal"}));
+      row.append(icon("link", {fontSize: "big"}));
+      row.append(icon("link", {fontSize: "bigger"}));
+      row = wrapper.append(div({className: "displayRow"}));
+      row.append(icon("link", {fontSize: "small", fontSizeOffset: 2})); // TODO: refactor to iconSize
+      row.append(icon("link", {fontSize: "normal", fontSizeOffset: 2}));
+      row.append(icon("link", {fontSize: "big", fontSizeOffset: 2}));
+    }
+  },
+};
+
 const mainPage = makeComponent(function mainPage() {
   const wrapper = this.append(
     div({
@@ -6,28 +39,10 @@ const mainPage = makeComponent(function mainPage() {
   );
   const state = this.useState({ username: "" });
   const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
-  // span
-  wrapper.append(span("Span", {fontSize: "big", id: "text"}));
-  // TODO: show code
-  const makeTextRow = () => wrapper.append(div({style: {
-    padding: "0 8px",
-    display: "flex",
-    alignItems: "center",
-    gap: 8,
-    //border: "1px solid black",
-    borderRadius: 4,
-  }}))
-  let textRow = makeTextRow();
-  textRow.append(span("Small", {fontSize: "small"}));
-  textRow.append(span("Normal", {fontSize: "normal"}));
-  textRow.append(span("Big", {fontSize: "big"}));
-  textRow.append(span("Bigger", {fontSize: "bigger"}));
-  textRow = makeTextRow();
-  textRow.append(span("Link", {href: "https://www.google.com"}))
-  // icon
-  wrapper.append(span("Icon", {fontSize: "big", id: "text"}));
-  textRow = makeTextRow();
-  textRow.append(icon("link", {href: "https://www.google.com"}));
+  for (let [label, section] of Object.entries(MAIN_PAGE_SECTIONS)) {
+    wrapper.append(span(label, {fontSize: "big", id: section.id}));
+    section.onRender(wrapper); // TODO: show code
+  }
   // text input
   wrapper.append(span("Text Input", {fontSize: "big", id: "textInput"}));
   wrapper.append(

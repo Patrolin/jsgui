@@ -1,0 +1,7 @@
+.displayRow {
+  padding: 0 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 4px;
+}

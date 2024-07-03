@@ -329,37 +329,6 @@ const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { n
 const div = makeComponent(function div(_props: BaseProps = {}) {
   return document.createElement('div');
 });
-function generateFontSizes(start = 12, count = 4) {
-  const fontSizes = [start];
-  for (let i = 1; i < count; i++) {
-    let desiredFontSize = Math.ceil(fontSizes[fontSizes.length - 1] * 1.25); // NOTE: derived from how monkeys count
-    while ((desiredFontSize % 2) !== 0) desiredFontSize++; // NOTE: prevent fractional pixels
-    fontSizes.push(desiredFontSize);
-  }
-  return fontSizes
-}
-function generateFontSizeCssVars(fontSizes: number[], names = ["small", "normal", "big", "bigger"], maxOffset = 2) {
-  let acc = "";
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i];
-    acc += `\n  --fontSize-${name}: ${fontSizes[i]}px;`;
-    for (let offset = 1; offset <= maxOffset; offset++) {
-      const j = Math.max(0, i - offset);
-      acc += `\n  --fontSize-${name}-${offset}: var(--fontSize-${names[j]});`;
-    }
-    for (let offset = 1; offset <= maxOffset; offset++) {
-      const j = Math.max(0, i - offset);
-      const parentFontSize = fontSizes[i];
-      const iconFontSize = fontSizes[j];
-      const paddingLow = Math.floor((parentFontSize - iconFontSize) * 0.75);
-      const paddingHigh = Math.round(1.5*(parentFontSize - iconFontSize) - paddingLow);
-      const padding = (paddingLow === paddingHigh) ? `${paddingLow}px` : `${paddingLow}px ${paddingHigh}px ${paddingHigh}px ${paddingLow}px`;
-      acc += `\n  --iconPadding-${name}-${offset}: ${padding};`;
-    }
-  }
-  return acc;
-}
-console.log(generateFontSizeCssVars(generateFontSizes(12, 4), ['small', 'normal', 'big', 'bigger'], 2));
 type FontSize = 'small' | 'normal' | 'big' | 'bigger';
 type FontSizeOffset = 1 | 2;
 type SpanProps = {
@@ -378,8 +347,8 @@ const span = makeComponent(function _span(text: string | number | null | undefin
   const { iconName, fontSize: fontSizeOrNull, fontSizeOffset, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
-  let fontSize = fontSizeOrNull;
-  if (fontSizeOffset) fontSize += `${fontSizeOrNull ?? 'normal'}-${fontSizeOffset}`;
+  let fontSize = fontSizeOrNull as string;
+  if (fontSizeOffset) fontSize = `${fontSizeOrNull ?? 'normal'}-${fontSizeOffset}`;
   if (iconName) {
     e.classList.add("material-symbols-outlined");
     if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
