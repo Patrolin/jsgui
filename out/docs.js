@@ -709,38 +709,41 @@ var table = makeComponent(function table(props) {
     }
 });
 var router = makeComponent(function router(props) {
-    var _a, _b;
-    var routes = props.routes, _c = props.pageWrapperComponent, pageWrapperComponent = _c === void 0 ? function () { return fragment(); } : _c, _d = props.contentWrapperComponent, contentWrapperComponent = _d === void 0 ? function () { return div({ className: "pageContent" }); } : _d, currentRoles = props.currentRoles, isLoggedIn = props.isLoggedIn, _e = props.notLoggedInRoute, notLoggedInRoute = _e === void 0 ? { path: ".*", component: fragment } : _e, _f = props.notFoundRoute, notFoundRoute = _f === void 0 ? { path: ".*", component: function () { return span("404 Not found"); } } : _f, _g = props.unauthorizedRoute, unauthorizedRoute = _g === void 0 ? { path: ".*", component: fragment } : _g;
-    var lPath = location.pathname;
-    if (lPath.endsWith("/index.html"))
-        lPath = lPath.slice(0, -10);
+    var _a, _b, _c;
+    var routes = props.routes, _d = props.pageWrapperComponent, pageWrapperComponent = _d === void 0 ? function () { return fragment(); } : _d, _e = props.contentWrapperComponent, contentWrapperComponent = _e === void 0 ? function () { return div({ className: "pageContent" }); } : _e, currentRoles = props.currentRoles, isLoggedIn = props.isLoggedIn, _f = props.notLoggedInRoute, notLoggedInRoute = _f === void 0 ? { component: fragment } : _f, _g = props.notFoundRoute, notFoundRoute = _g === void 0 ? { component: function () { return span("404 Not found"); } } : _g, _h = props.unauthorizedRoute, unauthorizedRoute = _h === void 0 ? { component: fragment } : _h;
+    var currentPath = location.pathname;
+    if (currentPath.endsWith("/index.html"))
+        currentPath = currentPath.slice(0, -10);
     var currentRoute = null, params = {}; // TODO: save params in rootComponent?
-    var _loop_1 = function (k, v) {
-        var regex = k.replace(/:([^/]+)/g, function (_match, g1) { return "(?<".concat(g1, ">[^/]*)"); });
-        var match = lPath.match(new RegExp("^".concat(regex, "$")));
+    var _loop_1 = function (route) {
+        var regex = route.path.replace(/:([^/]+)/g, function (_match, g1) { return "(?<".concat(g1, ">[^/]*)"); });
+        var match = currentPath.match(new RegExp("^".concat(regex, "$")));
         if (match != null) {
             params = (_a = match.groups) !== null && _a !== void 0 ? _a : {};
-            if (v.roles && !(currentRoles !== null && currentRoles !== void 0 ? currentRoles : []).some(function (role) { var _a; return !((_a = v.roles) === null || _a === void 0 ? void 0 : _a.length) || v.roles.includes(role); })) {
-                currentRoute = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
+            var roles_1 = (_b = route.roles) !== null && _b !== void 0 ? _b : [];
+            var needSomeRole = (roles_1.length > 0);
+            var haveSomeRole = (currentRoles !== null && currentRoles !== void 0 ? currentRoles : []).some(function (role) { return roles_1.includes(role); });
+            if (!needSomeRole || haveSomeRole) {
+                currentRoute = route;
             }
             else {
-                currentRoute = v;
+                currentRoute = __assign({ path: ".*" }, (isLoggedIn ? notLoggedInRoute : unauthorizedRoute));
             }
             return "break";
         }
     };
-    for (var _i = 0, _h = Object.entries(routes); _i < _h.length; _i++) {
-        var _j = _h[_i], k = _j[0], v = _j[1];
-        var state_1 = _loop_1(k, v);
+    for (var _i = 0, routes_1 = routes; _i < routes_1.length; _i++) {
+        var route = routes_1[_i];
+        var state_1 = _loop_1(route);
         if (state_1 === "break")
             break;
     }
     if (!currentRoute) {
-        console.warn("Route '".concat(lPath, "' not found."));
-        currentRoute = notFoundRoute;
+        console.warn("Route '".concat(currentPath, "' not found."));
+        currentRoute = __assign({ path: ".*" }, notFoundRoute);
     }
     if (currentRoute) {
-        if ((_b = currentRoute.wrapper) !== null && _b !== void 0 ? _b : true) {
+        if ((_c = currentRoute.wrapper) !== null && _c !== void 0 ? _c : true) {
             this.append(pageWrapperComponent({ routes: routes, currentRoute: currentRoute, contentWrapperComponent: contentWrapperComponent }));
         }
         else {
@@ -777,8 +780,9 @@ TODO: documentation
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
-var MAIN_PAGE_SECTIONS = {
-    "Span": {
+var MAIN_PAGE_SECTIONS = [
+    {
+        label: "Span",
         id: "span",
         onRender: function (wrapper) {
             for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {
@@ -791,7 +795,8 @@ var MAIN_PAGE_SECTIONS = {
             }
         }
     },
-    "Icon": {
+    {
+        label: "Icon",
         id: "icon",
         onRender: function (wrapper) {
             var row = wrapper.append(div({ className: "displayRow" }));
@@ -805,7 +810,7 @@ var MAIN_PAGE_SECTIONS = {
             row.append(icon("link", { fontSize: "big", fontSizeOffset: 2 }));
         }
     },
-};
+];
 var mainPage = makeComponent(function mainPage() {
     var _this = this;
     var wrapper = this.append(div({
@@ -813,9 +818,9 @@ var mainPage = makeComponent(function mainPage() {
     }));
     var state = this.useState({ username: "" });
     var _a = this.useLocalStorage("count", 0), count = _a[0], setCount = _a[1];
-    for (var _i = 0, _b = Object.entries(MAIN_PAGE_SECTIONS); _i < _b.length; _i++) {
-        var _c = _b[_i], label = _c[0], section = _c[1];
-        wrapper.append(span(label, { fontSize: "big", id: section.id }));
+    for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
+        var section = MAIN_PAGE_SECTIONS_1[_i];
+        wrapper.append(span(section.label, { fontSize: "big", id: section.id }));
         section.onRender(wrapper); // TODO: show code
     }
     // text input
@@ -879,14 +884,15 @@ var notFoundPage = makeComponent(function notFoundPage() {
 var root = makeComponent(function root() {
     this.append(router({
         pageWrapperComponent: pageWrapper,
-        routes: {
-            "/": {
+        routes: [
+            {
+                path: "/",
                 component: function () { return mainPage(); },
                 wrapper: true,
                 showInNavigation: true,
                 label: "jsgui"
             },
-        },
+        ],
         notFoundRoute: {
             component: function () { return notFoundPage(); },
         },
@@ -905,16 +911,16 @@ var pageWrapper = makeComponent(function pageWrapper(props) {
         className: "navMenu", // TODO: styles
         style: { display: "flex", flexDirection: "column" },
     }));
-    for (var _i = 0, _a = Object.entries(routes); _i < _a.length; _i++) {
-        var _b = _a[_i], key = _b[0], route = _b[1];
+    for (var _i = 0, routes_2 = routes; _i < routes_2.length; _i++) {
+        var route = routes_2[_i];
         if (route.showInNavigation) {
-            navigation.append(span(route.label, { href: key }));
+            navigation.append(span(route.label, { href: route.path }));
         }
     }
     // navigation.append() // TODO: divider()
-    for (var _c = 0, _d = Object.entries(MAIN_PAGE_SECTIONS); _c < _d.length; _c++) {
-        var _e = _d[_c], label = _e[0], section = _e[1];
-        navigation.append(span(label, { href: "#".concat(section.id) }));
+    for (var _a = 0, MAIN_PAGE_SECTIONS_2 = MAIN_PAGE_SECTIONS; _a < MAIN_PAGE_SECTIONS_2.length; _a++) {
+        var section = MAIN_PAGE_SECTIONS_2[_a];
+        navigation.append(span(section.label, { href: "#".concat(section.id) }));
     }
     var contentWrapper = wrapper.append(contentWrapperComponent());
     contentWrapper.append(currentRoute.component());

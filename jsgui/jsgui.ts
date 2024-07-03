@@ -646,25 +646,26 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
 });
 // router
 type Route = {
+  path: string;
   component: (props?: BaseProps) => Component;
   roles?: string[];
   wrapper?: boolean;
   showInNavigation?: boolean;
   label?: string;
 };
-type Routes = StringMap<Route>;
+type FallbackRoute = Omit<Route, "path">;
 type RouterProps = {
-  routes: Routes;
+  routes: Route[];
   pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
   contentWrapperComponent?: ComponentFunction<any>,
   currentRoles?: string[];
   isLoggedIn?: boolean;
-  notLoggedInRoute?: Route;
-  notFoundRoute?: Route;
-  unauthorizedRoute?: Route;
+  notLoggedInRoute?: FallbackRoute;
+  notFoundRoute?: FallbackRoute;
+  unauthorizedRoute?: FallbackRoute;
 };
 type PageWrapperProps = {
-  routes: Routes;
+  routes: Route[];
   currentRoute: Route;
   contentWrapperComponent: ComponentFunction<any>,
 };
@@ -675,29 +676,35 @@ const router = makeComponent(function router(props: RouterProps) {
     contentWrapperComponent = () => div({ className: "pageContent" }),
     currentRoles,
     isLoggedIn,
-    notLoggedInRoute = { path: ".*", component: fragment },
-    notFoundRoute = { path: ".*", component: () => span("404 Not found") },
-    unauthorizedRoute = { path: ".*", component: fragment },
+    notLoggedInRoute = { component: fragment },
+    notFoundRoute = { component: () => span("404 Not found") },
+    unauthorizedRoute = { component: fragment },
   } = props;
-  let lPath = location.pathname;
-  if (lPath.endsWith("/index.html")) lPath = lPath.slice(0, -10);
+  let currentPath = location.pathname;
+  if (currentPath.endsWith("/index.html")) currentPath = currentPath.slice(0, -10);
   let currentRoute: Route | null = null, params = {}; // TODO: save params in rootComponent?
-  for (let [k, v] of Object.entries(routes)) {
-    const regex = k.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
-    const match = lPath.match(new RegExp(`^${regex}$`));
+  for (let route of routes) {
+    const regex = route.path.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
+    const match = currentPath.match(new RegExp(`^${regex}$`));
     if (match != null) {
       params = match.groups ?? {};
-      if (v.roles && !(currentRoles ?? []).some(role => !v.roles?.length || v.roles.includes(role))) {
-        currentRoute = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
+      const roles = route.roles ?? [];
+      const needSomeRole = (roles.length > 0);
+      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
+      if (!needSomeRole || haveSomeRole) {
+        currentRoute = route;
       } else {
-        currentRoute = v;
+        currentRoute = {
+          path: ".*",
+          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
+        };
       }
       break;
     }
   }
   if (!currentRoute) {
-    console.warn(`Route '${lPath}' not found.`);
-    currentRoute = notFoundRoute;
+    console.warn(`Route '${currentPath}' not found.`);
+    currentRoute = { path: ".*", ...notFoundRoute};
   }
   if (currentRoute) {
     if (currentRoute.wrapper ?? true) {

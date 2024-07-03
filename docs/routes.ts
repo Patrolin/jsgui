@@ -2,14 +2,15 @@ const root = makeComponent(function root() {
   this.append(
     router({
       pageWrapperComponent: pageWrapper,
-      routes: {
-        "/": {
+      routes: [
+        {
+          path: "/",
           component: () => mainPage(),
           wrapper: true,
           showInNavigation: true,
           label: "jsgui"
         },
-      },
+      ],
       notFoundRoute: {
         component: () => notFoundPage(),
       },
@@ -29,14 +30,14 @@ const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) 
     className: "navMenu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
-  for (let [key, route] of Object.entries(routes)) {
+  for (let route of routes) {
     if (route.showInNavigation) {
-      navigation.append(span(route.label, { href: key }));
+      navigation.append(span(route.label, { href: route.path }));
     }
   }
   // navigation.append() // TODO: divider()
-  for (let [label, section] of Object.entries(MAIN_PAGE_SECTIONS)) {
-    navigation.append(span(label, {href: `#${section.id}`}));
+  for (let section of MAIN_PAGE_SECTIONS) {
+    navigation.append(span(section.label, {href: `#${section.id}`}));
   }
   const contentWrapper = wrapper.append(contentWrapperComponent())
   contentWrapper.append(currentRoute.component());

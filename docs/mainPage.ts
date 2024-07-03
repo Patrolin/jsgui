@@ -1,11 +1,13 @@
 type MainPageSection = {
+  label: string;
   id: string;
   onRender: (wrapper: Component) => void;
 }
-const MAIN_PAGE_SECTIONS: StringMap<MainPageSection> = {
-  "Span": {
+const MAIN_PAGE_SECTIONS: MainPageSection[] = [
+  {
+    label: "Span",
     id: "span",
-    onRender: (wrapper: Component) => {
+    onRender: (wrapper: Component) => { // TODO: refactor to actual components
       for (let href of [undefined, "https://www.google.com"]) {
         let row = wrapper.append(div({className: "displayRow"}))
         row.append(span("Small", {fontSize: "small", href}));
@@ -15,7 +17,8 @@ const MAIN_PAGE_SECTIONS: StringMap<MainPageSection> = {
       }
     }
   },
-  "Icon": {
+  {
+    label: "Icon",
     id: "icon",
     onRender: (wrapper: Component) => {
       let row = wrapper.append(div({className: "displayRow"}));
@@ -29,7 +32,7 @@ const MAIN_PAGE_SECTIONS: StringMap<MainPageSection> = {
       row.append(icon("link", {fontSize: "big", fontSizeOffset: 2}));
     }
   },
-};
+];
 
 const mainPage = makeComponent(function mainPage() {
   const wrapper = this.append(
@@ -39,8 +42,8 @@ const mainPage = makeComponent(function mainPage() {
   );
   const state = this.useState({ username: "" });
   const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
-  for (let [label, section] of Object.entries(MAIN_PAGE_SECTIONS)) {
-    wrapper.append(span(label, {fontSize: "big", id: section.id}));
+  for (let section of MAIN_PAGE_SECTIONS) {
+    wrapper.append(span(section.label, {fontSize: "big", id: section.id}));
     section.onRender(wrapper); // TODO: show code
   }
   // text input
