@@ -413,7 +413,7 @@ type InputProps = {
 } & BaseProps;
 const input = makeComponent(function input(props: InputProps) {
   const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
-  const state = this.useState({ prevAllowedValue: value ?? '', needFocus: false });
+  const state = this.useState({ prevAllowedValue: String(value ?? ''), needFocus: false });
   const e = (this._?.prevNode ?? document.createElement('input')) as HTMLInputElement; // NOTE: e.remove() must not be called
   e.type = type;
   if (placeholder) e.placeholder = placeholder;

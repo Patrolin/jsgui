@@ -502,7 +502,7 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
 var input = makeComponent(function input(props) {
     var _a, _b;
     var _c = props.type, type = _c === void 0 ? "text" : _c, placeholder = props.placeholder, value = props.value, autoFocus = props.autoFocus, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, allowChar = props.allowChar, _d = props.allowString, allowString = _d === void 0 ? function (value, _prevAllowedValue) { return value; } : _d;
-    var state = this.useState({ prevAllowedValue: value !== null && value !== void 0 ? value : '', needFocus: false });
+    var state = this.useState({ prevAllowedValue: String(value !== null && value !== void 0 ? value : ''), needFocus: false });
     var e = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : document.createElement('input')); // NOTE: e.remove() must not be called
     e.type = type;
     if (placeholder)
