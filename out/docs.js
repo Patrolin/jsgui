@@ -387,13 +387,51 @@ var div = makeComponent(function div(_props) {
     if (_props === void 0) { _props = {}; }
     return document.createElement('div');
 });
+function generateFontSizes(start, count) {
+    if (start === void 0) { start = 12; }
+    if (count === void 0) { count = 4; }
+    var fontSizes = [start];
+    for (var i = 1; i < count; i++) {
+        var desiredFontSize = Math.ceil(fontSizes[fontSizes.length - 1] * 1.25); // NOTE: derived from how monkeys count
+        while ((desiredFontSize % 2) !== 0)
+            desiredFontSize++; // NOTE: prevent fractional pixels
+        fontSizes.push(desiredFontSize);
+    }
+    return fontSizes;
+}
+function generateFontSizeCssVars(fontSizes, names, maxOffset) {
+    if (names === void 0) { names = ["small", "normal", "big", "bigger"]; }
+    if (maxOffset === void 0) { maxOffset = 2; }
+    var acc = "";
+    for (var i = 0; i < names.length; i++) {
+        var name_1 = names[i];
+        acc += "\n  --fontSize-".concat(name_1, ": ").concat(fontSizes[i], "px;");
+        for (var offset = 1; offset <= maxOffset; offset++) {
+            var j = Math.max(0, i - offset);
+            acc += "\n  --fontSize-".concat(name_1, "-").concat(offset, ": var(--fontSize-").concat(names[j], ");");
+        }
+        for (var offset = 1; offset <= maxOffset; offset++) {
+            var j = Math.max(0, i - offset);
+            var parentFontSize = fontSizes[i];
+            var iconFontSize = fontSizes[j];
+            var paddingLow = Math.floor((parentFontSize - iconFontSize) * 0.75);
+            var paddingHigh = Math.round(1.5 * (parentFontSize - iconFontSize) - paddingLow);
+            var padding = (paddingLow === paddingHigh) ? "".concat(paddingLow, "px") : "".concat(paddingLow, "px ").concat(paddingHigh, "px ").concat(paddingHigh, "px ").concat(paddingLow, "px");
+            acc += "\n  --iconPadding-".concat(name_1, "-").concat(offset, ": ").concat(padding, ";");
+        }
+    }
+    return acc;
+}
+console.log(generateFontSizeCssVars(generateFontSizes(12, 4), ['small', 'normal', 'big', 'bigger'], 2));
 var span = makeComponent(function _span(text, props) {
     var _this = this;
     if (props === void 0) { props = {}; }
-    var iconName = props.iconName, fontSize = props.fontSize, color = props.color, singleLine = props.singleLine, fontFamily = props.fontFamily, href = props.href, replacePath = props.replacePath, id = props.id, onClick = props.onClick;
+    var iconName = props.iconName, fontSizeOrNull = props.fontSize, fontSizeOffset = props.fontSizeOffset, color = props.color, singleLine = props.singleLine, fontFamily = props.fontFamily, href = props.href, replacePath = props.replacePath, id = props.id, onClick = props.onClick;
     var isLink = (href != null);
     var e = document.createElement(isLink ? 'a' : 'span');
-    e.innerText = iconName || String(text);
+    var fontSize = fontSizeOrNull;
+    if (fontSizeOffset)
+        fontSize += "".concat(fontSizeOrNull !== null && fontSizeOrNull !== void 0 ? fontSizeOrNull : 'normal', "-").concat(fontSizeOffset);
     if (iconName) {
         e.classList.add("material-symbols-outlined");
         if (fontSize)
@@ -432,20 +470,21 @@ var span = makeComponent(function _span(text, props) {
     }
     if (id) {
         e.id = id;
-        this.append(span("", {
-            iconName: "tag",
-            className: "icon selfLink",
-            href: "#".concat(id),
-            fontSize: "".concat(fontSize || "normal", "-1"),
-            style: { height: "calc(1.5 * var(--fontSize-".concat(fontSize || "normal", ") - 1px)"), paddingTop: 1 },
-        }));
+        this.append(span(text));
+        this.append(icon("tag", { className: "selfLink", fontSize: fontSizeOrNull, fontSizeOffset: 2, href: "#".concat(id) }));
+    }
+    else {
+        e.innerText = iconName || (text == null ? "" : String(text));
     }
     return e;
 }, { name: "span" });
-// https://fonts.google.com/icons
 var icon = makeComponent(function icon(iconName, props) {
     if (props === void 0) { props = {}; }
-    this.append(span("", __assign({ iconName: iconName }, props)));
+    var fontSize = props.fontSize, fontSizeOffset = props.fontSizeOffset, _a = props.style, style = _a === void 0 ? {} : _a, extraProps = __rest(props, ["fontSize", "fontSizeOffset", "style"]);
+    if (fontSizeOffset) {
+        style = __assign(__assign({}, (style !== null && style !== void 0 ? style : {})), { padding: "var(--iconPadding-".concat(fontSize !== null && fontSize !== void 0 ? fontSize : 'normal', "-").concat(fontSizeOffset, ")") });
+    }
+    this.append(span("", __assign({ iconName: iconName, fontSize: fontSize, fontSizeOffset: fontSizeOffset, style: style }, extraProps)));
 });
 var loadingSpinner = makeComponent(function loadingSpinner(props) {
     if (props === void 0) { props = {}; }
@@ -462,7 +501,7 @@ var input = makeComponent(function input(props) {
     if (autoFocus)
         e.autofocus = true;
     if (value != null)
-        e.value = value;
+        e.value = String(value);
     e.onkeydown = function (event) {
         if (onKeyDown)
             onKeyDown(event);
@@ -555,7 +594,6 @@ var numberArrows = makeComponent(function numberArrows(props) {
     wrapper.append(icon("arrow_drop_down", { className: "downIcon", onClick: onClickDown }));
 });
 var numberInput = makeComponent(function numberInput(props) {
-    if (props === void 0) { props = {}; }
     var label = props.label, leftComponent = props.leftComponent, customRightComponent = props.rightComponent, error = props.error, // labeledInput
     value = props.value, min = props.min, max = props.max, step = props.step, stepPrecision = props.stepPrecision, _a = props.clearable, clearable = _a === void 0 ? true : _a, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, extraProps = __rest(props, ["label", "leftComponent", "rightComponent", "error", "value", "min", "max", "step", "stepPrecision", "clearable", "onKeyDown", "onInput", "onChange"]) // numberInput
     ;
@@ -574,9 +612,9 @@ var numberInput = makeComponent(function numberInput(props) {
         var number = stepAndClamp(+(value !== null && value !== void 0 ? value : 0) + by);
         var newValue = String(number);
         if (onInput)
-            onInput(newValue, event);
+            onInput(newValue, undefined);
         if (onChange)
-            onChange(newValue, event);
+            onChange(newValue, undefined);
     };
     var inputComponent = input(__assign(__assign({ value: value, onKeyDown: function (event) {
             switch (event.key) {
@@ -633,18 +671,18 @@ var table = makeComponent(function table(props) {
     var makeCell = function (column) {
         var _a;
         return div({
-            className: "cell",
+            className: "tableCell",
             style: { flex: String((_a = column.flex) !== null && _a !== void 0 ? _a : 1), minWidth: column.minWidth, maxWidth: column.maxWidth },
         });
     };
     if (label) {
-        tableWrapper.append(span(label, { className: "label" }));
+        tableWrapper.append(span(label, { className: "tableLabel" }));
     }
     if (isLoading) {
         tableWrapper.append(loadingSpinner());
     }
     else {
-        var headerWrapper = tableWrapper.append(makeRow("row header"));
+        var headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader"));
         for (var columnIndex = 0; columnIndex < columns.length; columnIndex++) {
             var column = columns[columnIndex];
             var cellWrapper = headerWrapper.append(makeCell(column));
@@ -652,7 +690,7 @@ var table = makeComponent(function table(props) {
         }
         for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
             var row = rows[rowIndex];
-            var rowWrapper = tableWrapper.append(makeRow("row body"));
+            var rowWrapper = tableWrapper.append(makeRow("tableRow tableBody"));
             for (var columnIndex = 0; columnIndex < columns.length; columnIndex++) {
                 var column = columns[columnIndex];
                 var cellWrapper = rowWrapper.append(makeCell(column));
@@ -663,42 +701,42 @@ var table = makeComponent(function table(props) {
 });
 var router = makeComponent(function router(props) {
     var _a, _b;
-    var routes = props.routes, _c = props.wrapperComponent, wrapperComponent = _c === void 0 ? fragment() : _c, currentRoles = props.currentRoles, isLoggedIn = props.isLoggedIn, _d = props.notLoggedInRoute, notLoggedInRoute = _d === void 0 ? { path: ".*", component: fragment } : _d, _e = props.notFoundRoute, notFoundRoute = _e === void 0 ? { path: ".*", component: function () { return span("404 Not found"); } } : _e, _f = props.unauthorizedRoute, unauthorizedRoute = _f === void 0 ? { path: ".*", component: fragment } : _f;
+    var routes = props.routes, _c = props.pageWrapperComponent, pageWrapperComponent = _c === void 0 ? function () { return fragment(); } : _c, _d = props.contentWrapperComponent, contentWrapperComponent = _d === void 0 ? function () { return div({ className: "pageContent" }); } : _d, currentRoles = props.currentRoles, isLoggedIn = props.isLoggedIn, _e = props.notLoggedInRoute, notLoggedInRoute = _e === void 0 ? { path: ".*", component: fragment } : _e, _f = props.notFoundRoute, notFoundRoute = _f === void 0 ? { path: ".*", component: function () { return span("404 Not found"); } } : _f, _g = props.unauthorizedRoute, unauthorizedRoute = _g === void 0 ? { path: ".*", component: fragment } : _g;
     var lPath = location.pathname;
     if (lPath.endsWith("/index.html"))
         lPath = lPath.slice(0, -10);
-    var route = null, params = {};
+    var currentRoute = null, params = {}; // TODO: save params in rootComponent?
     var _loop_1 = function (k, v) {
         var regex = k.replace(/:([^/]+)/g, function (_match, g1) { return "(?<".concat(g1, ">[^/]*)"); });
         var match = lPath.match(new RegExp("^".concat(regex, "$")));
         if (match != null) {
             params = (_a = match.groups) !== null && _a !== void 0 ? _a : {};
             if (v.roles && !(currentRoles !== null && currentRoles !== void 0 ? currentRoles : []).some(function (role) { var _a; return !((_a = v.roles) === null || _a === void 0 ? void 0 : _a.length) || v.roles.includes(role); })) {
-                route = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
+                currentRoute = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
             }
             else {
-                route = v;
+                currentRoute = v;
             }
             return "break";
         }
     };
-    for (var _i = 0, _g = Object.entries(routes); _i < _g.length; _i++) {
-        var _h = _g[_i], k = _h[0], v = _h[1];
+    for (var _i = 0, _h = Object.entries(routes); _i < _h.length; _i++) {
+        var _j = _h[_i], k = _j[0], v = _j[1];
         var state_1 = _loop_1(k, v);
         if (state_1 === "break")
             break;
     }
-    if (!route) {
+    if (!currentRoute) {
         console.warn("Route '".concat(lPath, "' not found."));
-        route = notFoundRoute;
+        currentRoute = notFoundRoute;
     }
-    if (route) {
-        if ((_b = route.wrapper) !== null && _b !== void 0 ? _b : true) {
-            this.append(wrapperComponent);
-            wrapperComponent.append(route.component()); // TODO: save params in RootComponentMetadata?
+    if (currentRoute) {
+        if ((_b = currentRoute.wrapper) !== null && _b !== void 0 ? _b : true) {
+            this.append(pageWrapperComponent({ routes: routes, currentRoute: currentRoute, contentWrapperComponent: contentWrapperComponent }));
         }
         else {
-            this.append(route.component());
+            var contentWrapper = this.append(contentWrapperComponent());
+            contentWrapper.append(currentRoute.component());
         }
     }
 });
@@ -730,13 +768,37 @@ TODO: documentation
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
-var mainPage = makeComponent(function root() {
+var mainPage = makeComponent(function mainPage() {
     var _this = this;
-    var state = this.useState({ username: "" });
-    var _a = this.useLocalStorage("count", 0), count = _a[0], setCount = _a[1];
     var wrapper = this.append(div({
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
     }));
+    var state = this.useState({ username: "" });
+    var _a = this.useLocalStorage("count", 0), count = _a[0], setCount = _a[1];
+    // span
+    wrapper.append(span("Span", { fontSize: "big", id: "text" }));
+    // TODO: show code
+    var makeTextRow = function () { return wrapper.append(div({ style: {
+            padding: "0 8px",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            //border: "1px solid black",
+            borderRadius: 4,
+        } })); };
+    var textRow = makeTextRow();
+    textRow.append(span("Small", { fontSize: "small" }));
+    textRow.append(span("Normal", { fontSize: "normal" }));
+    textRow.append(span("Big", { fontSize: "big" }));
+    textRow.append(span("Bigger", { fontSize: "bigger" }));
+    textRow = makeTextRow();
+    textRow.append(span("Link", { href: "https://www.google.com" }));
+    // icon
+    wrapper.append(span("Icon", { fontSize: "big", id: "text" }));
+    textRow = makeTextRow();
+    textRow.append(icon("link", { href: "https://www.google.com" }));
+    // text input
+    wrapper.append(span("Text Input", { fontSize: "big", id: "textInput" }));
     wrapper.append(textInput({
         label: "Username",
         value: state.username,
@@ -790,11 +852,18 @@ var someComponent = makeComponent(function someComponent(_props) {
     var lgOrBigger = this.useMedia({ minWidth: 1200 });
     this.append(span("lgOrBigger: ".concat(lgOrBigger)));
 });
+var notFoundPage = makeComponent(function notFoundPage() {
+    this.append(span("Page not found"));
+});
 var root = makeComponent(function root() {
     this.append(router({
+        pageWrapperComponent: pageWrapper,
         routes: {
             "/": {
                 component: function () { return mainPage(); },
+                wrapper: true,
+                showInNavigation: true,
+                label: "jsgui"
             },
         },
         notFoundRoute: {
@@ -802,8 +871,18 @@ var root = makeComponent(function root() {
         },
     }));
 });
-var notFoundPage = makeComponent(function notFoundPage() {
-    this.append(span("Page not found"));
+var pageWrapper = makeComponent(function pageWrapper(props) {
+    var routes = props.routes, currentRoute = props.currentRoute, contentWrapperComponent = props.contentWrapperComponent;
+    var wrapper = this.append(div());
+    var navigation = wrapper.append(div());
+    for (var _i = 0, _a = Object.entries(routes); _i < _a.length; _i++) {
+        var _b = _a[_i], key = _b[0], route = _b[1];
+        if (route.showInNavigation) {
+            navigation.append(span(route.label, { href: key }));
+        }
+    }
+    var contentWrapper = wrapper.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component());
 });
 renderRoot(root());
 //# sourceMappingURL=docs.js.map

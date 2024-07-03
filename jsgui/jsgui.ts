@@ -1,8 +1,8 @@
 // TODO: make a typescript compiler to compile packages like odin
 // utils
 type Nullsy = undefined | null;
-type ObjectLike<T = any> = Record<string, T>;
-type JSONValue = string | number | any[] | ObjectLike | null;
+type StringMap<T = any> = Record<string, T>;
+type JSONValue = string | number | any[] | StringMap | null;
 function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -19,12 +19,12 @@ function addPx(value: string | number) {
 // base component
 type ElementType = HTMLElement;
 type BaseFragmentProps = {
-  cssVars?: ObjectLike<string | number | undefined>;
+  cssVars?: StringMap<string | number | undefined>;
 };
 type _BaseProps = { // TODO: pass through all base props
-  style?: ObjectLike<string | number | undefined>;
+  style?: StringMap<string | number | undefined>;
   className?: string | string[];
-  attribute?: ObjectLike<string | boolean>;
+  attribute?: StringMap<string | number | boolean>;
 };
 type BaseProps = BaseFragmentProps & _BaseProps;
 type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => ElementType | void;
@@ -33,12 +33,12 @@ type ComponentOptions = {
   name?: string;
   onMount?: (component: Component, node: ElementType) => void;
 };
-type GetErrorsFunction = (errors: ObjectLike<string>) => void;
+type GetErrorsFunction = (errors: StringMap<string>) => void;
 class Component {
   name: string;
   args: any[];
-  key: string|null;
-  props: ObjectLike;
+  key: string | null;
+  props: StringMap;
   children: Component[];
   onRender: RenderFunction<any[]>;
   options: ComponentOptions;
@@ -46,7 +46,7 @@ class Component {
   _indexedChildCount: number;
   _usedKeys: Set<string>;
   _mediaKeys: string[];
-  constructor(onRender: RenderFunction<any[]>, args: any[], key: string | Nullsy, props: ObjectLike, options: ComponentOptions) {
+  constructor(onRender: RenderFunction<any[]>, args: any[], key: string | Nullsy, props: StringMap, options: ComponentOptions) {
     this.name = options.name ?? onRender.name;
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
     this.args = args
@@ -64,7 +64,7 @@ class Component {
     this.children.push(child);
     return child;
   }
-  useState(defaultState: ObjectLike) {
+  useState(defaultState: StringMap) {
     const {_} = this;
     if (!_.stateIsInitialized) {
       _.state = defaultState;
@@ -86,7 +86,7 @@ class Component {
       return !hasErrors;
     }
   }
-  useMedia(mediaQuery: ObjectLike<string | number>) {
+  useMedia(mediaQuery: StringMap<string | number>) {
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
     this._mediaKeys.push(key);
     const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
@@ -152,7 +152,7 @@ class DispatchTarget {
     this.components = [];
     this.state = addListeners(() => this.dispatch());
   }
-  static init(key: string, store: ObjectLike<DispatchTarget>, addListeners: DispatchTargetAddListeners) {
+  static init(key: string, store: StringMap<DispatchTarget>, addListeners: DispatchTargetAddListeners) {
     const oldDT = store[key];
     if (oldDT != null) return oldDT;
     const newDT = new DispatchTarget(addListeners);
@@ -172,7 +172,7 @@ class DispatchTarget {
     }
   }
 }
-const _mediaQueryDispatchTargets: ObjectLike<DispatchTarget> = {};
+const _mediaQueryDispatchTargets: StringMap<DispatchTarget> = {};
 const _localStorageDispatchTarget = new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch));
 function _scrollToLocationHash() {
   const element = document.getElementById(location.hash.slice(1));
@@ -187,13 +187,13 @@ const _locationHashDispatchTarget = new DispatchTarget((dispatch) => {
 class ComponentMetadata {
   // state
   stateIsInitialized: boolean = false
-  state: ObjectLike = {};
+  state: StringMap = {};
   prevState: any | null = null;
   prevNode: ElementType | null = null;
   gcFlag: boolean = false;
   // navigation
   prevComponent: Component | null = null;
-  keyToChild: ObjectLike<ComponentMetadata> = {};
+  keyToChild: StringMap<ComponentMetadata> = {};
   prevIndexedChildCount: number | null = null;
   parent: ComponentMetadata | RootComponentMetadata | null;
   root: RootComponentMetadata;
@@ -329,9 +329,43 @@ const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { n
 const div = makeComponent(function div(_props: BaseProps = {}) {
   return document.createElement('div');
 });
+function generateFontSizes(start = 12, count = 4) {
+  const fontSizes = [start];
+  for (let i = 1; i < count; i++) {
+    let desiredFontSize = Math.ceil(fontSizes[fontSizes.length - 1] * 1.25); // NOTE: derived from how monkeys count
+    while ((desiredFontSize % 2) !== 0) desiredFontSize++; // NOTE: prevent fractional pixels
+    fontSizes.push(desiredFontSize);
+  }
+  return fontSizes
+}
+function generateFontSizeCssVars(fontSizes: number[], names = ["small", "normal", "big", "bigger"], maxOffset = 2) {
+  let acc = "";
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    acc += `\n  --fontSize-${name}: ${fontSizes[i]}px;`;
+    for (let offset = 1; offset <= maxOffset; offset++) {
+      const j = Math.max(0, i - offset);
+      acc += `\n  --fontSize-${name}-${offset}: var(--fontSize-${names[j]});`;
+    }
+    for (let offset = 1; offset <= maxOffset; offset++) {
+      const j = Math.max(0, i - offset);
+      const parentFontSize = fontSizes[i];
+      const iconFontSize = fontSizes[j];
+      const paddingLow = Math.floor((parentFontSize - iconFontSize) * 0.75);
+      const paddingHigh = Math.round(1.5*(parentFontSize - iconFontSize) - paddingLow);
+      const padding = (paddingLow === paddingHigh) ? `${paddingLow}px` : `${paddingLow}px ${paddingHigh}px ${paddingHigh}px ${paddingLow}px`;
+      acc += `\n  --iconPadding-${name}-${offset}: ${padding};`;
+    }
+  }
+  return acc;
+}
+console.log(generateFontSizeCssVars(generateFontSizes(12, 4), ['small', 'normal', 'big', 'bigger'], 2));
+type FontSize = 'small' | 'normal' | 'big' | 'bigger';
+type FontSizeOffset = 1 | 2;
 type SpanProps = {
   iconName?: string;
-  fontSize?: string;
+  fontSize?: FontSize;
+  fontSizeOffset?: FontSizeOffset,
   color?: string;
   singleLine?: string;
   fontFamily?: string;
@@ -340,11 +374,12 @@ type SpanProps = {
   id?: string;
   onClick?: (event: MouseEvent) => void;
 } & BaseProps;
-const span = makeComponent(function _span(text: string | number, props: SpanProps = {}) {
-  const { iconName, fontSize, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
+const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
+  const { iconName, fontSize: fontSizeOrNull, fontSizeOffset, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
-  e.innerText = iconName || String(text);
+  let fontSize = fontSizeOrNull;
+  if (fontSizeOffset) fontSize += `${fontSizeOrNull ?? 'normal'}-${fontSizeOffset}`;
   if (iconName) {
     e.classList.add("material-symbols-outlined");
     if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
@@ -376,19 +411,21 @@ const span = makeComponent(function _span(text: string | number, props: SpanProp
   }
   if (id) {
     e.id = id;
-    this.append(span("", {
-      iconName: "tag",
-      className: "icon selfLink",
-      href: `#${id}`,
-      fontSize: `${fontSize || "normal"}-1`,
-      style: {height: `calc(1.5 * var(--fontSize-${fontSize || "normal"}) - 1px)`, paddingTop: 1},
-    }));
+    this.append(span(text));
+    this.append(icon("tag", { className: "selfLink", fontSize: fontSizeOrNull, fontSizeOffset: 2, href: `#${id}` }));
+  } else {
+    e.innerText = iconName || (text == null ? "" : String(text));
   }
   return e;
 }, { name: "span" });
 // https://fonts.google.com/icons
-const icon = makeComponent(function icon(iconName: string, props: SpanProps = {}) {
-  this.append(span("", {iconName, ...props}));
+type IconProps = SpanProps;
+const icon = makeComponent(function icon(iconName: string, props: IconProps = {}) {
+  let {fontSize, fontSizeOffset, style = {}, ...extraProps} = props;
+  if (fontSizeOffset) {
+    style = {...(style ?? {}), padding: `var(--iconPadding-${fontSize ?? 'normal'}-${fontSizeOffset})`};
+  }
+  this.append(span("", {iconName, fontSize, fontSizeOffset, style, ...extraProps}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = {}) {
   this.append(icon("progress_activity", props));
@@ -397,7 +434,7 @@ const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = 
 type InputProps = {
   type?: "text";
   placeholder?: string;
-  value: string;
+  value: string | number | null | undefined;
   autoFocus?: boolean;
   onKeyDown?: (event: KeyboardEvent) => void;
   onInput?: (newAllowedValue: string, event: InputEvent) => void;
@@ -412,7 +449,7 @@ const input = makeComponent(function input(props: InputProps) {
   e.type = type;
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
-  if (value != null) e.value = value;
+  if (value != null) e.value = String(value);
   e.onkeydown = (event: KeyboardEvent) => {
     if (onKeyDown) onKeyDown(event);
     state.needFocus = true;
@@ -485,7 +522,10 @@ const labeledInput = makeComponent(function labeledInput(props: LabeledInputProp
 const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
   this.append(span(error, {color: "red", fontSize: "small", ...props}));
 });
-type TextInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {error?: string};
+type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
+  error?: string,
+  value: string | null | undefined;
+};
 const textInput = makeComponent(function textInput(props: TextInputProps) {
   const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
@@ -506,8 +546,17 @@ const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps
   wrapper.append(icon("arrow_drop_up", {className: "upIcon", onClick: onClickUp}));
   wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
 });
-type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {error?: string};
-const numberInput = makeComponent(function numberInput(props: ObjectLike = {}) {
+type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
+  error?: string,
+  min?: number,
+  max?: number,
+  step?: number,
+  stepPrecision?: number,
+  clearable?: boolean,
+  onInput?: ((newAllowedValue: string, event: InputEvent | undefined) => void);
+  onChange?: ((newAllowedValue: string, event: KeyboardEvent | undefined) => void)
+};
+const numberInput = makeComponent(function numberInput(props: NumberInputProps) {
   const {
     label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
     value, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, ...extraProps // numberInput
@@ -525,8 +574,8 @@ const numberInput = makeComponent(function numberInput(props: ObjectLike = {}) {
   const incrementValue = (by: number) => {
     const number = stepAndClamp(+(value ?? 0) + by);
     const newValue = String(number);
-    if (onInput) onInput(newValue, event);
-    if (onChange) onChange(newValue, event);
+    if (onInput) onInput(newValue, undefined);
+    if (onChange) onChange(newValue, undefined);
   };
   const inputComponent = input({
     value,
@@ -577,7 +626,7 @@ const numberInput = makeComponent(function numberInput(props: ObjectLike = {}) {
 // table
 type TableColumn = {
   label: string;
-  onRender: (data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}) => Component;
+  onRender: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
   minWidth?: string | number;
   maxWidth?: string | number;
   flex?: string | number;
@@ -600,16 +649,16 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
   }));
   const makeRow = (className: string) => div({className});
   const makeCell = (column: TableColumn) => div({
-    className: "cell",
+    className: "tableCell",
     style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
   });
   if (label) {
-    tableWrapper.append(span(label, {className: "label"}));
+    tableWrapper.append(span(label, {className: "tableLabel"}));
   }
   if (isLoading) {
     tableWrapper.append(loadingSpinner());
   } else {
-    const headerWrapper = tableWrapper.append(makeRow("row header"));
+    const headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader"));
     for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       const column = columns[columnIndex];
       const cellWrapper = headerWrapper.append(makeCell(column));
@@ -617,7 +666,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
     }
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       let row = rows[rowIndex];
-      const rowWrapper = tableWrapper.append(makeRow("row body"));
+      const rowWrapper = tableWrapper.append(makeRow("tableRow tableBody"));
       for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
         let column = columns[columnIndex];
         const cellWrapper = rowWrapper.append(makeCell(column));
@@ -631,20 +680,30 @@ type Route = {
   component: (props?: BaseProps) => Component;
   roles?: string[];
   wrapper?: boolean;
+  showInNavigation?: boolean;
+  label?: string;
 };
+type Routes = StringMap<Route>;
 type RouterProps = {
-  routes: ObjectLike<Route>;
-  wrapperComponent?: Component;
+  routes: Routes;
+  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
+  contentWrapperComponent?: ComponentFunction<any>,
   currentRoles?: string[];
   isLoggedIn?: boolean;
   notLoggedInRoute?: Route;
   notFoundRoute?: Route;
   unauthorizedRoute?: Route;
 };
+type PageWrapperProps = {
+  routes: Routes;
+  currentRoute: Route;
+  contentWrapperComponent: ComponentFunction<any>,
+};
 const router = makeComponent(function router(props: RouterProps) {
   const {
     routes,
-    wrapperComponent = fragment(),
+    pageWrapperComponent = () => fragment(),
+    contentWrapperComponent = () => div({ className: "pageContent" }),
     currentRoles,
     isLoggedIn,
     notLoggedInRoute = { path: ".*", component: fragment },
@@ -653,30 +712,30 @@ const router = makeComponent(function router(props: RouterProps) {
   } = props;
   let lPath = location.pathname;
   if (lPath.endsWith("/index.html")) lPath = lPath.slice(0, -10);
-  let route: Route | null = null, params = {};
+  let currentRoute: Route | null = null, params = {}; // TODO: save params in rootComponent?
   for (let [k, v] of Object.entries(routes)) {
     const regex = k.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
     const match = lPath.match(new RegExp(`^${regex}$`));
     if (match != null) {
       params = match.groups ?? {};
       if (v.roles && !(currentRoles ?? []).some(role => !v.roles?.length || v.roles.includes(role))) {
-        route = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
+        currentRoute = isLoggedIn ? notLoggedInRoute : unauthorizedRoute;
       } else {
-        route = v;
+        currentRoute = v;
       }
       break;
     }
   }
-  if (!route) {
+  if (!currentRoute) {
     console.warn(`Route '${lPath}' not found.`);
-    route = notFoundRoute;
+    currentRoute = notFoundRoute;
   }
-  if (route) {
-    if (route.wrapper ?? true) {
-      this.append(wrapperComponent);
-      wrapperComponent.append(route.component()); // TODO: save params in RootComponentMetadata?
+  if (currentRoute) {
+    if (currentRoute.wrapper ?? true) {
+      this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
     } else {
-      this.append(route.component());
+      const contentWrapper = this.append(contentWrapperComponent());
+      contentWrapper.append(currentRoute.component());
     }
   }
 });
