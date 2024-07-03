@@ -652,6 +652,7 @@ type Route = {
   wrapper?: boolean;
   showInNavigation?: boolean;
   label?: string;
+  group?: string;
 };
 type FallbackRoute = Omit<Route, "path">;
 type RouterProps = {
