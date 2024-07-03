@@ -33,7 +33,7 @@ type ComponentOptions = {
   name?: string;
   onMount?: (component: Component, node: ElementType) => void;
 };
-type GetErrorsFunction = (errors: StringMap<string>) => void;
+type GetErrorsFunction = (errors: StringMap<string>) => void; // TODO: type this
 class Component {
   name: string;
   args: any[];
@@ -64,13 +64,13 @@ class Component {
     this.children.push(child);
     return child;
   }
-  useState(defaultState: StringMap) {
+  useState<T extends object>(defaultState: T): T {
     const {_} = this;
     if (!_.stateIsInitialized) {
       _.state = defaultState;
       _.stateIsInitialized = true;
     }
-    return _.state;
+    return _.state as T;
   }
   useValidate(getErrors: GetErrorsFunction) {
     return () => {
@@ -86,7 +86,7 @@ class Component {
       return !hasErrors;
     }
   }
-  useMedia(mediaQuery: StringMap<string | number>) {
+  useMedia(mediaQuery: StringMap<string | number>) { // TODO: type this
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
     this._mediaKeys.push(key);
     const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
