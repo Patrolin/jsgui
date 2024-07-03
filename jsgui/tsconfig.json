@@ -1,5 +1,5 @@
 {
-  "include": ["jsgui/**.ts", "docs/**.ts"],
+  "include": ["**.ts"],
   "compilerOptions": {
     "target": "es5",
     "lib": [
@@ -12,7 +12,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "None",
-    "outFile" : "out/docs.js",
+    "outFile" : "../out/jsgui.js",
     "sourceMap": true,
   }
 }
