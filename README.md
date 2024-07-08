@@ -17,3 +17,8 @@ tsc -w
 ```
 python serve.py
 ```
+### build only jsgui.js
+```
+cd jsgui
+tsc
+```

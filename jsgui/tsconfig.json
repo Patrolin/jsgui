@@ -1,5 +1,5 @@
 {
-  "include": ["**.ts"],
+  "include": ["jsgui.ts", "generateFontVars.ts"],
   "compilerOptions": {
     "target": "es5",
     "lib": [
@@ -13,6 +13,7 @@
     "forceConsistentCasingInFileNames": true,
     "module": "None",
     "outFile" : "../out/jsgui.js",
-    "sourceMap": true,
+    "sourceMap": false,
+    "removeComments": false,
   }
 }

@@ -1,8 +1,9 @@
 // TODO: make a typescript compiler to compile packages like odin
-// utils
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
+/*! v0.1 */
+// utils
 function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
