@@ -1,5 +1,5 @@
 const root = makeComponent(function root() {
-  const GITHUB_PAGES_PREFIX = "(/jsgui)";
+  const GITHUB_PAGES_PREFIX = "(/jsgui)?";
   this.append(
     router({
       pageWrapperComponent: pageWrapper,
