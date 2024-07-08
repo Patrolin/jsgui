@@ -98,7 +98,7 @@ class Component {
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches;
   }
-  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] {
+  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] { // TODO: listen to same page option
     _localStorageDispatchTarget.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
     const setValue = (newValue: T) => {
