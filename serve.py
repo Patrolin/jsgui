@@ -1,7 +1,7 @@
 import urllib.parse
 import http.server
-from pathlib import Path
 from threading import Thread
+from os.path import isfile
 
 HOST = ('localhost', 8000)
 http.server.SimpleHTTPRequestHandler.extensions_map = {
@@ -11,13 +11,11 @@ http.server.SimpleHTTPRequestHandler.extensions_map = {
 }
 class Handler(http.server.SimpleHTTPRequestHandler):
   def do_GET(self):
-    url_parts = urllib.parse.urlparse(self.path)
-    request_file_path = Path(url_parts.path.strip("/"))
-
-    ext = request_file_path.suffix
-    if not request_file_path.is_file() and (ext == ".html" or not ext):
+    if self.path.startswith("/jsgui/"): # simulate gh-pages behavior
+      self.path = self.path.removeprefix("/jsgui")
+    relative_path = urllib.parse.urlparse(self.path).path.strip("/")
+    if not isfile(relative_path):
       self.path = '404.html'
-
     return http.server.SimpleHTTPRequestHandler.do_GET(self)
 
 httpd = http.server.HTTPServer(HOST, Handler, True)

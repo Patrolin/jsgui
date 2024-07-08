@@ -90,6 +90,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     }
     return to.concat(ar || Array.prototype.slice.call(from));
 };
+/*! v0.1 */
+// utils
 function parseJsonOrNull(jsonString) {
     try {
         return JSON.parse(jsonString);
@@ -882,11 +884,12 @@ var notFoundPage = makeComponent(function notFoundPage() {
     this.append(span("Page not found"));
 });
 var root = makeComponent(function root() {
+    var GITHUB_PAGES_PREFIX = "(/jsgui)?";
     this.append(router({
         pageWrapperComponent: pageWrapper,
         routes: [
             {
-                path: "/",
+                path: "".concat(GITHUB_PAGES_PREFIX, "/"),
                 component: function () { return mainPage(); },
                 wrapper: true,
                 showInNavigation: true,
