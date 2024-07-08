@@ -1,10 +1,11 @@
 const root = makeComponent(function root() {
+  const GITHUB_PAGES_PREFIX = "(/jsgui)";
   this.append(
     router({
       pageWrapperComponent: pageWrapper,
       routes: [
         {
-          path: "/",
+          path: `${GITHUB_PAGES_PREFIX}/`,
           component: () => mainPage(),
           wrapper: true,
           showInNavigation: true,
