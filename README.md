@@ -19,6 +19,9 @@ app.js
   renderRoot(root());
 ```
 
+## Docs (WIP)
+https://patrolin.github.io/jsgui/
+
 ## Commands
 
 ### build docs
