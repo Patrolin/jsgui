@@ -112,7 +112,7 @@ a.icon {
 button {
   border: none;
   border-radius: 4px;
-  padding: 4px 8px;
+  padding: 2px 10px;
   background: var(--buttonColor);
   transition: background-color 0.2s var(--timing-0d);
   border-bottom: 1px solid var(--gray-3);

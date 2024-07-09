@@ -1,3 +1,6 @@
+function getSizeLabel(size: string) {
+  return size[0].toUpperCase() + size.slice(1);
+}
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined, "https://www.google.com"]) {
     let row = this.append(div({className: "displayRow"}))
@@ -18,8 +21,7 @@ const iconSection = makeComponent(function spanSection() {
   let row = this.append(div({className: "displayRow"}));
   for (let size of SIZES) {
     const itemWrapper = row.append(div());
-    const label = size[0].toUpperCase() + size.slice(1);
-    itemWrapper.append(span(label, {size}));
+    itemWrapper.append(span(getSizeLabel(size), {size}));
     itemWrapper.append(icon("link", {size}));
   }
   row = this.append(div({className: "displayRow"}));
@@ -108,8 +110,9 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
 });
 const buttonSection = makeComponent(function buttonSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  row.append(button("Cancel"));
-  row.append(button("Submit", { color: "secondary" }));
+  for (let size of SIZES) row.append(button(getSizeLabel(size), {size}));
+  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  for (let size of SIZES) row.append(button(getSizeLabel(size), {color: "secondary", size}));
 });
 
 type MainPageSection = {
@@ -156,6 +159,7 @@ const mainPage = makeComponent(function mainPage() {
       style: {display: "flex", flexDirection: "column", alignItems: "flex-start"},
     })
   );
+  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
   for (let section of MAIN_PAGE_SECTIONS) {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     wrapper.append(section.component());

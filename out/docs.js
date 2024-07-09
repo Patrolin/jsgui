@@ -816,6 +816,9 @@ TODO: documentation
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
+function getSizeLabel(size) {
+    return size[0].toUpperCase() + size.slice(1);
+}
 var spanSection = makeComponent(function spanSection() {
     for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {
         var href = _a[_i];
@@ -840,8 +843,7 @@ var iconSection = makeComponent(function spanSection() {
     for (var _i = 0, SIZES_1 = SIZES; _i < SIZES_1.length; _i++) {
         var size = SIZES_1[_i];
         var itemWrapper = row.append(div());
-        var label = size[0].toUpperCase() + size.slice(1);
-        itemWrapper.append(span(label, { size: size }));
+        itemWrapper.append(span(getSizeLabel(size), { size: size }));
         itemWrapper.append(icon("link", { size: size }));
     }
     row = this.append(div({ className: "displayRow" }));
@@ -931,8 +933,15 @@ var mediaQuerySection = makeComponent(function mediaQuerySection() {
 });
 var buttonSection = makeComponent(function buttonSection() {
     var row = this.append(div({ className: "displayRow", style: { marginTop: 4 } }));
-    row.append(button("Cancel"));
-    row.append(button("Submit", { color: "secondary" }));
+    for (var _i = 0, SIZES_4 = SIZES; _i < SIZES_4.length; _i++) {
+        var size = SIZES_4[_i];
+        row.append(button(getSizeLabel(size), { size: size }));
+    }
+    row = this.append(div({ className: "displayRow", style: { marginTop: 4 } }));
+    for (var _a = 0, SIZES_5 = SIZES; _a < SIZES_5.length; _a++) {
+        var size = SIZES_5[_a];
+        row.append(button(getSizeLabel(size), { color: "secondary", size: size }));
+    }
 });
 var MAIN_PAGE_SECTIONS = [
     {
@@ -970,6 +979,7 @@ var mainPage = makeComponent(function mainPage() {
     var wrapper = this.append(div({
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
     }));
+    wrapper.append(span("version: ".concat(JSGUI_VERSION), { size: "small" }));
     for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
         var section = MAIN_PAGE_SECTIONS_1[_i];
         wrapper.append(span(section.label, { size: "big", selfLink: section.id }));
