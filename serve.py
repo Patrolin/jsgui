@@ -11,10 +11,12 @@ http.server.SimpleHTTPRequestHandler.extensions_map = {
 }
 class Handler(http.server.SimpleHTTPRequestHandler):
   def do_GET(self):
-    if self.path.startswith("/jsgui/"): # simulate gh-pages behavior
-      self.path = self.path.removeprefix("/jsgui")
     relative_path = urllib.parse.urlparse(self.path).path.strip("/")
-    if not isfile(relative_path):
+    if isfile(relative_path):
+      pass
+    elif isfile(relative_path.removeprefix("jsgui/")): # simulate gh-pages behavior
+      self.path = self.path.removeprefix("/jsgui")
+    else:
       self.path = '404.html'
     return http.server.SimpleHTTPRequestHandler.do_GET(self)
 

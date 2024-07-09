@@ -9,7 +9,7 @@ const root = makeComponent(function root() {
           component: () => mainPage(),
           wrapper: true,
           showInNavigation: true,
-          label: "jsgui"
+          label: "jsgui",
         },
       ],
       notFoundRoute: {

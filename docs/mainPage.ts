@@ -10,10 +10,10 @@ const MAIN_PAGE_SECTIONS: MainPageSection[] = [
     onRender: (wrapper: Component) => { // TODO: refactor to actual components
       for (let href of [undefined, "https://www.google.com"]) {
         let row = wrapper.append(div({className: "displayRow"}))
-        row.append(span("Small", {fontSize: "small", href}));
-        row.append(span("Normal", {fontSize: "normal", href}));
-        row.append(span("Big", {fontSize: "big", href}));
-        row.append(span("Bigger", {fontSize: "bigger", href}));
+        row.append(span("Small", {size: "small", href}));
+        row.append(span("Normal", {size: "normal", href}));
+        row.append(span("Big", {size: "big", href}));
+        row.append(span("Bigger", {size: "bigger", href}));
       }
     }
   },
@@ -22,14 +22,17 @@ const MAIN_PAGE_SECTIONS: MainPageSection[] = [
     id: "icon",
     onRender: (wrapper: Component) => {
       let row = wrapper.append(div({className: "displayRow"}));
-      row.append(icon("link", {fontSize: "small"}));
-      row.append(icon("link", {fontSize: "normal"}));
-      row.append(icon("link", {fontSize: "big"}));
-      row.append(icon("link", {fontSize: "bigger"}));
+      row.append(icon("link", {size: "small"}));
+      row.append(icon("link", {size: "normal"}));
+      row.append(icon("link", {size: "big"}));
+      row.append(icon("link", {size: "bigger"}));
       row = wrapper.append(div({className: "displayRow"}));
-      row.append(icon("link", {fontSize: "small", fontSizeOffset: 2})); // TODO: refactor to iconSize
-      row.append(icon("link", {fontSize: "normal", fontSizeOffset: 2}));
-      row.append(icon("link", {fontSize: "big", fontSizeOffset: 2}));
+      for (let size of SIZES) {
+        const itemWrapper = row.append(div());
+        const label = size[0].toUpperCase() + size.slice(1);
+        itemWrapper.append(span(label, {size}));
+        itemWrapper.append(icon("link", {size}));
+      }
     }
   },
 ];
@@ -43,11 +46,11 @@ const mainPage = makeComponent(function mainPage() {
   const state = this.useState({ username: "" });
   const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
   for (let section of MAIN_PAGE_SECTIONS) {
-    wrapper.append(span(section.label, {fontSize: "big", id: section.id}));
+    wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     section.onRender(wrapper); // TODO: show code
   }
   // text input
-  wrapper.append(span("Text Input", {fontSize: "big", id: "textInput"}));
+  wrapper.append(span("Text Input", {size: "big", selfLink: "textInput"}));
   wrapper.append(
     textInput({
       label: "Username",
@@ -72,7 +75,7 @@ const mainPage = makeComponent(function mainPage() {
     })
   );
   wrapper.append(span(`state: ${JSON.stringify(state)}`));
-  wrapper.append(span("Foo", { id: "foo" }));
+  wrapper.append(span("Foo", { selfLink: "foo" }));
   wrapper.append(span("link to bar", { href: "#bar" }));
   const rows = Array(+(count ?? 0))
     .fill(0)
@@ -100,7 +103,7 @@ const mainPage = makeComponent(function mainPage() {
   if ((count ?? 0) % 2 === 0) {
     wrapper.append(someComponent({ key: "someComponent" }));
   }
-  wrapper.append(span("Bar", { id: "bar" }));
+  wrapper.append(span("Bar", { selfLink: "bar" }));
   wrapper.append(loadingSpinner());
 });
 const someComponent = makeComponent(function someComponent(_props) {

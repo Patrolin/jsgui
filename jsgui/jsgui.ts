@@ -1,8 +1,8 @@
 // TODO: make a typescript compiler to compile packages like odin
+const JSGUI_VERSION = "v0.2-dev"
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
-/*! v0.1 */
 // utils
 function parseJsonOrNull(jsonString: string): JSONValue {
   try {
@@ -330,31 +330,34 @@ const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { n
 const div = makeComponent(function div(_props: BaseProps = {}) {
   return document.createElement('div');
 });
-type FontSize = 'small' | 'normal' | 'big' | 'bigger';
-type FontSizeOffset = 1 | 2;
+type Size = "small" | "normal" | "big" | "bigger";
+const SIZES: Size[] = ["small", "normal", "big", "bigger"];
 type SpanProps = {
   iconName?: string;
-  fontSize?: FontSize;
-  fontSizeOffset?: FontSizeOffset,
+  size?: Size;
   color?: string;
   singleLine?: string;
   fontFamily?: string;
   href?: string;
   replacePath?: boolean;
-  id?: string;
+  selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 } & BaseProps;
 const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
-  const { iconName, fontSize: fontSizeOrNull, fontSizeOffset, color, singleLine, fontFamily, href, replacePath, id, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, replacePath, selfLink, onClick } = props;
+  if (selfLink) {
+    const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: selfLink } }));
+    selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
+    selfLinkWrapper.append(icon("tag", { size: "normal", href: `#${selfLink}` }));
+    return;
+  }
   const isLink = (href != null);
   const e = document.createElement(isLink ? 'a' : 'span');
-  let fontSize = fontSizeOrNull as string;
-  if (fontSizeOffset) fontSize = `${fontSizeOrNull ?? 'normal'}-${fontSizeOffset}`;
   if (iconName) {
     e.classList.add("material-symbols-outlined");
-    if (fontSize) e.style.fontSize = `calc(1.5 * var(--fontSize-${fontSize}))`;
+    if (size) e.style.fontSize = `calc(1.25 * var(--size-${size}))`;
   } else {
-    if (fontSize) e.style.fontSize = `var(--fontSize-${fontSize})`;
+    if (size) e.style.fontSize = `var(--size-${size})`;
   }
   if (color) e.style.color = `var(--${color})`;
   if (singleLine) {
@@ -379,28 +382,35 @@ const span = makeComponent(function _span(text: string | number | null | undefin
       e.setAttribute("clickable", "true");
     }
   }
-  if (id) {
-    e.id = id;
-    this.append(span(text));
-    this.append(icon("tag", { className: "selfLink", fontSize: fontSizeOrNull, fontSizeOffset: 2, href: `#${id}` }));
-  } else {
-    e.innerText = iconName || (text == null ? "" : String(text));
-  }
+  e.innerText = iconName || (text == null ? "" : String(text));
   return e;
 }, { name: "span" });
 // https://fonts.google.com/icons
 type IconProps = SpanProps;
 const icon = makeComponent(function icon(iconName: string, props: IconProps = {}) {
-  let {fontSize, fontSizeOffset, style = {}, ...extraProps} = props;
-  if (fontSizeOffset) {
-    style = {...(style ?? {}), padding: `var(--iconPadding-${fontSize ?? 'normal'}-${fontSizeOffset})`};
-  }
-  this.append(span("", {iconName, fontSize, fontSizeOffset, style, ...extraProps}));
+  let {size, style = {}, ...extraProps} = props;
+  this.append(span("", {iconName, size, style, ...extraProps}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = {}) {
   this.append(icon("progress_activity", props));
 });
 // inputs
+type ButtonProps = {
+  size: Size;
+  fontSizeOffset: FontSizeOffset;
+  onClick?: () => void;
+}
+const button = makeComponent(function button(text: string, props: ButtonProps) {
+  const {size, fontSizeOffset} = props;
+  const e = document.createElement("button");
+  e.innerText = text;
+  if (size) {
+    const fontSize = getFontSize(size, fontSizeOffset);
+    e.style.fontSize = `var(--size-${fontSize})`;
+    if (fontSizeOffset) e.style.padding = `var(--size-${fontSize}-padding)`;
+  }
+  return e;
+});
 type InputProps = {
   type?: "text";
   placeholder?: string;
@@ -490,7 +500,7 @@ const labeledInput = makeComponent(function labeledInput(props: LabeledInputProp
   return fieldset;
 });
 const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
-  this.append(span(error, {color: "red", fontSize: "small", ...props}));
+  this.append(span(error, {color: "red", size: "small", ...props}));
 });
 type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
