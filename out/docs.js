@@ -90,7 +90,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 // TODO: make a typescript compiler to compile packages like odin
-var JSGUI_VERSION = "v0.2-dev";
+var JSGUI_VERSION = "v0.3-dev";
 // utils
 function parseJsonOrNull(jsonString) {
     try {
