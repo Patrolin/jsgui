@@ -1,5 +1,5 @@
 // TODO: make a typescript compiler to compile packages like odin
-const JSGUI_VERSION = "v0.2-dev"
+const JSGUI_VERSION = "v0.2-dev";
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
@@ -333,6 +333,13 @@ const div = makeComponent(function div(_props: BaseProps = {}) {
 });
 type Size = "small" | "normal" | "big" | "bigger";
 const SIZES: Size[] = ["small", "normal", "big", "bigger"];
+type BaseColor = "gray" | "secondary" | "red";
+const BASE_COLORS: Record<BaseColor, string> = {
+  gray: "0, 0, 0",
+  secondary: "20, 80, 160",
+  red: "200, 50, 50",
+};
+const COLOR_SHADES = ["", "033", "067", "1", "2", "3"];
 type SpanProps = {
   iconName?: string;
   size?: Size;
@@ -393,20 +400,34 @@ const icon = makeComponent(function icon(iconName: string, props: IconProps = {}
   this.append(span("", {iconName, size, style, ...extraProps}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = {}) {
-  this.append(icon("progress_activity", props));
+  if (this._?.prevNode) return this._?.prevNode;
+  const e = document.createElement("span");
+  e.classList.add("material-symbols-outlined");
+  e.classList.add("loadingSpinner");
+  e.classList.add("icon");
+  e.innerText = "progress_activity";
+  return e;
 });
 // inputs
 type ButtonProps = {
-  size: Size;
+  size?: Size;
+  color?: BaseColor;
+  secondary?: boolean;
   onClick?: () => void;
+  disabled?: boolean;
 }
-const button = makeComponent(function button(text: string, props: ButtonProps) {
-  const {size} = props;
+const button = makeComponent(function button(text: string, props: ButtonProps = {}) {
+  const {size, color, onClick, disabled} = props;
   const e = document.createElement("button");
   e.innerText = text;
-  if (size) {
-    e.style.fontSize = `var(--size-${size ?? "normal"})`;
+  if (size) e.style.fontSize = `var(--size-${size ?? "normal"})`;
+  if (color) {
+    e.style.setProperty("--buttonColor", `var(--${color})`);
+    e.style.setProperty("--buttonColorHover", `var(--${color}-033)`);
+    e.style.setProperty("--buttonColorActive", `var(--${color}-067)`);
   }
+  if (disabled) e.setAttribute("disabled", "true");
+  else if (onClick) e.onclick = onClick;
   return e;
 });
 type InputProps = {
@@ -414,6 +435,8 @@ type InputProps = {
   placeholder?: string;
   value: string | number | null | undefined;
   autoFocus?: boolean;
+  onFocus?: (event: FocusEvent) => void;
+  onBlur?: (event: FocusEvent) => void;
   onKeyDown?: (event: KeyboardEvent) => void;
   onInput?: (newAllowedValue: string, event: InputEvent) => void;
   onChange?: (newAllowedValue: string, event: KeyboardEvent) => void;
@@ -421,13 +444,19 @@ type InputProps = {
   allowString?: (value: string, prevAllowedValue: string) => string;
 } & BaseProps;
 const input = makeComponent(function input(props: InputProps) {
-  const { type = "text", placeholder, value, autoFocus, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
+  const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
   const state = this.useState({ prevAllowedValue: String(value ?? ''), needFocus: false });
   const e = (this._?.prevNode ?? document.createElement('input')) as HTMLInputElement; // NOTE: e.remove() must not be called
   e.type = type;
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = String(value);
+  e.onfocus = (event: FocusEvent) => {
+    if (onFocus) onFocus(event);
+  }
+  e.onblur = (event: FocusEvent) => {
+    if (onBlur) onBlur(event);
+  }
   e.onkeydown = (event: KeyboardEvent) => {
     if (onKeyDown) onKeyDown(event);
     state.needFocus = true;

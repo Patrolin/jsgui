@@ -6,6 +6,13 @@ const spanSection = makeComponent(function spanSection() {
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
   }
+  for (let baseColor of Object.keys(BASE_COLORS)) {
+    let row = this.append(div({className: "displayRow"}))
+    for (let shade of COLOR_SHADES) {
+      const color = shade ? `${baseColor}-${shade}` : baseColor;
+      row.append(span(color, {color}));
+    }
+  }
 });
 const iconSection = makeComponent(function spanSection() {
   let row = this.append(div({className: "displayRow"}));
@@ -16,15 +23,9 @@ const iconSection = makeComponent(function spanSection() {
     itemWrapper.append(icon("link", {size}));
   }
   row = this.append(div({className: "displayRow"}));
-  row.append(icon("link", {size: "small"}));
-  row.append(icon("link", {size: "normal"}));
-  row.append(icon("link", {size: "big"}));
-  row.append(icon("link", {size: "bigger"}));
+  for (let size of SIZES) row.append(icon("link", {size}));
   row = this.append(div({className: "displayRow"}));
-  row.append(loadingSpinner({size: "small"}));
-  row.append(loadingSpinner({size: "normal"}));
-  row.append(loadingSpinner({size: "big"}));
-  row.append(loadingSpinner({size: "bigger"}));
+  for (let size of SIZES) row.append(loadingSpinner({size}));
 });
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({ username: "" });
@@ -105,6 +106,11 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   this.append(span(`lgOrBigger: ${lgOrBigger}`));
   this.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
+const buttonSection = makeComponent(function buttonSection() {
+  let row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  row.append(button("Cancel"));
+  row.append(button("Submit", { color: "secondary" }));
+});
 
 type MainPageSection = {
   label: string;
@@ -136,6 +142,11 @@ const MAIN_PAGE_SECTIONS: MainPageSection[] = [
     label: "Media query",
     id: "mediaQuery",
     component: mediaQuerySection,
+  },
+  {
+    label: "Button",
+    id: "button",
+    component: buttonSection,
   },
 ];
 
