@@ -148,5 +148,6 @@ const mainPage = makeComponent(function mainPage() {
   for (let section of MAIN_PAGE_SECTIONS) {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     wrapper.append(section.component());
+    // TODO!: show the code
   }
 });

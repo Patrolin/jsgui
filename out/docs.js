@@ -919,6 +919,7 @@ var mainPage = makeComponent(function mainPage() {
         var section = MAIN_PAGE_SECTIONS_1[_i];
         wrapper.append(span(section.label, { size: "big", selfLink: section.id }));
         wrapper.append(section.component());
+        // TODO!: show the code
     }
 });
 var notFoundPage = makeComponent(function notFoundPage() {
