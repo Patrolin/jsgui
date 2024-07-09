@@ -112,31 +112,37 @@ a.icon {
   justify-content: space-between;
   --fieldsetWidth: 194px;
   --fieldsetHeight: 42px;
-  --fieldsetMargin: 0 1px;
+  --fieldsetMargin: 0 1px 6px 1px;
+  --fieldsetMarginFocus: 0 0 6px 0;
   --fieldsetBorder: 1px solid var(--gray-2);
+  --fieldsetBorderHover: 1px solid var(--gray-1);
+  --fieldsetBorderFocus: 2px solid var(--blue);
+  --fieldsetBorderError: 1px solid var(--red);
+  --fieldsetBorderErrorFocus: 2px solid var(--red);
   --labelColor: var(--gray-1);
+  --labelColorFocus: var(--blue);
+  --labelColorError: var(--red);
+  --labelColor-x: var(--labelColor);
   --labelMarginLeft: 8px;
 }
 .labeledInput:hover {
-  --fieldsetBorder: 1px solid var(--gray-1);
-  --labelColor: var(--gray-1);
+  border: var(--fieldsetBorderHover);
 }
 .labeledInput:focus-within {
+  margin: var(--fieldsetMarginFocus);
   width: calc(var(--fieldsetWidth) + 2px);
-  --fieldsetBorder: 2px solid var(--blue);
-  --fieldsetMargin: 0px;
-  --labelColor: var(--blue);
+  border: var(--fieldsetBorderFocus);
+  --labelColor-x: var(--labelColorFocus);
 }
 .labeledInput[fieldset-error="true"] {
-  --fieldsetBorder: 1px solid var(--red);
-  --labelColor: var(--red);
+  border: var(--fieldsetBorderError);
+  --labelColor-x: var(--labelColorError);
 }
 .labeledInput[fieldset-error="true"]:focus-within {
-  --fieldsetBorder: 2px solid var(--red);
-  --labelColor: var(--red);
+  border: var(--fieldsetBorderErrorFocus);
 }
 .labeledInput legend {
-  color: var(--labelColor);
+  color: var(--labelColor-x);
   user-select: none;
   font-size: var(--size-small);
   margin-left: var(--labelMarginLeft);

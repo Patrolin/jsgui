@@ -20,6 +20,7 @@ function addPx(value: string | number) {
 // base component
 type ElementType = HTMLElement;
 type BaseFragmentProps = {
+  key?: string;
   cssVars?: StringMap<string | number | undefined>;
 };
 type _BaseProps = { // TODO: pass through all base props
@@ -397,17 +398,14 @@ const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = 
 // inputs
 type ButtonProps = {
   size: Size;
-  fontSizeOffset: FontSizeOffset;
   onClick?: () => void;
 }
 const button = makeComponent(function button(text: string, props: ButtonProps) {
-  const {size, fontSizeOffset} = props;
+  const {size} = props;
   const e = document.createElement("button");
   e.innerText = text;
   if (size) {
-    const fontSize = getFontSize(size, fontSizeOffset);
-    e.style.fontSize = `var(--size-${fontSize})`;
-    if (fontSizeOffset) e.style.padding = `var(--size-${fontSize}-padding)`;
+    e.style.fontSize = `var(--size-${size ?? "normal"})`;
   }
   return e;
 });

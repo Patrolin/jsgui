@@ -491,14 +491,11 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
     this.append(icon("progress_activity", props));
 });
 var button = makeComponent(function button(text, props) {
-    var size = props.size, fontSizeOffset = props.fontSizeOffset;
+    var size = props.size;
     var e = document.createElement("button");
     e.innerText = text;
     if (size) {
-        var fontSize = getFontSize(size, fontSizeOffset);
-        e.style.fontSize = "var(--size-".concat(fontSize, ")");
-        if (fontSizeOffset)
-            e.style.padding = "var(--size-".concat(fontSize, "-padding)");
+        e.style.fontSize = "var(--size-".concat(size !== null && size !== void 0 ? size : "normal", ")");
     }
     return e;
 });
@@ -783,56 +780,42 @@ TODO: documentation
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
-var MAIN_PAGE_SECTIONS = [
-    {
-        label: "Span",
-        id: "span",
-        onRender: function (wrapper) {
-            for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {
-                var href = _a[_i];
-                var row = wrapper.append(div({ className: "displayRow" }));
-                row.append(span("Small", { size: "small", href: href }));
-                row.append(span("Normal", { size: "normal", href: href }));
-                row.append(span("Big", { size: "big", href: href }));
-                row.append(span("Bigger", { size: "bigger", href: href }));
-            }
-        }
-    },
-    {
-        label: "Icon",
-        id: "icon",
-        onRender: function (wrapper) {
-            var row = wrapper.append(div({ className: "displayRow" }));
-            row.append(icon("link", { size: "small" }));
-            row.append(icon("link", { size: "normal" }));
-            row.append(icon("link", { size: "big" }));
-            row.append(icon("link", { size: "bigger" }));
-            row = wrapper.append(div({ className: "displayRow" }));
-            for (var _i = 0, SIZES_1 = SIZES; _i < SIZES_1.length; _i++) {
-                var size = SIZES_1[_i];
-                var itemWrapper = row.append(div());
-                var label = size[0].toUpperCase() + size.slice(1);
-                itemWrapper.append(span(label, { size: size }));
-                itemWrapper.append(icon("link", { size: size }));
-            }
-        }
-    },
-];
-var mainPage = makeComponent(function mainPage() {
-    var _this = this;
-    var wrapper = this.append(div({
-        style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
-    }));
-    var state = this.useState({ username: "" });
-    var _a = this.useLocalStorage("count", 0), count = _a[0], setCount = _a[1];
-    for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
-        var section = MAIN_PAGE_SECTIONS_1[_i];
-        wrapper.append(span(section.label, { size: "big", selfLink: section.id }));
-        section.onRender(wrapper); // TODO: show code
+var spanSection = makeComponent(function spanSection() {
+    for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {
+        var href = _a[_i];
+        var row = this.append(div({ className: "displayRow" }));
+        row.append(span("Small", { size: "small", href: href }));
+        row.append(span("Normal", { size: "normal", href: href }));
+        row.append(span("Big", { size: "big", href: href }));
+        row.append(span("Bigger", { size: "bigger", href: href }));
     }
-    // text input
-    wrapper.append(span("Text Input", { size: "big", selfLink: "textInput" }));
-    wrapper.append(textInput({
+});
+var iconSection = makeComponent(function spanSection() {
+    var row = this.append(div({ className: "displayRow" }));
+    for (var _i = 0, SIZES_1 = SIZES; _i < SIZES_1.length; _i++) {
+        var size = SIZES_1[_i];
+        var itemWrapper = row.append(div());
+        var label = size[0].toUpperCase() + size.slice(1);
+        itemWrapper.append(span(label, { size: size }));
+        itemWrapper.append(icon("link", { size: size }));
+    }
+    row = this.append(div({ className: "displayRow" }));
+    row.append(icon("link", { size: "small" }));
+    row.append(icon("link", { size: "normal" }));
+    row.append(icon("link", { size: "big" }));
+    row.append(icon("link", { size: "bigger" }));
+    row = this.append(div({ className: "displayRow" }));
+    row.append(loadingSpinner({ size: "small" }));
+    row.append(loadingSpinner({ size: "normal" }));
+    row.append(loadingSpinner({ size: "big" }));
+    row.append(loadingSpinner({ size: "bigger" }));
+});
+var textInputSection = makeComponent(function textInputSection() {
+    var _this = this;
+    var state = this.useState({ username: "" });
+    // username
+    var row = this.append(div({ className: "displayRow", style: { marginTop: 4 } }));
+    row.append(textInput({
         label: "Username",
         value: state.username,
         onInput: function (newUsername) {
@@ -841,7 +824,13 @@ var mainPage = makeComponent(function mainPage() {
         },
         autoFocus: true,
     }));
-    wrapper.append(numberInput({
+    row.append(span("This input is stored in the component state."));
+    row = this.append(div({ className: "displayRow", style: { marginTop: -4 } }));
+    row.append(span("state: ".concat(JSON.stringify(state))));
+    // count
+    row = this.append(div({ className: "displayRow", style: { marginTop: 4 } }));
+    var _a = this.useLocalStorage("count", 0), count = _a[0], setCount = _a[1];
+    row.append(numberInput({
         label: "Count",
         value: count,
         onInput: function (newCount) {
@@ -851,13 +840,16 @@ var mainPage = makeComponent(function mainPage() {
         min: 0,
         clearable: false,
     }));
-    wrapper.append(span("state: ".concat(JSON.stringify(state))));
-    wrapper.append(span("Foo", { selfLink: "foo" }));
-    wrapper.append(span("link to bar", { href: "#bar" }));
+    row.append(span("This input is stored in local storage (synced across tabs and components)."));
+    row = this.append(div({ className: "displayRow", style: { marginTop: -4 } }));
+    row.append(span("count: ".concat(count)));
+});
+var tableSection = makeComponent(function tableSection() {
+    var count = this.useLocalStorage("count", 0)[0];
     var rows = Array(+(count !== null && count !== void 0 ? count : 0))
         .fill(0)
         .map(function (_, i) { return i; });
-    wrapper.append(table({
+    this.append(table({
         label: "Stuff",
         rows: rows,
         columns: [
@@ -876,14 +868,58 @@ var mainPage = makeComponent(function mainPage() {
         ],
     }));
     if ((count !== null && count !== void 0 ? count : 0) % 2 === 0) {
-        wrapper.append(someComponent({ key: "someComponent" }));
+        this.append(testKeysComponent({ key: "testKeysComponent" }));
     }
-    wrapper.append(span("Bar", { selfLink: "bar" }));
-    wrapper.append(loadingSpinner());
 });
-var someComponent = makeComponent(function someComponent(_props) {
+var testKeysComponent = makeComponent(function testKeysComponent(_) {
+    this.append(span(""));
+});
+var mediaQuerySection = makeComponent(function mediaQuerySection() {
+    var smOrBigger = this.useMedia({ minWidth: 600 });
+    var mdOrBigger = this.useMedia({ minWidth: 900 });
     var lgOrBigger = this.useMedia({ minWidth: 1200 });
+    var xlOrBigger = this.useMedia({ minWidth: 1500 });
+    this.append(span("smOrBigger: ".concat(smOrBigger)));
+    this.append(span("mdOrBigger: ".concat(mdOrBigger)));
     this.append(span("lgOrBigger: ".concat(lgOrBigger)));
+    this.append(span("xlOrBigger: ".concat(xlOrBigger)));
+});
+var MAIN_PAGE_SECTIONS = [
+    {
+        label: "Span",
+        id: "span",
+        component: spanSection,
+    },
+    {
+        label: "Icon",
+        id: "icon",
+        component: iconSection,
+    },
+    {
+        label: "Text input",
+        id: "textInput",
+        component: textInputSection,
+    },
+    {
+        label: "Table",
+        id: "table",
+        component: tableSection,
+    },
+    {
+        label: "Media query",
+        id: "mediaQuery",
+        component: mediaQuerySection,
+    },
+];
+var mainPage = makeComponent(function mainPage() {
+    var wrapper = this.append(div({
+        style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
+    }));
+    for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
+        var section = MAIN_PAGE_SECTIONS_1[_i];
+        wrapper.append(span(section.label, { size: "big", selfLink: section.id }));
+        wrapper.append(section.component());
+    }
 });
 var notFoundPage = makeComponent(function notFoundPage() {
     this.append(span("Page not found"));
