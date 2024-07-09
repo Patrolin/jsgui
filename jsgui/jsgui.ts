@@ -1,5 +1,5 @@
 // TODO: make a typescript compiler to compile packages like odin
-const JSGUI_VERSION = "v0.2-dev";
+const JSGUI_VERSION = "v0.3-dev";
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
