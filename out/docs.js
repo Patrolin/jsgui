@@ -498,16 +498,8 @@ var icon = makeComponent(function icon(iconName, props) {
     this.append(span("", __assign({ iconName: iconName, size: size, style: style }, extraProps)));
 });
 var loadingSpinner = makeComponent(function loadingSpinner(props) {
-    var _a, _b;
     if (props === void 0) { props = {}; }
-    if ((_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode)
-        return (_b = this._) === null || _b === void 0 ? void 0 : _b.prevNode;
-    var e = document.createElement("span");
-    e.classList.add("material-symbols-outlined");
-    e.classList.add("loadingSpinner");
-    e.classList.add("icon");
-    e.innerText = "progress_activity";
-    return e;
+    this.append(icon("progress_activity", props));
 });
 var button = makeComponent(function button(text, props) {
     if (props === void 0) { props = {}; }

@@ -399,14 +399,8 @@ const icon = makeComponent(function icon(iconName: string, props: IconProps = {}
   let {size, style = {}, ...extraProps} = props;
   this.append(span("", {iconName, size, style, ...extraProps}));
 });
-const loadingSpinner = makeComponent(function loadingSpinner(props: SpanProps = {}) {
-  if (this._?.prevNode) return this._?.prevNode;
-  const e = document.createElement("span");
-  e.classList.add("material-symbols-outlined");
-  e.classList.add("loadingSpinner");
-  e.classList.add("icon");
-  e.innerText = "progress_activity";
-  return e;
+const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
+  this.append(icon("progress_activity", props));
 });
 // inputs
 type ButtonProps = {
