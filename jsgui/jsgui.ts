@@ -46,6 +46,7 @@ type ComponentOptions = {
 };
 type GetErrorsFunction = (errors: StringMap<string>) => void; // TODO: type this
 class Component {
+  // props
   name: string;
   args: any[];
   baseProps: RenderedBaseProps;
@@ -54,11 +55,12 @@ class Component {
   children: Component[];
   onRender: RenderFunction<any[]>;
   options: ComponentOptions;
+  // metadata
   _: ComponentMetadata | RootComponentMetadata;
-  _node: HTMLElement | null;
-  _indexedChildCount: number;
-  _usedKeys: Set<string>;
-  _mediaKeys: string[];
+  // hooks
+  node: HTMLElement | null;
+  indexedChildCount: number;
+  mediaKeys: string[];
   constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: RenderedBaseProps, props: StringMap, options: ComponentOptions) {
     this.name = options.name ?? onRender.name;
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
@@ -70,19 +72,18 @@ class Component {
     this.onRender = onRender;
     this.options = options;
     this._ = null as any;
-    this._node = null;
-    this._indexedChildCount = 0;
-    this._usedKeys = new Set();
-    this._mediaKeys = [];
+    this.node = null;
+    this.indexedChildCount = 0;
+    this.mediaKeys = [];
   }
   useNode<T extends HTMLElement>(defaultNode: T): T {
-    return (this._node = (this._?.prevNode ?? defaultNode)) as T;
+    return (this.node = (this._?.prevNode ?? defaultNode)) as T;
   }
   append(child: Component) {
     this.children.push(child);
     let key = child.baseProps.key;
     if (key == null) {
-      key = `${child.name}-${this._indexedChildCount++}`;
+      key = `${child.name}-${this.indexedChildCount++}`;
     }
     child.key = key;
     return child;
@@ -111,7 +112,7 @@ class Component {
   }
   useMedia(mediaQuery: StringMap<string | number>) { // TODO: type this
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
-    this._mediaKeys.push(key);
+    this.mediaKeys.push(key);
     const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
       const mediaQueryList = window.matchMedia(key);
       mediaQueryList.addEventListener("change", dispatch);
@@ -309,25 +310,25 @@ function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] 
 }
 function _render(component: Component, parentNode: ElementType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, options, _indexedChildCount} = component;
+  const {_, name, args, baseProps, props, onRender, options, indexedChildCount: _indexedChildCount} = component;
   const {onMount} = options;
   onRender.bind(component)(...args, props);
-  const node = component._node;
+  const node = component.node;
   // warn if missing keys
   const prevIndexedChildCount = _.prevIndexedChildCount;
   if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
     console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${_indexedChildCount})`, _.prevComponent, component);
   }
-  // append element
+  // inherit
   let inheritedBaseProps = {
     attribute: {..._inheritedBaseProps.attribute, ...baseProps.attribute},
     className: [..._inheritedBaseProps.className, ...baseProps.className],
     cssVars: {..._inheritedBaseProps.cssVars, ...baseProps.cssVars},
     style: {..._inheritedBaseProps.style, ...baseProps.style},
   };
+  // append
   const prevNode = _.prevNode;
   if (node) {
-    // append
     if (prevNode) {
       const prevName = _.prevComponent?.name;
       if (name !== prevName) {
@@ -394,7 +395,11 @@ function _render(component: Component, parentNode: ElementType, _inheritedBasePr
     inheritedBaseProps = _START_BASE_PROPS;
     isTopNode = false;
   } else {
-    if (prevNode) prevNode.remove(); // NOTE: removing components handled in _unloadUnusedComponents()
+    if (prevNode) {
+      prevNode.remove(); // NOTE: removing components is handled by _unloadUnusedComponents()
+      _.prevNode = null;
+      _.prevBaseProps = _START_BASE_PROPS;
+    }
     if (name) inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
   }
   // set prev state
@@ -420,7 +425,7 @@ function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) 
   for (let child of prevComponent.children) {
     const child_ = child._;
     if (child_.gcFlag !== rootGcFlag) {
-      for (let key of child._mediaKeys) {
+      for (let key of child.mediaKeys) {
         _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
       _localStorageDispatchTarget.removeComponent(prevComponent);
@@ -773,6 +778,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
 // router
 type Route = {
   path: string;
+  defaultPath?: string;
   component: (props?: BaseProps) => Component;
   roles?: string[];
   wrapper?: boolean;

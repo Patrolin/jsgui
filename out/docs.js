@@ -122,20 +122,19 @@ var Component = /** @class */ (function () {
         this.onRender = onRender;
         this.options = options;
         this._ = null;
-        this._node = null;
-        this._indexedChildCount = 0;
-        this._usedKeys = new Set();
-        this._mediaKeys = [];
+        this.node = null;
+        this.indexedChildCount = 0;
+        this.mediaKeys = [];
     }
     Component.prototype.useNode = function (defaultNode) {
         var _a, _b;
-        return (this._node = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : defaultNode));
+        return (this.node = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : defaultNode));
     };
     Component.prototype.append = function (child) {
         this.children.push(child);
         var key = child.baseProps.key;
         if (key == null) {
-            key = "".concat(child.name, "-").concat(this._indexedChildCount++);
+            key = "".concat(child.name, "-").concat(this.indexedChildCount++);
         }
         child.key = key;
         return child;
@@ -168,7 +167,7 @@ var Component = /** @class */ (function () {
             var k = _a[0], v = _a[1];
             return "(".concat(camelCaseToKebabCase(k), ": ").concat(addPx(v), ")");
         }).join(' and ');
-        this._mediaKeys.push(key);
+        this.mediaKeys.push(key);
         var dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, function (dispatch) {
             var mediaQueryList = window.matchMedia(key);
             mediaQueryList.addEventListener("change", dispatch);
@@ -383,25 +382,25 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
-    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, options = component.options, _indexedChildCount = component._indexedChildCount;
+    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, options = component.options, _indexedChildCount = component.indexedChildCount;
     var onMount = options.onMount;
     onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false));
-    var node = component._node;
+    var node = component.node;
     // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
     if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
         console.warn("Varying children should have a \"key\" prop. (".concat(prevIndexedChildCount, " -> ").concat(_indexedChildCount, ")"), _.prevComponent, component);
     }
-    // append element
+    // inherit
     var inheritedBaseProps = {
         attribute: __assign(__assign({}, _inheritedBaseProps.attribute), baseProps.attribute),
         className: __spreadArray(__spreadArray([], _inheritedBaseProps.className, true), baseProps.className, true),
         cssVars: __assign(__assign({}, _inheritedBaseProps.cssVars), baseProps.cssVars),
         style: __assign(__assign({}, _inheritedBaseProps.style), baseProps.style),
     };
+    // append
     var prevNode = _.prevNode;
     if (node) {
-        // append
         if (prevNode) {
             var prevName = (_a = _.prevComponent) === null || _a === void 0 ? void 0 : _a.name;
             if (name !== prevName) {
@@ -483,8 +482,11 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         isTopNode = false;
     }
     else {
-        if (prevNode)
-            prevNode.remove(); // NOTE: removing components handled in _unloadUnusedComponents()
+        if (prevNode) {
+            prevNode.remove(); // NOTE: removing components is handled by _unloadUnusedComponents()
+            _.prevNode = null;
+            _.prevBaseProps = _START_BASE_PROPS;
+        }
         if (name)
             inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
     }
@@ -514,7 +516,7 @@ function _unloadUnusedComponents(prevComponent, rootGcFlag) {
         var child = _b[_i];
         var child_ = child._;
         if (child_.gcFlag !== rootGcFlag) {
-            for (var _c = 0, _d = child._mediaKeys; _c < _d.length; _c++) {
+            for (var _c = 0, _d = child.mediaKeys; _c < _d.length; _c++) {
                 var key_1 = _d[_c];
                 _mediaQueryDispatchTargets[key_1].removeComponent(prevComponent);
             }
@@ -1074,6 +1076,7 @@ var root = makeComponent(function root() {
         routes: [
             {
                 path: "".concat(GITHUB_PAGES_PREFIX, "/"),
+                defaultPath: "/",
                 component: function () { return mainPage(); },
                 wrapper: true,
                 showInNavigation: true,
@@ -1086,6 +1089,7 @@ var root = makeComponent(function root() {
     }));
 });
 var pageWrapper = makeComponent(function pageWrapper(props) {
+    var _a;
     var routes = props.routes, currentRoute = props.currentRoute, contentWrapperComponent = props.contentWrapperComponent;
     var wrapper = this.append(div({
         style: {
@@ -1101,12 +1105,12 @@ var pageWrapper = makeComponent(function pageWrapper(props) {
     for (var _i = 0, routes_2 = routes; _i < routes_2.length; _i++) {
         var route = routes_2[_i];
         if (route.showInNavigation) {
-            navigation.append(span(route.label, { href: route.path }));
+            navigation.append(span(route.label, { href: (_a = route.defaultPath) !== null && _a !== void 0 ? _a : route.path }));
         }
     }
     // navigation.append() // TODO: divider()
-    for (var _a = 0, MAIN_PAGE_SECTIONS_2 = MAIN_PAGE_SECTIONS; _a < MAIN_PAGE_SECTIONS_2.length; _a++) {
-        var section = MAIN_PAGE_SECTIONS_2[_a];
+    for (var _b = 0, MAIN_PAGE_SECTIONS_2 = MAIN_PAGE_SECTIONS; _b < MAIN_PAGE_SECTIONS_2.length; _b++) {
+        var section = MAIN_PAGE_SECTIONS_2[_b];
         navigation.append(span(section.label, { href: "#".concat(section.id) }));
     }
     var contentWrapper = wrapper.append(contentWrapperComponent());

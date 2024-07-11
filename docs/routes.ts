@@ -6,6 +6,7 @@ const root = makeComponent(function root() {
       routes: [
         {
           path: `${GITHUB_PAGES_PREFIX}/`,
+          defaultPath: "/",
           component: () => mainPage(),
           wrapper: true,
           showInNavigation: true,
@@ -33,7 +34,7 @@ const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) 
   }));
   for (let route of routes) {
     if (route.showInNavigation) {
-      navigation.append(span(route.label, { href: route.path }));
+      navigation.append(span(route.label, { href: route.defaultPath ?? route.path }));
     }
   }
   // navigation.append() // TODO: divider()
