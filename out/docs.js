@@ -204,8 +204,6 @@ var Component = /** @class */ (function () {
                 root_.gcFlag = newGcFlag;
                 root_.component = newRootComponent;
                 _render(newRootComponent, root_.parentNode);
-                var mainPageComponent = newRootComponent._logByName("mainPage");
-                var tableSectionComponent = newRootComponent._logByName("tableSection");
                 _unloadUnusedComponents(rootComponent, newGcFlag);
                 root_.willRerenderNextFrame = false;
             });

@@ -146,8 +146,6 @@ class Component {
         root_.gcFlag = newGcFlag;
         root_.component = newRootComponent;
         _render(newRootComponent, root_.parentNode);
-        const mainPageComponent = newRootComponent._logByName("mainPage");
-        const tableSectionComponent = newRootComponent._logByName("tableSection");
         _unloadUnusedComponents(rootComponent, newGcFlag);
         root_.willRerenderNextFrame = false;
       });
