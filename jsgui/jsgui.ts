@@ -595,18 +595,18 @@ const input = makeComponent(function input(props: InputProps) {
     }
   };
 });
-type LabeledInputProps = {
-  label?: string;
-  leftComponent?: Component;
-  inputComponent: Component;
-  rightComponent?: Component;
-} & BaseProps;
 const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseProps = {}) {
   const node = this.useNode(document.createElement("legend"));
   node.innerText = text;
 }, {
   name: "legend",
 });
+type LabeledInputProps = {
+  label?: string;
+  leftComponent?: Component;
+  inputComponent: Component;
+  rightComponent?: Component;
+} & BaseProps;
 const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
   const {label = "", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(document.createElement("fieldset"));
