@@ -92,7 +92,7 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    this.append(testKeysComponent({ key: "testKeysComponent" }));
+    //this.append(testKeysComponent({ key: "testKeysComponent" }));
   }
 });
 const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps) {
@@ -159,7 +159,7 @@ const mainPage = makeComponent(function mainPage() {
       style: {display: "flex", flexDirection: "column", alignItems: "flex-start"},
     })
   );
-  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
+  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small", selfLink: "version"}));
   for (let section of MAIN_PAGE_SECTIONS) {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     wrapper.append(section.component());

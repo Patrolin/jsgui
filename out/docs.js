@@ -41,7 +41,7 @@ function generateColorCssVars(colors, start, step, shades) {
 }
 setTimeout(function () {
     //console.log(generateFontSizeCssVars());
-    console.log(generateColorCssVars());
+    //console.log(generateColorCssVars());
 });
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -116,17 +116,28 @@ var Component = /** @class */ (function () {
             throw "Function name cannot be empty: ".concat(onRender);
         this.args = args;
         this.baseProps = baseProps;
+        this.key = "";
         this.props = props;
         this.children = [];
         this.onRender = onRender;
         this.options = options;
         this._ = null;
+        this._node = null;
         this._indexedChildCount = 0;
         this._usedKeys = new Set();
         this._mediaKeys = [];
     }
+    Component.prototype.useNode = function (defaultNode) {
+        var _a, _b;
+        return (this._node = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : defaultNode));
+    };
     Component.prototype.append = function (child) {
         this.children.push(child);
+        var key = child.baseProps.key;
+        if (key == null) {
+            key = "".concat(child.name, "-").concat(this._indexedChildCount++);
+        }
+        child.key = key;
         return child;
     };
     Component.prototype.useState = function (defaultState) {
@@ -188,15 +199,27 @@ var Component = /** @class */ (function () {
         if (!root_.willRerenderNextFrame) {
             root_.willRerenderNextFrame = true;
             requestAnimationFrame(function () {
-                var newRootComponent = _copyComponent(rootComponent);
+                var newRootComponent = _copyRootComponent(rootComponent);
                 newRootComponent._ = root_;
                 root_.gcFlag = newGcFlag;
                 root_.component = newRootComponent;
                 _render(newRootComponent, root_.parentNode);
+                var mainPageComponent = newRootComponent._logByName("mainPage");
+                var tableSectionComponent = newRootComponent._logByName("tableSection");
                 _unloadUnusedComponents(rootComponent, newGcFlag);
                 root_.willRerenderNextFrame = false;
             });
         }
+    };
+    Component.prototype._findByName = function (name) {
+        if (this.name === name)
+            return this;
+        return this.children.map(function (v) { return v._findByName(name); }).filter(function (v) { return v; })[0];
+    };
+    Component.prototype._logByName = function (name) {
+        var _a;
+        var component = this._findByName(name);
+        console.log(__assign(__assign({}, (component !== null && component !== void 0 ? component : {})), { _: __assign({}, ((_a = component === null || component === void 0 ? void 0 : component._) !== null && _a !== void 0 ? _a : {})) }));
     };
     return Component;
 }());
@@ -211,12 +234,19 @@ function makeComponent(onRender, options) {
         var argCount = Math.max(0, onRender.length - 1);
         var args = argsOrProps.slice(0, argCount);
         var propsAndBaseProps = ((_a = argsOrProps[argCount]) !== null && _a !== void 0 ? _a : {});
-        var key = propsAndBaseProps.key, style = propsAndBaseProps.style, attribute = propsAndBaseProps.attribute, className = propsAndBaseProps.className, cssVars = propsAndBaseProps.cssVars, props = __rest(propsAndBaseProps, ["key", "style", "attribute", "className", "cssVars"]);
-        var baseProps = { key: (key != null) ? String(key) : undefined, style: style, attribute: attribute, className: className, cssVars: cssVars };
+        var key = propsAndBaseProps.key, _b = propsAndBaseProps.style, style = _b === void 0 ? {} : _b, _c = propsAndBaseProps.attribute, attribute = _c === void 0 ? {} : _c, className = propsAndBaseProps.className, _d = propsAndBaseProps.cssVars, cssVars = _d === void 0 ? {} : _d, _e = propsAndBaseProps.events, events = _e === void 0 ? {} : _e, props = __rest(propsAndBaseProps, ["key", "style", "attribute", "className", "cssVars", "events"]);
+        var baseProps = {
+            key: (key != null) ? String(key) : undefined,
+            style: style,
+            attribute: attribute,
+            className: Array.isArray(className) ? className : (className !== null && className !== void 0 ? className : "").split(" ").filter(function (v) { return v; }),
+            cssVars: cssVars,
+            events: events,
+        };
         return new Component(onRender, args, baseProps, props, options);
     };
 }
-function _copyComponent(component) {
+function _copyRootComponent(component) {
     var newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
     newComponent._ = component._;
     return newComponent;
@@ -272,6 +302,8 @@ var ComponentMetadata = /** @class */ (function () {
         this.state = {};
         this.prevState = null;
         this.prevNode = null;
+        this.prevBaseProps = _START_BASE_PROPS;
+        this.prevEvents = {};
         this.gcFlag = false;
         // navigation
         this.prevComponent = null;
@@ -295,14 +327,14 @@ var RootComponentMetadata = /** @class */ (function (_super) {
     return RootComponentMetadata;
 }(ComponentMetadata));
 // render
-function renderRoot(component, parentNode) {
+function renderRoot(rootComponent, parentNode) {
     if (parentNode === void 0) { parentNode = null; }
-    var root_ = new RootComponentMetadata(component, parentNode);
-    component._ = root_;
+    var root_ = new RootComponentMetadata(rootComponent, parentNode);
+    rootComponent._ = root_;
     window.onload = function () {
         var _a;
         root_.parentNode = (_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body;
-        _render(component, root_.parentNode);
+        _render(rootComponent, root_.parentNode);
         setTimeout(function () {
             _scrollToLocationHash();
         });
@@ -314,51 +346,94 @@ var _START_BASE_PROPS = {
     cssVars: {},
     style: {},
 };
+function getDiff(oldValue, newValue) {
+    var _a, _b;
+    var diffMap = {};
+    for (var _i = 0, _c = Object.entries(oldValue); _i < _c.length; _i++) {
+        var _d = _c[_i], k = _d[0], v = _d[1];
+        var d = (_a = diffMap[k]) !== null && _a !== void 0 ? _a : { key: k };
+        d.oldValue = v;
+        diffMap[k] = d;
+    }
+    for (var _e = 0, _f = Object.entries(newValue); _e < _f.length; _e++) {
+        var _g = _f[_e], k = _g[0], v = _g[1];
+        var d = (_b = diffMap[k]) !== null && _b !== void 0 ? _b : { key: k };
+        d.newValue = v;
+        diffMap[k] = d;
+    }
+    return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
+}
+function getDiffArray(oldValues, newValues) {
+    var _a, _b;
+    var diffMap = {};
+    for (var _i = 0, oldValues_1 = oldValues; _i < oldValues_1.length; _i++) {
+        var k = oldValues_1[_i];
+        var d = (_a = diffMap[k]) !== null && _a !== void 0 ? _a : { key: k };
+        d.oldValue = k;
+        diffMap[k] = d;
+    }
+    for (var _c = 0, newValues_1 = newValues; _c < newValues_1.length; _c++) {
+        var k = newValues_1[_c];
+        var d = (_b = diffMap[k]) !== null && _b !== void 0 ? _b : { key: k };
+        d.newValue = k;
+        diffMap[k] = d;
+    }
+    return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
+}
 function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
-    var _a;
+    var _a, _b, _c;
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
     var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, options = component.options, _indexedChildCount = component._indexedChildCount;
     var onMount = options.onMount;
-    var node = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false));
-    if (!(node instanceof Element))
-        node = undefined;
-    // set prev state
+    onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false));
+    var node = component._node;
+    // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
     if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
         console.warn("Varying children should have a \"key\" prop. (".concat(prevIndexedChildCount, " -> ").concat(_indexedChildCount, ")"), _.prevComponent, component);
     }
-    _.prevIndexedChildCount = _indexedChildCount;
-    _.prevState = __assign({}, _.state);
-    _.prevComponent = component;
     // append element
-    var _className = baseProps.className;
     var inheritedBaseProps = {
         attribute: __assign(__assign({}, _inheritedBaseProps.attribute), baseProps.attribute),
-        className: __spreadArray([], _inheritedBaseProps.className, true),
+        className: __spreadArray(__spreadArray([], _inheritedBaseProps.className, true), baseProps.className, true),
         cssVars: __assign(__assign({}, _inheritedBaseProps.cssVars), baseProps.cssVars),
         style: __assign(__assign({}, _inheritedBaseProps.style), baseProps.style),
     };
-    if (Array.isArray(_className)) {
-        inheritedBaseProps.className = __spreadArray(__spreadArray([], inheritedBaseProps.className, true), _className, true);
-    }
-    else if (_className) {
-        inheritedBaseProps.className = __spreadArray(__spreadArray([], inheritedBaseProps.className, true), _className.split(" "), true);
-    }
+    var prevNode = _.prevNode;
     if (node) {
+        // append
+        if (prevNode) {
+            var prevName = (_a = _.prevComponent) === null || _a === void 0 ? void 0 : _a.name;
+            if (name !== prevName) {
+                prevNode.replaceWith(node);
+                _.prevEvents = {};
+            }
+        }
+        else {
+            parentNode.append(node);
+        }
         // style
-        for (var _i = 0, _b = Object.entries(inheritedBaseProps.style); _i < _b.length; _i++) {
-            var _c = _b[_i], k = _c[0], v = _c[1];
-            if (v != null) {
-                node.style[k] = addPx(v);
+        var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
+        for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
+            var _d = styleDiff_1[_i], key = _d.key, newValue = _d.newValue;
+            if (newValue) {
+                node.style[key] = addPx(newValue);
+            }
+            else {
+                node.style.removeProperty(key);
             }
         }
         // cssVars
-        for (var _d = 0, _e = Object.entries(inheritedBaseProps.cssVars); _d < _e.length; _d++) {
-            var _f = _e[_d], k = _f[0], v = _f[1];
-            if (v != null) {
-                node.style.setProperty("--".concat(k), addPx(v));
+        var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
+        for (var _e = 0, cssVarsDiff_1 = cssVarsDiff; _e < cssVarsDiff_1.length; _e++) {
+            var _f = cssVarsDiff_1[_e], key = _f.key, newValue = _f.newValue;
+            if (newValue) {
+                node.style.setProperty("--".concat(key), addPx(newValue));
+            }
+            else {
+                node.style.removeProperty("--".concat(key));
             }
         }
         // class
@@ -366,49 +441,68 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             inheritedBaseProps.className.push(name);
         }
         ;
-        for (var _g = 0, _h = inheritedBaseProps.className; _g < _h.length; _g++) {
-            var v = _h[_g];
-            if (!v)
-                console.warn("Empty className", name, inheritedBaseProps.className);
-            node.classList.add(v);
+        var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
+        for (var _g = 0, classNameDiff_1 = classNameDiff; _g < classNameDiff_1.length; _g++) {
+            var _h = classNameDiff_1[_g], key = _h.key, newValue = _h.newValue;
+            if (newValue != null) {
+                if (key === "")
+                    console.warn("className cannot be empty,", name, inheritedBaseProps.className);
+                if (key.includes(" "))
+                    console.warn("className cannot contain whitespace,", name, inheritedBaseProps.className);
+                node.classList.add(key);
+            }
+            else {
+                node.classList.remove(key);
+            }
         }
         // attribute
-        for (var _j = 0, _k = Object.entries(inheritedBaseProps.attribute); _j < _k.length; _j++) {
-            var _l = _k[_j], k = _l[0], v = _l[1];
-            node.setAttribute(camelCaseToKebabCase(k), String(v));
+        var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
+        for (var _j = 0, attributeDiff_1 = attributeDiff; _j < attributeDiff_1.length; _j++) {
+            var _k = attributeDiff_1[_j], key = _k.key, newValue = _k.newValue;
+            if (newValue) {
+                node.setAttribute(camelCaseToKebabCase(key), String(newValue));
+            }
+            else {
+                node.removeAttribute(camelCaseToKebabCase(key));
+            }
         }
-        // append
-        var prevNode = _.prevNode;
-        if (isTopNode && prevNode) {
-            prevNode.replaceWith(node);
+        // events
+        var eventsDiff = getDiff((_b = baseProps.events) !== null && _b !== void 0 ? _b : {}, _.prevEvents);
+        for (var _l = 0, eventsDiff_1 = eventsDiff; _l < eventsDiff_1.length; _l++) {
+            var _m = eventsDiff_1[_l], key = _m.key, oldValue = _m.oldValue, newValue = _m.newValue;
+            node.removeEventListener(key, oldValue);
+            if (newValue) {
+                node.addEventListener(key, newValue);
+            }
         }
-        else {
-            parentNode.append(node);
-        }
+        // on mount
         if (onMount)
-            onMount(component, node);
+            onMount.bind(component)(node);
         _.prevNode = node;
-        // inherit
         parentNode = node;
-        isTopNode = false;
+        _.prevBaseProps = inheritedBaseProps;
         inheritedBaseProps = _START_BASE_PROPS;
+        isTopNode = false;
     }
     else {
+        if (prevNode)
+            prevNode.remove(); // NOTE: removing components handled in _unloadUnusedComponents()
         if (name)
             inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
     }
+    // set prev state
+    _.prevIndexedChildCount = _indexedChildCount;
+    _.prevState = __assign({}, _.state);
+    _.prevComponent = component;
     // children
     var usedKeys = new Set();
-    for (var _m = 0, _o = component.children; _m < _o.length; _m++) {
-        var child = _o[_m];
-        var key = child.baseProps.key;
-        if (key == null) {
-            key = "".concat(child.name, "-").concat(component._indexedChildCount++);
-        }
+    for (var _o = 0, _p = component.children; _o < _p.length; _o++) {
+        var child = _p[_o];
+        var key = child.key;
         if (usedKeys.has(key))
             console.warn("Duplicate key: '".concat(key, "'"), component);
         usedKeys.add(key);
-        var child_ = (_a = _.keyToChild[key]) !== null && _a !== void 0 ? _a : new ComponentMetadata(_);
+        var child_ = (_c = _.keyToChild[key]) !== null && _c !== void 0 ? _c : new ComponentMetadata(_);
         _.keyToChild[key] = child_;
         child._ = child_;
         child_.gcFlag = _.gcFlag;
@@ -416,20 +510,24 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     }
 }
 // rerender
-function _unloadUnusedComponents(prevComponent, gcFlag) {
+function _unloadUnusedComponents(prevComponent, rootGcFlag) {
     var _a;
     for (var _i = 0, _b = prevComponent.children; _i < _b.length; _i++) {
         var child = _b[_i];
         var child_ = child._;
-        if (child_.gcFlag !== gcFlag) {
+        if (child_.gcFlag !== rootGcFlag) {
             for (var _c = 0, _d = child._mediaKeys; _c < _d.length; _c++) {
-                var key = _d[_c];
-                _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
+                var key_1 = _d[_c];
+                _mediaQueryDispatchTargets[key_1].removeComponent(prevComponent);
             }
             _localStorageDispatchTarget.removeComponent(prevComponent);
-            (_a = child_.parent) === null || _a === void 0 ? true : delete _a.keyToChild[child.baseProps.key];
+            var key = child.key;
+            (_a = child_.parent) === null || _a === void 0 ? true : delete _a.keyToChild[key];
+            var prevNode = child_.prevNode;
+            if (prevNode)
+                prevNode.remove();
         }
-        _unloadUnusedComponents(child, gcFlag);
+        _unloadUnusedComponents(child, rootGcFlag);
     }
 }
 // basic components
@@ -438,7 +536,7 @@ var fragment = makeComponent(function fragment(_props) {
 }, { name: '' });
 var div = makeComponent(function div(_props) {
     if (_props === void 0) { _props = {}; }
-    return document.createElement('div');
+    this.useNode(document.createElement('div'));
 });
 var SIZES = ["small", "normal", "big", "bigger"];
 var BASE_COLORS = {
@@ -458,7 +556,7 @@ var span = makeComponent(function _span(text, props) {
         return;
     }
     var isLink = (href != null);
-    var e = document.createElement(isLink ? 'a' : 'span');
+    var e = this.useNode(document.createElement(isLink ? 'a' : 'span'));
     if (iconName) {
         e.classList.add("material-symbols-outlined");
         if (size)
@@ -496,7 +594,6 @@ var span = makeComponent(function _span(text, props) {
         }
     }
     e.innerText = iconName || (text == null ? "" : String(text));
-    return e;
 }, { name: "span" });
 var icon = makeComponent(function icon(iconName, props) {
     if (props === void 0) { props = {}; }
@@ -510,7 +607,7 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
 var button = makeComponent(function button(text, props) {
     if (props === void 0) { props = {}; }
     var size = props.size, color = props.color, onClick = props.onClick, disabled = props.disabled;
-    var e = document.createElement("button");
+    var e = this.useNode(document.createElement("button"));
     e.innerText = text;
     if (size)
         e.style.fontSize = "var(--size-".concat(size !== null && size !== void 0 ? size : "normal", ")");
@@ -521,15 +618,14 @@ var button = makeComponent(function button(text, props) {
     }
     if (disabled)
         e.setAttribute("disabled", "true");
-    else if (onClick)
+    else if (onClick) {
         e.onclick = onClick;
-    return e;
+    }
 });
 var input = makeComponent(function input(props) {
-    var _a, _b;
-    var _c = props.type, type = _c === void 0 ? "text" : _c, placeholder = props.placeholder, value = props.value, autoFocus = props.autoFocus, onFocus = props.onFocus, onBlur = props.onBlur, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, allowChar = props.allowChar, _d = props.allowString, allowString = _d === void 0 ? function (value, _prevAllowedValue) { return value; } : _d;
-    var state = this.useState({ prevAllowedValue: String(value !== null && value !== void 0 ? value : ''), needFocus: false });
-    var e = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : document.createElement('input')); // NOTE: e.remove() must not be called
+    var _a = props.type, type = _a === void 0 ? "text" : _a, placeholder = props.placeholder, value = props.value, autoFocus = props.autoFocus, onFocus = props.onFocus, onBlur = props.onBlur, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, allowChar = props.allowChar, _b = props.allowString, allowString = _b === void 0 ? function (value, _prevAllowedValue) { return value; } : _b;
+    var state = this.useState({ prevAllowedValue: String(value !== null && value !== void 0 ? value : '') });
+    var e = this.useNode(document.createElement('input'));
     e.type = type;
     if (placeholder)
         e.placeholder = placeholder;
@@ -537,19 +633,9 @@ var input = makeComponent(function input(props) {
         e.autofocus = true;
     if (value != null)
         e.value = String(value);
-    e.onfocus = function (event) {
-        if (onFocus)
-            onFocus(event);
-    };
-    e.onblur = function (event) {
-        if (onBlur)
-            onBlur(event);
-    };
-    e.onkeydown = function (event) {
-        if (onKeyDown)
-            onKeyDown(event);
-        state.needFocus = true;
-    };
+    e.onfocus = onFocus;
+    e.onblur = onBlur;
+    e.onkeydown = onKeyDown;
     e.oninput = function (_event) {
         var event = _event;
         if (allowChar && "data" in event) {
@@ -562,14 +648,12 @@ var input = makeComponent(function input(props) {
         }
         var allowedValue = allowString(e.value, state.prevAllowedValue);
         state.prevAllowedValue = allowedValue;
-        state.needFocus = true;
         if (allowedValue === e.value) {
             if (onInput)
                 onInput(allowedValue, event);
         }
     };
-    e.onchange = function (_event) {
-        var event = _event;
+    e.onchange = function (event) {
         var allowedValue = allowString(e.value, state.prevAllowedValue);
         state.prevAllowedValue = allowedValue;
         if (e.value === allowedValue) {
@@ -580,39 +664,36 @@ var input = makeComponent(function input(props) {
             e.value = allowedValue;
         }
     };
-    return e;
+});
+var htmlLegend = makeComponent(function htmlLegend(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var node = this.useNode(document.createElement("legend"));
+    node.innerText = text;
 }, {
-    onMount: function (component, e) {
-        var state = component._.state;
-        if (state.needFocus) {
-            e.focus();
-            state.needFocus = false;
-        }
-    },
+    name: "legend",
 });
 var labeledInput = makeComponent(function labeledInput(props) {
     var _a = props.label, label = _a === void 0 ? "" : _a, leftComponent = props.leftComponent, inputComponent = props.inputComponent, rightComponent = props.rightComponent;
-    var fieldset = document.createElement("fieldset");
-    fieldset.onmousedown = function (event) {
+    var fieldset = this.useNode(document.createElement("fieldset"));
+    fieldset.onmousedown = function (_event) {
+        var event = _event;
         if (event.target !== inputComponent._.prevNode) {
             event.preventDefault();
         }
     };
-    fieldset.onclick = function (event) {
+    fieldset.onclick = function (_event) {
+        var event = _event;
         var prevNode = inputComponent._.prevNode;
         if (prevNode && (event.target !== prevNode)) {
             prevNode.focus();
         }
     };
-    var legend = document.createElement("legend");
-    legend.innerText = label;
-    fieldset.append(legend);
+    this.append(htmlLegend(label));
     if (leftComponent)
         this.append(leftComponent);
     this.append(inputComponent);
     if (rightComponent)
         this.append(rightComponent);
-    return fieldset;
 });
 var errorMessage = makeComponent(function errorMessage(error, props) {
     if (props === void 0) { props = {}; }
@@ -710,7 +791,7 @@ var table = makeComponent(function table(props) {
         attribute: { useMaxHeight: useMaxHeight, isLoading: isLoading },
         style: { minHeight: minHeight },
     }));
-    var makeRow = function (className) { return div({ className: className }); };
+    var makeRow = function (className, key) { return div({ className: className, key: key }); };
     var makeCell = function (column) {
         var _a;
         return div({
@@ -725,7 +806,7 @@ var table = makeComponent(function table(props) {
         tableWrapper.append(loadingSpinner());
     }
     else {
-        var headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader"));
+        var headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader", "header"));
         for (var columnIndex = 0; columnIndex < columns.length; columnIndex++) {
             var column = columns[columnIndex];
             var cellWrapper = headerWrapper.append(makeCell(column));
@@ -733,7 +814,7 @@ var table = makeComponent(function table(props) {
         }
         for (var rowIndex = 0; rowIndex < rows.length; rowIndex++) {
             var row = rows[rowIndex];
-            var rowWrapper = tableWrapper.append(makeRow("tableRow tableBody"));
+            var rowWrapper = tableWrapper.append(makeRow("tableRow tableBody", "row-".concat(rowIndex)));
             for (var columnIndex = 0; columnIndex < columns.length; columnIndex++) {
                 var column = columns[columnIndex];
                 var cellWrapper = rowWrapper.append(makeCell(column));
@@ -913,7 +994,7 @@ var tableSection = makeComponent(function tableSection() {
         ],
     }));
     if ((count !== null && count !== void 0 ? count : 0) % 2 === 0) {
-        this.append(testKeysComponent({ key: "testKeysComponent" }));
+        //this.append(testKeysComponent({ key: "testKeysComponent" }));
     }
 });
 var testKeysComponent = makeComponent(function testKeysComponent(_) {
@@ -977,7 +1058,7 @@ var mainPage = makeComponent(function mainPage() {
     var wrapper = this.append(div({
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
     }));
-    wrapper.append(span("version: ".concat(JSGUI_VERSION), { size: "small" }));
+    wrapper.append(span("version: ".concat(JSGUI_VERSION), { size: "small", selfLink: "version" }));
     for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
         var section = MAIN_PAGE_SECTIONS_1[_i];
         wrapper.append(span(section.label, { size: "big", selfLink: section.id }));

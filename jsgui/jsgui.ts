@@ -19,51 +19,72 @@ function addPx(value: string | number) {
 }
 // base component
 type ElementType = HTMLElement;
-type BaseFragmentProps = {
+type _EventListener<T = Event> = ((event: T) => void);
+type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
+  & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
+  & Record<"focus" | "blur" | "focusin" | "focusout", _EventListener<FocusEvent>>
+  & Record<"keydown" | "keypress" | "keyup", _EventListener<KeyboardEvent>>
+  & Record<"scroll", _EventListener<WheelEvent>>
+  & Record<"beforeinput" | "input", _EventListener<InputEvent>>
+  & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
+  & Record<"change", _EventListener<Event>>
+  & Record<string, _EventListener>>;
+type BaseProps = {
   key?: string;
-  cssVars?: StringMap<string | number | undefined>;
-};
-type _BaseProps = { // TODO: pass through all base props
-  style?: StringMap<string | number | undefined>;
-  className?: string | string[];
   attribute?: StringMap<string | number | boolean>;
+  cssVars?: StringMap<string | number | undefined>;
+  className?: string | string[];
+  style?: StringMap<string | number | undefined>;
+  events?: EventsMap;
 };
-type BaseProps = BaseFragmentProps & _BaseProps;
-type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => ElementType | void;
+type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
+type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => void;
 type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
 type ComponentOptions = {
   name?: string;
-  onMount?: (component: Component, node: ElementType) => void;
+  onMount?: (this: Component, node: ElementType) => void;
 };
 type GetErrorsFunction = (errors: StringMap<string>) => void; // TODO: type this
 class Component {
   name: string;
   args: any[];
-  baseProps: BaseProps;
+  baseProps: RenderedBaseProps;
+  key: string;
   props: StringMap;
   children: Component[];
   onRender: RenderFunction<any[]>;
   options: ComponentOptions;
   _: ComponentMetadata | RootComponentMetadata;
+  _node: HTMLElement | null;
   _indexedChildCount: number;
   _usedKeys: Set<string>;
   _mediaKeys: string[];
-  constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: BaseProps, props: StringMap, options: ComponentOptions) {
+  constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: RenderedBaseProps, props: StringMap, options: ComponentOptions) {
     this.name = options.name ?? onRender.name;
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
     this.args = args
     this.baseProps = baseProps;
+    this.key = "";
     this.props = props;
     this.children = [];
     this.onRender = onRender;
     this.options = options;
     this._ = null as any;
+    this._node = null;
     this._indexedChildCount = 0;
     this._usedKeys = new Set();
     this._mediaKeys = [];
   }
+  useNode<T extends HTMLElement>(defaultNode: T): T {
+    return (this._node = (this._?.prevNode ?? defaultNode)) as T;
+  }
   append(child: Component) {
     this.children.push(child);
+    let key = child.baseProps.key;
+    if (key == null) {
+      key = `${child.name}-${this._indexedChildCount++}`;
+    }
+    child.key = key;
     return child;
   }
   useState<T extends object>(defaultState: T): T {
@@ -120,15 +141,25 @@ class Component {
     if (!root_.willRerenderNextFrame) {
       root_.willRerenderNextFrame = true;
       requestAnimationFrame(() => {
-        const newRootComponent = _copyComponent(rootComponent);
+        const newRootComponent = _copyRootComponent(rootComponent);
         newRootComponent._ = root_;
         root_.gcFlag = newGcFlag;
         root_.component = newRootComponent;
         _render(newRootComponent, root_.parentNode);
+        const mainPageComponent = newRootComponent._logByName("mainPage");
+        const tableSectionComponent = newRootComponent._logByName("tableSection");
         _unloadUnusedComponents(rootComponent, newGcFlag);
         root_.willRerenderNextFrame = false;
       });
     }
+  }
+  _findByName(name: string): Component | undefined {
+    if (this.name === name) return this;
+    return this.children.map(v => v._findByName(name)).filter(v => v)[0];
+  }
+  _logByName(name: string) {
+    const component = this._findByName(name);
+    console.log({ ...(component ?? {}), _: {...(component?._ ?? {})} });
   }
 }
 function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> { // TODO: make this be typed properly
@@ -136,12 +167,19 @@ function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, o
     const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
     const propsAndBaseProps = (argsOrProps[argCount] ?? {}) as BaseProps & StringMap;
-    const {key, style, attribute, className, cssVars, ...props} = propsAndBaseProps;
-    const baseProps = {key: (key != null) ? String(key) : undefined, style, attribute, className, cssVars};
+    const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} as EventsMap, ...props} = propsAndBaseProps;
+    const baseProps: RenderedBaseProps = {
+      key: (key != null) ? String(key) : undefined,
+      style,
+      attribute,
+      className: Array.isArray(className) ? className : (className ?? "").split(" ").filter(v => v),
+      cssVars,
+      events,
+    };
     return new Component(onRender, args, baseProps, props, options);
   }
 }
-function _copyComponent(component: Component) {
+function _copyRootComponent(component: Component) {
   const newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
   newComponent._ = component._;
   return newComponent;
@@ -192,6 +230,8 @@ class ComponentMetadata {
   state: StringMap = {};
   prevState: any | null = null;
   prevNode: ElementType | null = null;
+  prevBaseProps: InheritedBaseProps = _START_BASE_PROPS;
+  prevEvents: EventsMap = {} as EventsMap;
   gcFlag: boolean = false;
   // navigation
   prevComponent: Component | null = null;
@@ -217,100 +257,156 @@ class RootComponentMetadata extends ComponentMetadata {
 }
 
 // render
-function renderRoot(component: Component, parentNode = null) {
-  const root_ = new RootComponentMetadata(component, parentNode as any);
-  component._ = root_;
+function renderRoot(rootComponent: Component, parentNode = null) {
+  const root_ = new RootComponentMetadata(rootComponent, parentNode as any);
+  rootComponent._ = root_;
   window.onload = () => {
     root_.parentNode = root_.parentNode ?? document.body;
-    _render(component, root_.parentNode);
+    _render(rootComponent, root_.parentNode);
     setTimeout(() => {
       _scrollToLocationHash();
     })
   }
 }
 type UndoPartial<T> = T extends Partial<infer R> ? R : T;
-type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key">> & {className: string[]};
+type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};
 const _START_BASE_PROPS: InheritedBaseProps = {
   attribute: {},
   className: [],
   cssVars: {},
   style: {},
 };
+type Diff<T> = {
+  key: string;
+  oldValue: T;
+  newValue: T;
+}
+function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
+  const diffMap: StringMap<Partial<Diff<T>>> = {};
+  for (let [k, v] of Object.entries(oldValue)) {
+    let d = diffMap[k] ?? {key: k};
+    d.oldValue = v;
+    diffMap[k] = d;
+  }
+  for (let [k, v] of Object.entries(newValue)) {
+    let d = diffMap[k] ?? {key: k};
+    d.newValue = v;
+    diffMap[k] = d;
+  }
+  return (Object.values(diffMap) as Diff<T>[]).filter(v => v.newValue !== v.oldValue);
+}
+function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] {
+  const diffMap: StringMap<Partial<Diff<string>>> = {};
+  for (let k of oldValues) {
+    let d = diffMap[k] ?? {key: k};
+    d.oldValue = k;
+    diffMap[k] = d;
+  }
+  for (let k of newValues) {
+    let d = diffMap[k] ?? {key: k};
+    d.newValue = k;
+    diffMap[k] = d;
+  }
+  return (Object.values(diffMap) as Diff<string>[]).filter(v => v.newValue !== v.oldValue);
+}
 function _render(component: Component, parentNode: ElementType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender, options, _indexedChildCount} = component;
   const {onMount} = options;
-  let node = onRender.bind(component)(...args, props);
-  if (!(node instanceof Element)) node = undefined;
-  // set prev state
+  onRender.bind(component)(...args, props);
+  const node = component._node;
+  // warn if missing keys
   const prevIndexedChildCount = _.prevIndexedChildCount;
   if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
     console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${_indexedChildCount})`, _.prevComponent, component);
   }
-  _.prevIndexedChildCount = _indexedChildCount;
-  _.prevState = {..._.state};
-  _.prevComponent = component;
   // append element
-  const {className: _className} = baseProps;
   let inheritedBaseProps = {
     attribute: {..._inheritedBaseProps.attribute, ...baseProps.attribute},
-    className: [..._inheritedBaseProps.className],
+    className: [..._inheritedBaseProps.className, ...baseProps.className],
     cssVars: {..._inheritedBaseProps.cssVars, ...baseProps.cssVars},
     style: {..._inheritedBaseProps.style, ...baseProps.style},
   };
-  if (Array.isArray(_className)) {
-    inheritedBaseProps.className = [...inheritedBaseProps.className, ..._className];
-  } else if (_className) {
-    inheritedBaseProps.className = [...inheritedBaseProps.className, ..._className.split(" ")];
-  }
+  const prevNode = _.prevNode;
   if (node) {
+    // append
+    if (prevNode) {
+      const prevName = _.prevComponent?.name;
+      if (name !== prevName) {
+        prevNode.replaceWith(node);
+        _.prevEvents = {} as EventsMap;
+      }
+    } else {
+      parentNode.append(node);
+    }
     // style
-    for (let [k, v] of Object.entries(inheritedBaseProps.style)) {
-      if (v != null) {
-        node.style[k as any] = addPx(v);
+    const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
+    for (let {key, newValue} of styleDiff) {
+      if (newValue) {
+        node.style[key as any] = addPx(newValue);
+      } else {
+        node.style.removeProperty(key);
       }
     }
     // cssVars
-    for (let [k, v] of Object.entries(inheritedBaseProps.cssVars)) {
-      if (v != null) {
-        node.style.setProperty(`--${k}`, addPx(v));
+    const cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
+    for (let {key, newValue} of cssVarsDiff) {
+      if (newValue) {
+        node.style.setProperty(`--${key}`, addPx(newValue));
+      } else {
+        node.style.removeProperty(`--${key}`);
       }
     }
     // class
     if (name !== node.tagName.toLowerCase()) {
       inheritedBaseProps.className.push(name);
     };
-    for (let v of inheritedBaseProps.className) {
-      if (!v) console.warn("Empty className", name, inheritedBaseProps.className);
-      node.classList.add(v);
+    const classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
+    for (let {key, newValue} of classNameDiff) {
+      if (newValue != null) {
+        if (key === "") console.warn("className cannot be empty,", name, inheritedBaseProps.className);
+        if (key.includes(" ")) console.warn("className cannot contain whitespace,", name, inheritedBaseProps.className);
+        node.classList.add(key);
+      } else {
+        node.classList.remove(key);
+      }
     }
     // attribute
-    for (let [k, v] of Object.entries(inheritedBaseProps.attribute)) {
-      node.setAttribute(camelCaseToKebabCase(k), String(v));
+    const attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
+    for (let {key, newValue} of attributeDiff) {
+      if (newValue) {
+        node.setAttribute(camelCaseToKebabCase(key), String(newValue));
+      } else {
+        node.removeAttribute(camelCaseToKebabCase(key));
+      }
     }
-    // append
-    const prevNode = _.prevNode;
-    if (isTopNode && prevNode) {
-      prevNode.replaceWith(node);
-    } else {
-      parentNode.append(node);
+    // events
+    const eventsDiff = getDiff(baseProps.events ?? {}, _.prevEvents);
+    for (let {key, oldValue, newValue} of eventsDiff) {
+      node.removeEventListener(key, oldValue as _EventListener);
+      if (newValue) {
+        node.addEventListener(key, newValue as _EventListener);
+      }
     }
-    if (onMount) onMount(component, node);
+    // on mount
+    if (onMount) onMount.bind(component)(node);
     _.prevNode = node;
-    // inherit
     parentNode = node;
-    isTopNode = false;
+    _.prevBaseProps = inheritedBaseProps;
     inheritedBaseProps = _START_BASE_PROPS;
+    isTopNode = false;
   } else {
+    if (prevNode) prevNode.remove(); // NOTE: removing components handled in _unloadUnusedComponents()
     if (name) inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
   }
+  // set prev state
+  _.prevIndexedChildCount = _indexedChildCount;
+  _.prevState = {..._.state};
+  _.prevComponent = component;
   // children
   const usedKeys = new Set();
   for (let child of component.children) {
-    let key = child.baseProps.key;
-    if (key == null) {
-      key = `${child.name}-${component._indexedChildCount++}`;
-    }
+    const key = child.key;
     if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
     usedKeys.add(key);
     const child_ = _.keyToChild[key] ?? new ComponentMetadata(_);
@@ -322,24 +418,27 @@ function _render(component: Component, parentNode: ElementType, _inheritedBasePr
 }
 
 // rerender
-function _unloadUnusedComponents(prevComponent: Component, gcFlag: boolean) {
+function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) {
   for (let child of prevComponent.children) {
     const child_ = child._;
-    if (child_.gcFlag !== gcFlag) {
+    if (child_.gcFlag !== rootGcFlag) {
       for (let key of child._mediaKeys) {
         _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
       _localStorageDispatchTarget.removeComponent(prevComponent);
-      delete child_.parent?.keyToChild[child.baseProps.key as any];
+      const key = child.key;
+      delete child_.parent?.keyToChild[key];
+      const prevNode = child_.prevNode;
+      if (prevNode) prevNode.remove();
     }
-    _unloadUnusedComponents(child, gcFlag);
+    _unloadUnusedComponents(child, rootGcFlag);
   }
 }
 
 // basic components
 const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
 const div = makeComponent(function div(_props: BaseProps = {}) {
-  return document.createElement('div');
+  this.useNode(document.createElement('div'));
 });
 type Size = "small" | "normal" | "big" | "bigger";
 const SIZES: Size[] = ["small", "normal", "big", "bigger"];
@@ -370,7 +469,7 @@ const span = makeComponent(function _span(text: string | number | null | undefin
     return;
   }
   const isLink = (href != null);
-  const e = document.createElement(isLink ? 'a' : 'span');
+  const e = this.useNode(document.createElement(isLink ? 'a' : 'span'));
   if (iconName) {
     e.classList.add("material-symbols-outlined");
     if (size) e.style.fontSize = `calc(1.25 * var(--size-${size}))`;
@@ -387,7 +486,7 @@ const span = makeComponent(function _span(text: string | number | null | undefin
   if (isLink) {
     (e as HTMLAnchorElement).href = href;
     if (replacePath) {
-      e.onclick = (event) => {
+      e.onclick = (event: MouseEvent) => {
         event.preventDefault();
         this.useNavigate().replace(href);
         if (onClick) onClick(event);
@@ -401,7 +500,6 @@ const span = makeComponent(function _span(text: string | number | null | undefin
     }
   }
   e.innerText = iconName || (text == null ? "" : String(text));
-  return e;
 }, { name: "span" });
 // https://fonts.google.com/icons
 type IconProps = SpanProps;
@@ -422,7 +520,7 @@ type ButtonProps = {
 }
 const button = makeComponent(function button(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
-  const e = document.createElement("button");
+  const e = this.useNode(document.createElement("button"));
   e.innerText = text;
   if (size) e.style.fontSize = `var(--size-${size ?? "normal"})`;
   if (color) {
@@ -431,8 +529,9 @@ const button = makeComponent(function button(text: string, props: ButtonProps = 
     e.style.setProperty("--buttonColorActive", `var(--${color}-067)`);
   }
   if (disabled) e.setAttribute("disabled", "true");
-  else if (onClick) e.onclick = onClick;
-  return e;
+  else if (onClick) {
+    e.onclick = onClick;
+  }
 });
 type InputProps = {
   type?: "text";
@@ -443,29 +542,22 @@ type InputProps = {
   onBlur?: (event: FocusEvent) => void;
   onKeyDown?: (event: KeyboardEvent) => void;
   onInput?: (newAllowedValue: string, event: InputEvent) => void;
-  onChange?: (newAllowedValue: string, event: KeyboardEvent) => void;
+  onChange?: (newAllowedValue: string, event: Event) => void;
   allowChar?: (char: string) => boolean;
   allowString?: (value: string, prevAllowedValue: string) => string;
 } & BaseProps;
 const input = makeComponent(function input(props: InputProps) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
-  const state = this.useState({ prevAllowedValue: String(value ?? ''), needFocus: false });
-  const e = (this._?.prevNode ?? document.createElement('input')) as HTMLInputElement; // NOTE: e.remove() must not be called
+  const state = this.useState({ prevAllowedValue: String(value ?? '') });
+  const e = this.useNode(document.createElement('input'));
   e.type = type;
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = String(value);
-  e.onfocus = (event: FocusEvent) => {
-    if (onFocus) onFocus(event);
-  }
-  e.onblur = (event: FocusEvent) => {
-    if (onBlur) onBlur(event);
-  }
-  e.onkeydown = (event: KeyboardEvent) => {
-    if (onKeyDown) onKeyDown(event);
-    state.needFocus = true;
-  };
-  e.oninput = (_event: Event) => {
+  e.onfocus = onFocus as _EventListener;
+  e.onblur = onBlur as _EventListener;
+  e.onkeydown = onKeyDown as _EventListener;
+  e.oninput = (_event) => {
     const event = _event as InputEvent;
     if (allowChar && "data" in event) {
       if ((event.data !== null) && !allowChar(event.data)) {
@@ -477,13 +569,11 @@ const input = makeComponent(function input(props: InputProps) {
     }
     const allowedValue = allowString(e.value, state.prevAllowedValue);
     state.prevAllowedValue = allowedValue;
-    state.needFocus = true;
     if (allowedValue === e.value) {
       if (onInput) onInput(allowedValue, event);
     }
   }
-  e.onchange = (_event: Event) => {
-    const event = _event as KeyboardEvent;
+  e.onchange = (event) => {
     const allowedValue = allowString(e.value, state.prevAllowedValue);
     state.prevAllowedValue = allowedValue;
     if (e.value === allowedValue) {
@@ -492,15 +582,6 @@ const input = makeComponent(function input(props: InputProps) {
       e.value = allowedValue;
     }
   };
-  return e;
-}, {
-  onMount(component, e) {
-    const state = component._.state;
-    if (state.needFocus) {
-      e.focus();
-      state.needFocus = false;
-    }
-  },
 });
 type LabeledInputProps = {
   label?: string;
@@ -508,27 +589,32 @@ type LabeledInputProps = {
   inputComponent: Component;
   rightComponent?: Component;
 } & BaseProps;
+const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseProps = {}) {
+  const node = this.useNode(document.createElement("legend"));
+  node.innerText = text;
+}, {
+  name: "legend",
+});
 const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
   const {label = "", leftComponent, inputComponent, rightComponent} = props;
-  const fieldset = document.createElement("fieldset");
-  fieldset.onmousedown = (event) => {
+  const fieldset = this.useNode(document.createElement("fieldset"));
+  fieldset.onmousedown = (_event: any) => {
+    const event = _event as MouseEvent;
     if (event.target !== inputComponent._.prevNode) {
       event.preventDefault();
     }
   }
-  fieldset.onclick = (event) => {
+  fieldset.onclick = (_event: any) => {
+    const event = _event as MouseEvent;
     const prevNode = inputComponent._.prevNode;
     if (prevNode && (event.target !== prevNode)) {
       prevNode.focus();
     }
   };
-  const legend = document.createElement("legend");
-  legend.innerText = label;
-  fieldset.append(legend);
+  this.append(htmlLegend(label))
   if (leftComponent) this.append(leftComponent);
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent);
-  return fieldset;
 });
 const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
   this.append(span(error, {color: "red", size: "small", ...props}));
@@ -658,7 +744,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
     attribute: {useMaxHeight, isLoading},
     style: {minHeight},
   }));
-  const makeRow = (className: string) => div({className});
+  const makeRow = (className: string, key: string) => div({className, key});
   const makeCell = (column: TableColumn) => div({
     className: "tableCell",
     style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
@@ -669,7 +755,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
   if (isLoading) {
     tableWrapper.append(loadingSpinner());
   } else {
-    const headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader"));
+    const headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader", "header"));
     for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
       const column = columns[columnIndex];
       const cellWrapper = headerWrapper.append(makeCell(column));
@@ -677,7 +763,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
     }
     for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
       let row = rows[rowIndex];
-      const rowWrapper = tableWrapper.append(makeRow("tableRow tableBody"));
+      const rowWrapper = tableWrapper.append(makeRow("tableRow tableBody", `row-${rowIndex}`));
       for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
         let column = columns[columnIndex];
         const cellWrapper = rowWrapper.append(makeCell(column));
