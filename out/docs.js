@@ -109,13 +109,13 @@ function addPx(value) {
     return (((_a = value === null || value === void 0 ? void 0 : value.constructor) === null || _a === void 0 ? void 0 : _a.name) === "Number") ? "".concat(value, "px") : value;
 }
 var Component = /** @class */ (function () {
-    function Component(onRender, args, key, props, options) {
+    function Component(onRender, args, baseProps, props, options) {
         var _a;
         this.name = (_a = options.name) !== null && _a !== void 0 ? _a : onRender.name;
         if (!this.name && (options.name !== ""))
             throw "Function name cannot be empty: ".concat(onRender);
         this.args = args;
-        this.key = (key != null) ? String(key) : null;
+        this.baseProps = baseProps;
         this.props = props;
         this.children = [];
         this.onRender = onRender;
@@ -203,20 +203,21 @@ var Component = /** @class */ (function () {
 function makeComponent(onRender, options) {
     if (options === void 0) { options = {}; }
     return function () {
+        var _a;
         var argsOrProps = [];
         for (var _i = 0; _i < arguments.length; _i++) {
             argsOrProps[_i] = arguments[_i];
         }
         var argCount = Math.max(0, onRender.length - 1);
         var args = argsOrProps.slice(0, argCount);
-        var props = __assign({}, argsOrProps[argCount]);
-        var key = props.key;
-        delete props.key;
-        return new Component(onRender, args, key, props, options);
+        var propsAndBaseProps = ((_a = argsOrProps[argCount]) !== null && _a !== void 0 ? _a : {});
+        var key = propsAndBaseProps.key, style = propsAndBaseProps.style, attribute = propsAndBaseProps.attribute, className = propsAndBaseProps.className, cssVars = propsAndBaseProps.cssVars, props = __rest(propsAndBaseProps, ["key", "style", "attribute", "className", "cssVars"]);
+        var baseProps = { key: (key != null) ? String(key) : undefined, style: style, attribute: attribute, className: className, cssVars: cssVars };
+        return new Component(onRender, args, baseProps, props, options);
     };
 }
 function _copyComponent(component) {
-    var newComponent = new Component(component.onRender, component.args, component.key, component.props, component.options);
+    var newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
     newComponent._ = component._;
     return newComponent;
 }
@@ -313,7 +314,7 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
     if (inheritedCssVars === void 0) { inheritedCssVars = {}; }
     if (inheritedNames === void 0) { inheritedNames = []; }
     // render elements
-    var _ = component._, name = component.name, args = component.args, props = component.props, onRender = component.onRender, options = component.options, _indexedChildCount = component._indexedChildCount;
+    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, options = component.options, _indexedChildCount = component._indexedChildCount;
     var onMount = options.onMount;
     var node = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false));
     if (!(node instanceof Element))
@@ -327,19 +328,19 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
     _.prevState = __assign({}, _.state);
     _.prevComponent = component;
     // append element
-    var _b = props, _c = _b.style, style = _c === void 0 ? {} : _c, className = _b.className, _d = _b.attribute, attribute = _d === void 0 ? {} : _d, cssVars = _b.cssVars;
+    var _b = baseProps.style, style = _b === void 0 ? {} : _b, className = baseProps.className, _c = baseProps.attribute, attribute = _c === void 0 ? {} : _c, cssVars = baseProps.cssVars;
     if (cssVars)
         inheritedCssVars = __assign(__assign({}, inheritedCssVars), cssVars);
     if (node) {
         // style
-        for (var _i = 0, _e = Object.entries(style); _i < _e.length; _i++) {
-            var _f = _e[_i], k = _f[0], v = _f[1];
+        for (var _i = 0, _d = Object.entries(style); _i < _d.length; _i++) {
+            var _e = _d[_i], k = _e[0], v = _e[1];
             if (v != null) {
                 node.style[k] = addPx(v);
             }
         }
-        for (var _g = 0, _h = Object.entries(inheritedCssVars); _g < _h.length; _g++) {
-            var _j = _h[_g], k = _j[0], v = _j[1];
+        for (var _f = 0, _g = Object.entries(inheritedCssVars); _f < _g.length; _f++) {
+            var _h = _g[_f], k = _h[0], v = _h[1];
             if (v != null) {
                 node.style.setProperty("--".concat(k), addPx(v));
             }
@@ -348,26 +349,26 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
         if (name !== node.tagName.toLowerCase()) {
             inheritedNames = __spreadArray(__spreadArray([], inheritedNames, true), [name], false);
         }
-        for (var _k = 0, inheritedNames_1 = inheritedNames; _k < inheritedNames_1.length; _k++) {
-            var inheritedName = inheritedNames_1[_k];
+        for (var _j = 0, inheritedNames_1 = inheritedNames; _j < inheritedNames_1.length; _j++) {
+            var inheritedName = inheritedNames_1[_j];
             node.classList.add(inheritedName);
         }
         if (Array.isArray(className)) {
-            for (var _l = 0, className_1 = className; _l < className_1.length; _l++) {
-                var v = className_1[_l];
+            for (var _k = 0, className_1 = className; _k < className_1.length; _k++) {
+                var v = className_1[_k];
                 node.classList.add(v);
             }
         }
         else if (className) {
-            for (var _m = 0, _o = className.split(" "); _m < _o.length; _m++) {
-                var v = _o[_m];
+            for (var _l = 0, _m = className.split(" "); _l < _m.length; _l++) {
+                var v = _m[_l];
                 if (v)
                     node.classList.add(v);
             }
         }
         // attribute
-        for (var _p = 0, _q = Object.entries(attribute); _p < _q.length; _p++) {
-            var _r = _q[_p], k = _r[0], v = _r[1];
+        for (var _o = 0, _p = Object.entries(attribute); _o < _p.length; _o++) {
+            var _q = _p[_o], k = _q[0], v = _q[1];
             node.setAttribute(camelCaseToKebabCase(k), String(v));
         }
         // append
@@ -393,10 +394,10 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
     }
     // children
     var usedKeys = new Set();
-    for (var _s = 0, _t = component.children; _s < _t.length; _s++) {
-        var child = _t[_s];
-        var key = child.key;
-        if (key === null) {
+    for (var _r = 0, _s = component.children; _r < _s.length; _r++) {
+        var child = _s[_r];
+        var key = child.baseProps.key;
+        if (key == null) {
             key = "".concat(child.name, "-").concat(component._indexedChildCount++);
         }
         if (usedKeys.has(key))
@@ -421,7 +422,7 @@ function _unloadUnusedComponents(prevComponent, gcFlag) {
                 _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
             }
             _localStorageDispatchTarget.removeComponent(prevComponent);
-            (_a = child_.parent) === null || _a === void 0 ? true : delete _a.keyToChild[child.key];
+            (_a = child_.parent) === null || _a === void 0 ? true : delete _a.keyToChild[child.baseProps.key];
         }
         _unloadUnusedComponents(child, gcFlag);
     }

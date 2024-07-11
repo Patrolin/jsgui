@@ -39,7 +39,7 @@ type GetErrorsFunction = (errors: StringMap<string>) => void; // TODO: type this
 class Component {
   name: string;
   args: any[];
-  key: string | null;
+  baseProps: BaseProps;
   props: StringMap;
   children: Component[];
   onRender: RenderFunction<any[]>;
@@ -48,11 +48,11 @@ class Component {
   _indexedChildCount: number;
   _usedKeys: Set<string>;
   _mediaKeys: string[];
-  constructor(onRender: RenderFunction<any[]>, args: any[], key: string | Nullsy, props: StringMap, options: ComponentOptions) {
+  constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: BaseProps, props: StringMap, options: ComponentOptions) {
     this.name = options.name ?? onRender.name;
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
     this.args = args
-    this.key = (key != null) ? String(key) : null;
+    this.baseProps = baseProps;
     this.props = props;
     this.children = [];
     this.onRender = onRender;
@@ -135,14 +135,14 @@ function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, o
   return (...argsOrProps: any[]) => {
     const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
-    const props = {...argsOrProps[argCount]};
-    const key = props.key;
-    delete props.key;
-    return new Component(onRender, args, key, props, options);
+    const propsAndBaseProps = (argsOrProps[argCount] ?? {}) as BaseProps & StringMap;
+    const {key, style, attribute, className, cssVars, ...props} = propsAndBaseProps;
+    const baseProps = {key: (key != null) ? String(key) : undefined, style, attribute, className, cssVars};
+    return new Component(onRender, args, baseProps, props, options);
   }
 }
 function _copyComponent(component: Component) {
-  const newComponent = new Component(component.onRender, component.args, component.key, component.props, component.options);
+  const newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
   newComponent._ = component._;
   return newComponent;
 }
@@ -230,7 +230,7 @@ function renderRoot(component: Component, parentNode = null) {
 }
 function _render(component: Component, parentNode: ElementType, isTopNode = true, inheritedCssVars: BaseProps['cssVars'] = {}, inheritedNames: string[] = []) {
   // render elements
-  const {_, name, args, props, onRender, options, _indexedChildCount} = component;
+  const {_, name, args, baseProps, props, onRender, options, _indexedChildCount} = component;
   const {onMount} = options;
   let node = onRender.bind(component)(...args, props);
   if (!(node instanceof Element)) node = undefined;
@@ -243,7 +243,7 @@ function _render(component: Component, parentNode: ElementType, isTopNode = true
   _.prevState = {..._.state};
   _.prevComponent = component;
   // append element
-  const {style = {}, className, attribute = {}, cssVars} = props as BaseProps;
+  const {style = {}, className, attribute = {}, cssVars} = baseProps;
   if (cssVars) inheritedCssVars = {...inheritedCssVars, ...cssVars};
   if (node) {
     // style
@@ -297,8 +297,8 @@ function _render(component: Component, parentNode: ElementType, isTopNode = true
   // children
   const usedKeys = new Set();
   for (let child of component.children) {
-    let key = child.key;
-    if (key === null) {
+    let key = child.baseProps.key;
+    if (key == null) {
       key = `${child.name}-${component._indexedChildCount++}`;
     }
     if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
@@ -320,7 +320,7 @@ function _unloadUnusedComponents(prevComponent: Component, gcFlag: boolean) {
         _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
       }
       _localStorageDispatchTarget.removeComponent(prevComponent);
-      delete child_.parent?.keyToChild[child.key as any];
+      delete child_.parent?.keyToChild[child.baseProps.key as any];
     }
     _unloadUnusedComponents(child, gcFlag);
   }
