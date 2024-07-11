@@ -281,6 +281,7 @@ function _render(component: Component, parentNode: ElementType, _inheritedBasePr
       inheritedBaseProps.className.push(name);
     };
     for (let v of inheritedBaseProps.className) {
+      if (!v) console.warn("Empty className", name, inheritedBaseProps.className);
       node.classList.add(v);
     }
     // attribute

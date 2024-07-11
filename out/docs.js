@@ -368,6 +368,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         ;
         for (var _g = 0, _h = inheritedBaseProps.className; _g < _h.length; _g++) {
             var v = _h[_g];
+            if (!v)
+                console.warn("Empty className", name, inheritedBaseProps.className);
             node.classList.add(v);
         }
         // attribute
