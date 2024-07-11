@@ -90,8 +90,8 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
     return to.concat(ar || Array.prototype.slice.call(from));
 };
 // TODO: make a typescript compiler to compile packages like odin
-var JSGUI_VERSION = "v0.3-dev";
 // utils
+var JSGUI_VERSION = "v0.3-dev";
 function parseJsonOrNull(jsonString) {
     try {
         return JSON.parse(jsonString);
@@ -108,6 +108,41 @@ function addPx(value) {
     var _a;
     return (((_a = value === null || value === void 0 ? void 0 : value.constructor) === null || _a === void 0 ? void 0 : _a.name) === "Number") ? "".concat(value, "px") : value;
 }
+function getDiff(oldValue, newValue) {
+    var _a, _b;
+    var diffMap = {};
+    for (var _i = 0, _c = Object.entries(oldValue); _i < _c.length; _i++) {
+        var _d = _c[_i], k = _d[0], v = _d[1];
+        var d = (_a = diffMap[k]) !== null && _a !== void 0 ? _a : { key: k };
+        d.oldValue = v;
+        diffMap[k] = d;
+    }
+    for (var _e = 0, _f = Object.entries(newValue); _e < _f.length; _e++) {
+        var _g = _f[_e], k = _g[0], v = _g[1];
+        var d = (_b = diffMap[k]) !== null && _b !== void 0 ? _b : { key: k };
+        d.newValue = v;
+        diffMap[k] = d;
+    }
+    return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
+}
+function getDiffArray(oldValues, newValues) {
+    var _a, _b;
+    var diffMap = {};
+    for (var _i = 0, oldValues_1 = oldValues; _i < oldValues_1.length; _i++) {
+        var k = oldValues_1[_i];
+        var d = (_a = diffMap[k]) !== null && _a !== void 0 ? _a : { key: k };
+        d.oldValue = k;
+        diffMap[k] = d;
+    }
+    for (var _c = 0, newValues_1 = newValues; _c < newValues_1.length; _c++) {
+        var k = newValues_1[_c];
+        var d = (_b = diffMap[k]) !== null && _b !== void 0 ? _b : { key: k };
+        d.newValue = k;
+        diffMap[k] = d;
+    }
+    return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
+}
+// component
 var Component = /** @class */ (function () {
     function Component(onRender, args, baseProps, props, options) {
         var _a;
@@ -116,12 +151,14 @@ var Component = /** @class */ (function () {
             throw "Function name cannot be empty: ".concat(onRender);
         this.args = args;
         this.baseProps = baseProps;
-        this.key = "";
         this.props = props;
         this.children = [];
         this.onRender = onRender;
         this.options = options;
+        // metadata
         this._ = null;
+        this.key = "";
+        // hooks
         this.node = null;
         this.indexedChildCount = 0;
         this.mediaKeys = [];
@@ -248,6 +285,7 @@ function _copyRootComponent(component) {
     newComponent._ = component._;
     return newComponent;
 }
+// dispatch
 var DispatchTarget = /** @class */ (function () {
     function DispatchTarget(addListeners) {
         var _this = this;
@@ -291,6 +329,7 @@ var _locationHashDispatchTarget = new DispatchTarget(function (dispatch) {
         dispatch();
     });
 });
+// metadata
 var ComponentMetadata = /** @class */ (function () {
     function ComponentMetadata(parent) {
         var _a;
@@ -343,40 +382,6 @@ var _START_BASE_PROPS = {
     cssVars: {},
     style: {},
 };
-function getDiff(oldValue, newValue) {
-    var _a, _b;
-    var diffMap = {};
-    for (var _i = 0, _c = Object.entries(oldValue); _i < _c.length; _i++) {
-        var _d = _c[_i], k = _d[0], v = _d[1];
-        var d = (_a = diffMap[k]) !== null && _a !== void 0 ? _a : { key: k };
-        d.oldValue = v;
-        diffMap[k] = d;
-    }
-    for (var _e = 0, _f = Object.entries(newValue); _e < _f.length; _e++) {
-        var _g = _f[_e], k = _g[0], v = _g[1];
-        var d = (_b = diffMap[k]) !== null && _b !== void 0 ? _b : { key: k };
-        d.newValue = v;
-        diffMap[k] = d;
-    }
-    return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
-}
-function getDiffArray(oldValues, newValues) {
-    var _a, _b;
-    var diffMap = {};
-    for (var _i = 0, oldValues_1 = oldValues; _i < oldValues_1.length; _i++) {
-        var k = oldValues_1[_i];
-        var d = (_a = diffMap[k]) !== null && _a !== void 0 ? _a : { key: k };
-        d.oldValue = k;
-        diffMap[k] = d;
-    }
-    for (var _c = 0, newValues_1 = newValues; _c < newValues_1.length; _c++) {
-        var k = newValues_1[_c];
-        var d = (_b = diffMap[k]) !== null && _b !== void 0 ? _b : { key: k };
-        d.newValue = k;
-        diffMap[k] = d;
-    }
-    return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
-}
 function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     var _a, _b, _c;
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
@@ -604,6 +609,7 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
     if (props === void 0) { props = {}; }
     this.append(icon("progress_activity", props));
 });
+// inputs
 var button = makeComponent(function button(text, props) {
     if (props === void 0) { props = {}; }
     var size = props.size, color = props.color, onClick = props.onClick, disabled = props.disabled;

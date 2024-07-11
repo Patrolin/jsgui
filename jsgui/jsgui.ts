@@ -1,9 +1,6 @@
 // TODO: make a typescript compiler to compile packages like odin
-const JSGUI_VERSION = "v0.3-dev";
-type Nullsy = undefined | null;
-type StringMap<T = any> = Record<string, T>;
-type JSONValue = string | number | any[] | StringMap | null;
 // utils
+const JSGUI_VERSION = "v0.3-dev";
 function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -17,7 +14,9 @@ function camelCaseToKebabCase(key: string) {
 function addPx(value: string | number) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
 }
-// base component
+type Nullsy = undefined | null;
+type StringMap<T = any> = Record<string, T>;
+type JSONValue = string | number | any[] | StringMap | null;
 type ElementType = HTMLElement;
 type _EventListener<T = Event> = ((event: T) => void);
 type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
@@ -29,6 +28,42 @@ type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", 
   & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
   & Record<"change", _EventListener<Event>>
   & Record<string, _EventListener>>;
+type UndoPartial<T> = T extends Partial<infer R> ? R : T;
+type Diff<T> = {
+  key: string;
+  oldValue: T;
+  newValue: T;
+}
+function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
+  const diffMap: StringMap<Partial<Diff<T>>> = {};
+  for (let [k, v] of Object.entries(oldValue)) {
+    let d = diffMap[k] ?? {key: k};
+    d.oldValue = v;
+    diffMap[k] = d;
+  }
+  for (let [k, v] of Object.entries(newValue)) {
+    let d = diffMap[k] ?? {key: k};
+    d.newValue = v;
+    diffMap[k] = d;
+  }
+  return (Object.values(diffMap) as Diff<T>[]).filter(v => v.newValue !== v.oldValue);
+}
+function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] {
+  const diffMap: StringMap<Partial<Diff<string>>> = {};
+  for (let k of oldValues) {
+    let d = diffMap[k] ?? {key: k};
+    d.oldValue = k;
+    diffMap[k] = d;
+  }
+  for (let k of newValues) {
+    let d = diffMap[k] ?? {key: k};
+    d.newValue = k;
+    diffMap[k] = d;
+  }
+  return (Object.values(diffMap) as Diff<string>[]).filter(v => v.newValue !== v.oldValue);
+}
+
+// NOTE: tsc is stupid and removes comments before types
 type BaseProps = {
   key?: string;
   attribute?: StringMap<string | number | boolean>;
@@ -42,21 +77,22 @@ type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => v
 type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
 type ComponentOptions = {
   name?: string;
-  onMount?: (this: Component, node: ElementType) => void;
+  onMount?: (this: Component, node: ElementType) => void; // TODO: remove this?
 };
-type GetErrorsFunction = (errors: StringMap<string>) => void; // TODO: type this
+type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
+// component
 class Component {
   // props
   name: string;
   args: any[];
   baseProps: RenderedBaseProps;
-  key: string;
   props: StringMap;
   children: Component[];
   onRender: RenderFunction<any[]>;
   options: ComponentOptions;
   // metadata
   _: ComponentMetadata | RootComponentMetadata;
+  key: string;
   // hooks
   node: HTMLElement | null;
   indexedChildCount: number;
@@ -66,12 +102,14 @@ class Component {
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
     this.args = args
     this.baseProps = baseProps;
-    this.key = "";
     this.props = props;
     this.children = [];
     this.onRender = onRender;
     this.options = options;
+    // metadata
     this._ = null as any;
+    this.key = "";
+    // hooks
     this.node = null;
     this.indexedChildCount = 0;
     this.mediaKeys = [];
@@ -96,9 +134,9 @@ class Component {
     }
     return _.state as T;
   }
-  useValidate(getErrors: GetErrorsFunction) {
+  useValidate<K extends string>(getErrors: GetErrorsFunction<K>) { // TODO: document this
     return () => {
-      let errors = {};
+      let errors: Partial<Record<K, string>> = {};
       getErrors(errors);
       const {state} = this._;
       state.errors = errors;
@@ -121,7 +159,7 @@ class Component {
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches;
   }
-  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] { // TODO: listen to same page option
+  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] { // TODO: signal same page option
     _localStorageDispatchTarget.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
     const setValue = (newValue: T) => {
@@ -161,7 +199,7 @@ class Component {
     console.log({ ...(component ?? {}), _: {...(component?._ ?? {})} });
   }
 }
-function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> { // TODO: make this be typed properly
+function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {
   return (...argsOrProps: any[]) => {
     const argCount = Math.max(0, onRender.length - 1);
     const args = argsOrProps.slice(0, argCount);
@@ -183,7 +221,9 @@ function _copyRootComponent(component: Component) {
   newComponent._ = component._;
   return newComponent;
 }
+
 type DispatchTargetAddListeners = (dispatch: () => void) => any;
+// dispatch
 class DispatchTarget {
   components: Component[];
   state: any;
@@ -223,6 +263,8 @@ const _locationHashDispatchTarget = new DispatchTarget((dispatch) => {
     dispatch();
   });
 });
+
+// metadata
 class ComponentMetadata {
   // state
   stateIsInitialized: boolean = false
@@ -267,7 +309,6 @@ function renderRoot(rootComponent: Component, parentNode = null) {
     })
   }
 }
-type UndoPartial<T> = T extends Partial<infer R> ? R : T;
 type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};
 const _START_BASE_PROPS: InheritedBaseProps = {
   attribute: {},
@@ -275,39 +316,6 @@ const _START_BASE_PROPS: InheritedBaseProps = {
   cssVars: {},
   style: {},
 };
-type Diff<T> = {
-  key: string;
-  oldValue: T;
-  newValue: T;
-}
-function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
-  const diffMap: StringMap<Partial<Diff<T>>> = {};
-  for (let [k, v] of Object.entries(oldValue)) {
-    let d = diffMap[k] ?? {key: k};
-    d.oldValue = v;
-    diffMap[k] = d;
-  }
-  for (let [k, v] of Object.entries(newValue)) {
-    let d = diffMap[k] ?? {key: k};
-    d.newValue = v;
-    diffMap[k] = d;
-  }
-  return (Object.values(diffMap) as Diff<T>[]).filter(v => v.newValue !== v.oldValue);
-}
-function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] {
-  const diffMap: StringMap<Partial<Diff<string>>> = {};
-  for (let k of oldValues) {
-    let d = diffMap[k] ?? {key: k};
-    d.oldValue = k;
-    diffMap[k] = d;
-  }
-  for (let k of newValues) {
-    let d = diffMap[k] ?? {key: k};
-    d.newValue = k;
-    diffMap[k] = d;
-  }
-  return (Object.values(diffMap) as Diff<string>[]).filter(v => v.newValue !== v.oldValue);
-}
 function _render(component: Component, parentNode: ElementType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender, options, indexedChildCount: _indexedChildCount} = component;
@@ -513,7 +521,7 @@ const icon = makeComponent(function icon(iconName: string, props: IconProps = {}
 const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
   this.append(icon("progress_activity", props));
 });
-// inputs
+
 type ButtonProps = {
   size?: Size;
   color?: BaseColor;
@@ -521,6 +529,7 @@ type ButtonProps = {
   onClick?: () => void;
   disabled?: boolean;
 }
+// inputs
 const button = makeComponent(function button(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
@@ -723,6 +732,7 @@ const numberInput = makeComponent(function numberInput(props: NumberInputProps) 
   }));
   if (error) this.append(errorMessage(error));
 });
+
 // table
 type TableColumn = {
   label: string;
@@ -775,6 +785,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
     }
   }
 });
+
 // router
 type Route = {
   path: string;

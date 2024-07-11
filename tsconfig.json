@@ -14,5 +14,6 @@
     "module": "None",
     "outFile" : "out/docs.js",
     "sourceMap": true,
+    "removeComments": false,
   }
 }
