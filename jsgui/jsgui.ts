@@ -228,7 +228,15 @@ function renderRoot(component: Component, parentNode = null) {
     })
   }
 }
-function _render(component: Component, parentNode: ElementType, isTopNode = true, inheritedCssVars: BaseProps['cssVars'] = {}, inheritedNames: string[] = []) {
+type UndoPartial<T> = T extends Partial<infer R> ? R : T;
+type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key">> & {className: string[]};
+const _START_BASE_PROPS: InheritedBaseProps = {
+  attribute: {},
+  className: [],
+  cssVars: {},
+  style: {},
+};
+function _render(component: Component, parentNode: ElementType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender, options, _indexedChildCount} = component;
   const {onMount} = options;
@@ -243,38 +251,40 @@ function _render(component: Component, parentNode: ElementType, isTopNode = true
   _.prevState = {..._.state};
   _.prevComponent = component;
   // append element
-  const {style = {}, className, attribute = {}, cssVars} = baseProps;
-  if (cssVars) inheritedCssVars = {...inheritedCssVars, ...cssVars};
+  const {className: _className} = baseProps;
+  let inheritedBaseProps = {
+    attribute: {..._inheritedBaseProps.attribute, ...baseProps.attribute},
+    className: [..._inheritedBaseProps.className],
+    cssVars: {..._inheritedBaseProps.cssVars, ...baseProps.cssVars},
+    style: {..._inheritedBaseProps.style, ...baseProps.style},
+  };
+  if (Array.isArray(_className)) {
+    inheritedBaseProps.className = [...inheritedBaseProps.className, ..._className];
+  } else if (_className) {
+    inheritedBaseProps.className = [...inheritedBaseProps.className, ..._className.split(" ")];
+  }
   if (node) {
     // style
-    for (let [k, v] of Object.entries(style)) {
+    for (let [k, v] of Object.entries(inheritedBaseProps.style)) {
       if (v != null) {
         node.style[k as any] = addPx(v);
       }
     }
-    for (let [k, v] of Object.entries(inheritedCssVars)) {
+    // cssVars
+    for (let [k, v] of Object.entries(inheritedBaseProps.cssVars)) {
       if (v != null) {
         node.style.setProperty(`--${k}`, addPx(v));
       }
     }
     // class
     if (name !== node.tagName.toLowerCase()) {
-      inheritedNames = [...inheritedNames, name];
-    }
-    for (let inheritedName of inheritedNames) {
-      node.classList.add(inheritedName);
-    }
-    if (Array.isArray(className)) {
-      for (let v of className) {
-        node.classList.add(v);
-      }
-    } else if (className) {
-      for (let v of className.split(" ")) {
-        if (v) node.classList.add(v);
-      }
+      inheritedBaseProps.className.push(name);
+    };
+    for (let v of inheritedBaseProps.className) {
+      node.classList.add(v);
     }
     // attribute
-    for (let [k, v] of Object.entries(attribute)) {
+    for (let [k, v] of Object.entries(inheritedBaseProps.attribute)) {
       node.setAttribute(camelCaseToKebabCase(k), String(v));
     }
     // append
@@ -289,10 +299,9 @@ function _render(component: Component, parentNode: ElementType, isTopNode = true
     // inherit
     parentNode = node;
     isTopNode = false;
-    inheritedCssVars = {};
-    inheritedNames = [];
+    inheritedBaseProps = _START_BASE_PROPS;
   } else {
-    if (name) inheritedNames = [...inheritedNames, name];
+    if (name) inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
   }
   // children
   const usedKeys = new Set();
@@ -307,7 +316,7 @@ function _render(component: Component, parentNode: ElementType, isTopNode = true
     _.keyToChild[key] = child_;
     child._ = child_;
     child_.gcFlag = _.gcFlag;
-    _render(child, parentNode, isTopNode, inheritedCssVars, inheritedNames);
+    _render(child, parentNode, inheritedBaseProps, isTopNode);
   }
 }
 

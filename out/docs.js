@@ -308,11 +308,16 @@ function renderRoot(component, parentNode) {
         });
     };
 }
-function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNames) {
+var _START_BASE_PROPS = {
+    attribute: {},
+    className: [],
+    cssVars: {},
+    style: {},
+};
+function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     var _a;
+    if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
-    if (inheritedCssVars === void 0) { inheritedCssVars = {}; }
-    if (inheritedNames === void 0) { inheritedNames = []; }
     // render elements
     var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, options = component.options, _indexedChildCount = component._indexedChildCount;
     var onMount = options.onMount;
@@ -328,47 +333,46 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
     _.prevState = __assign({}, _.state);
     _.prevComponent = component;
     // append element
-    var _b = baseProps.style, style = _b === void 0 ? {} : _b, className = baseProps.className, _c = baseProps.attribute, attribute = _c === void 0 ? {} : _c, cssVars = baseProps.cssVars;
-    if (cssVars)
-        inheritedCssVars = __assign(__assign({}, inheritedCssVars), cssVars);
+    var _className = baseProps.className;
+    var inheritedBaseProps = {
+        attribute: __assign(__assign({}, _inheritedBaseProps.attribute), baseProps.attribute),
+        className: __spreadArray([], _inheritedBaseProps.className, true),
+        cssVars: __assign(__assign({}, _inheritedBaseProps.cssVars), baseProps.cssVars),
+        style: __assign(__assign({}, _inheritedBaseProps.style), baseProps.style),
+    };
+    if (Array.isArray(_className)) {
+        inheritedBaseProps.className = __spreadArray(__spreadArray([], inheritedBaseProps.className, true), _className, true);
+    }
+    else if (_className) {
+        inheritedBaseProps.className = __spreadArray(__spreadArray([], inheritedBaseProps.className, true), _className.split(" "), true);
+    }
     if (node) {
         // style
-        for (var _i = 0, _d = Object.entries(style); _i < _d.length; _i++) {
-            var _e = _d[_i], k = _e[0], v = _e[1];
+        for (var _i = 0, _b = Object.entries(inheritedBaseProps.style); _i < _b.length; _i++) {
+            var _c = _b[_i], k = _c[0], v = _c[1];
             if (v != null) {
                 node.style[k] = addPx(v);
             }
         }
-        for (var _f = 0, _g = Object.entries(inheritedCssVars); _f < _g.length; _f++) {
-            var _h = _g[_f], k = _h[0], v = _h[1];
+        // cssVars
+        for (var _d = 0, _e = Object.entries(inheritedBaseProps.cssVars); _d < _e.length; _d++) {
+            var _f = _e[_d], k = _f[0], v = _f[1];
             if (v != null) {
                 node.style.setProperty("--".concat(k), addPx(v));
             }
         }
         // class
         if (name !== node.tagName.toLowerCase()) {
-            inheritedNames = __spreadArray(__spreadArray([], inheritedNames, true), [name], false);
+            inheritedBaseProps.className.push(name);
         }
-        for (var _j = 0, inheritedNames_1 = inheritedNames; _j < inheritedNames_1.length; _j++) {
-            var inheritedName = inheritedNames_1[_j];
-            node.classList.add(inheritedName);
-        }
-        if (Array.isArray(className)) {
-            for (var _k = 0, className_1 = className; _k < className_1.length; _k++) {
-                var v = className_1[_k];
-                node.classList.add(v);
-            }
-        }
-        else if (className) {
-            for (var _l = 0, _m = className.split(" "); _l < _m.length; _l++) {
-                var v = _m[_l];
-                if (v)
-                    node.classList.add(v);
-            }
+        ;
+        for (var _g = 0, _h = inheritedBaseProps.className; _g < _h.length; _g++) {
+            var v = _h[_g];
+            node.classList.add(v);
         }
         // attribute
-        for (var _o = 0, _p = Object.entries(attribute); _o < _p.length; _o++) {
-            var _q = _p[_o], k = _q[0], v = _q[1];
+        for (var _j = 0, _k = Object.entries(inheritedBaseProps.attribute); _j < _k.length; _j++) {
+            var _l = _k[_j], k = _l[0], v = _l[1];
             node.setAttribute(camelCaseToKebabCase(k), String(v));
         }
         // append
@@ -385,17 +389,16 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
         // inherit
         parentNode = node;
         isTopNode = false;
-        inheritedCssVars = {};
-        inheritedNames = [];
+        inheritedBaseProps = _START_BASE_PROPS;
     }
     else {
         if (name)
-            inheritedNames = __spreadArray(__spreadArray([], inheritedNames, true), [name], false);
+            inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
     }
     // children
     var usedKeys = new Set();
-    for (var _r = 0, _s = component.children; _r < _s.length; _r++) {
-        var child = _s[_r];
+    for (var _m = 0, _o = component.children; _m < _o.length; _m++) {
+        var child = _o[_m];
         var key = child.baseProps.key;
         if (key == null) {
             key = "".concat(child.name, "-").concat(component._indexedChildCount++);
@@ -407,7 +410,7 @@ function _render(component, parentNode, isTopNode, inheritedCssVars, inheritedNa
         _.keyToChild[key] = child_;
         child._ = child_;
         child_.gcFlag = _.gcFlag;
-        _render(child, parentNode, isTopNode, inheritedCssVars, inheritedNames);
+        _render(child, parentNode, inheritedBaseProps, isTopNode);
     }
 }
 // rerender
