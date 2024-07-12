@@ -3,7 +3,7 @@ function getSizeLabel(size: string) {
 }
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined, "https://www.google.com"]) {
-    let row = this.append(div({className: "displayRow"}))
+    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
@@ -18,21 +18,21 @@ const spanSection = makeComponent(function spanSection() {
   }
 });
 const iconSection = makeComponent(function spanSection() {
-  let row = this.append(div({className: "displayRow"}));
+  let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) {
     const itemWrapper = row.append(div());
     itemWrapper.append(span(getSizeLabel(size), {size}));
     itemWrapper.append(icon("link", {size}));
   }
-  row = this.append(div({className: "displayRow"}));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(icon("link", {size}));
-  row = this.append(div({className: "displayRow"}));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(loadingSpinner({size}));
 });
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({ username: "" });
   // username
-  let row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
   row.append(
     textInput({
       label: "Username",
@@ -63,7 +63,7 @@ const textInputSection = makeComponent(function textInputSection() {
     })
   );
   row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
   row.append(span(`count: ${count}`));
 });
 const tableSection = makeComponent(function tableSection() {
@@ -109,7 +109,7 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   this.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
 const buttonSection = makeComponent(function buttonSection() {
-  let row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(button(getSizeLabel(size), {size}));
   row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
   for (let size of SIZES) row.append(button(getSizeLabel(size), {color: "secondary", size}));
@@ -178,7 +178,7 @@ const mainPage = makeComponent(function mainPage() {
       style: {display: "flex", flexDirection: "column", alignItems: "flex-start"},
     })
   );
-  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small", selfLink: "version"}));
+  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small", selfLink: "", id: "version"}));
   for (let section of MAIN_PAGE_SECTIONS) {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     wrapper.append(section.component());

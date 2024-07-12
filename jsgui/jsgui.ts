@@ -467,32 +467,27 @@ type SpanProps = {
   fontFamily?: string;
   href?: string;
   replacePath?: boolean;
+  id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 } & BaseProps;
 const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, replacePath, selfLink, onClick } = props;
-  if (selfLink) {
-    const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: selfLink } }));
+  let { iconName, size, color, singleLine, fontFamily, href, replacePath, id, selfLink, onClick } = props;
+  if (selfLink != null) {
+    const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
     selfLinkWrapper.append(icon("tag", { size: "normal", href: `#${selfLink}` }));
     return;
   }
   const isLink = (href != null);
   const e = this.useNode(document.createElement(isLink ? 'a' : 'span'));
-  if (iconName) {
-    e.classList.add("material-symbols-outlined");
-    if (size) e.style.fontSize = `calc(1.25 * var(--size-${size}))`;
-  } else {
-    if (size) e.style.fontSize = `var(--size-${size})`;
-  }
-  if (color) e.style.color = `var(--${color})`;
-  if (singleLine) {
-    e.style.overflow = "hidden";
-    e.style.textOverflow = "ellipsis";
-    e.style.whiteSpace = "nowrap";
-  }
-  if (fontFamily) e.style.fontFamily = `var(--fontFamily-${fontFamily})`;
+  const {attribute, className, style} = this.baseProps;
+  if (id) attribute.id = id;
+  if (size) attribute.dataSize = size;
+  if (iconName) className.push("material-symbols-outlined");
+  if (color) style.color = `var(--${color})`; // TODO: remove style?
+  if (singleLine) className.push("ellipsis");
+  if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`; // TODO: remove style?
   if (isLink) {
     (e as HTMLAnchorElement).href = href;
     if (replacePath) {
@@ -505,8 +500,8 @@ const span = makeComponent(function _span(text: string | number | null | undefin
   } else {
     if (onClick) {
       e.onclick = onClick;
-      e.setAttribute("tabindex", "-1");
-      e.setAttribute("clickable", "true");
+      attribute.tabindex = "-1";
+      attribute.clickable = "true";
     }
   }
   e.innerText = iconName || (text == null ? "" : String(text));
@@ -515,6 +510,7 @@ const span = makeComponent(function _span(text: string | number | null | undefin
 type IconProps = SpanProps;
 const icon = makeComponent(function icon(iconName: string, props: IconProps = {}) {
   let {size, style = {}, ...extraProps} = props;
+  this.baseProps.attribute.dataIcon = iconName;
   this.append(span("", {iconName, size, style, ...extraProps}));
 });
 const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
@@ -566,13 +562,14 @@ const button = makeComponent(function button(text: string, props: ButtonProps = 
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
   e.innerText = text;
-  if (size) e.style.fontSize = `var(--size-${size ?? "normal"})`;
+  const {attribute, cssVars} = this.baseProps;
+  if (size) attribute.dataSize = size;
   if (color) {
-    e.style.setProperty("--buttonColor", `var(--${color})`);
-    e.style.setProperty("--buttonColorHover", `var(--${color}-033)`);
-    e.style.setProperty("--buttonColorActive", `var(--${color}-067)`);
+    cssVars.buttonColor = `var(--${color})`;
+    cssVars.buttonColorHover = `var(--${color}-033)`;
+    cssVars.buttonColorActive = `var(--${color}-067)`;
   }
-  if (disabled) e.setAttribute("disabled", "true");
+  if (disabled) attribute.disabled = "true";
   else if (onClick) {
     e.onclick = onClick;
   }
@@ -678,8 +675,8 @@ type NumberArrowProps = {
 const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
   const wrapper = this.append(div());
-  wrapper.append(icon("arrow_drop_up", {className: "upIcon", onClick: onClickUp}));
-  wrapper.append(icon("arrow_drop_down", {className: "downIcon", onClick: onClickDown}));
+  wrapper.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
+  wrapper.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
 });
 type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
