@@ -468,7 +468,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             var _o = eventsDiff_1[_m], key = _o.key, oldValue = _o.oldValue, newValue = _o.newValue;
             node.removeEventListener(key, oldValue);
             if (newValue) {
-                node.addEventListener(key, newValue);
+                node.addEventListener(key, newValue); // TODO: passive events?
             }
         }
         parentNode = node;
@@ -614,7 +614,7 @@ var dialog = makeComponent(function dialog(props) {
         if (closeOnClickBackdrop && (event.target === e))
             onClose();
     };
-    var onLoad = function () {
+    var onMount = function () {
         if (open !== state.prevOpen) {
             if (open) {
                 e.showModal();
@@ -626,7 +626,7 @@ var dialog = makeComponent(function dialog(props) {
         }
     };
     return {
-        onMount: onLoad,
+        onMount: onMount,
     };
 });
 // inputs

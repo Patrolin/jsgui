@@ -392,7 +392,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     for (let {key, oldValue, newValue} of eventsDiff) {
       node.removeEventListener(key, oldValue as _EventListener);
       if (newValue) {
-        node.addEventListener(key, newValue as _EventListener);
+        node.addEventListener(key, newValue as _EventListener); // TODO: passive events?
       }
     }
     parentNode = node;
@@ -535,7 +535,7 @@ const dialog = makeComponent(function dialog(props: DialogProps) {
   e.onclick = (event) => {
     if (closeOnClickBackdrop && (event.target === e)) onClose();
   }
-  const onLoad = () => {
+  const onMount = () => {
     if (open !== state.prevOpen) {
       if (open) {
         e.showModal();
@@ -546,7 +546,7 @@ const dialog = makeComponent(function dialog(props: DialogProps) {
     }
   };
   return {
-    onMount: onLoad,
+    onMount,
   }
 });
 // TODO: popover, onAnyScroll
