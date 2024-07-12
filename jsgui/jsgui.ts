@@ -458,7 +458,7 @@ const BASE_COLORS: Record<BaseColor, string> = {
   secondary: "20, 80, 160",
   red: "200, 50, 50",
 };
-const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"];
+const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
 type SpanProps = {
   iconName?: string;
   size?: Size;

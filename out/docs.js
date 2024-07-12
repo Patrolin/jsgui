@@ -542,7 +542,7 @@ var BASE_COLORS = {
     secondary: "20, 80, 160",
     red: "200, 50, 50",
 };
-var COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"];
+var COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
 var span = makeComponent(function _span(text, props) {
     var _this = this;
     if (props === void 0) { props = {}; }
@@ -970,6 +970,7 @@ var iconSection = makeComponent(function spanSection() {
         buttonWrapper.append(icon("link", { size: size }));
         buttonWrapper.append(span(getSizeLabel(size)));
     }
+    // TODO: circle buttons
 });
 var textInputSection = makeComponent(function textInputSection() {
     var _this = this;

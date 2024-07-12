@@ -36,6 +36,7 @@ const iconSection = makeComponent(function spanSection() {
     buttonWrapper.append(icon("link", {size}));
     buttonWrapper.append(span(getSizeLabel(size)));
   }
+  // TODO: circle buttons
 });
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({ username: "" });
