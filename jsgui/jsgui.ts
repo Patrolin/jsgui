@@ -458,7 +458,7 @@ const BASE_COLORS: Record<BaseColor, string> = {
   secondary: "20, 80, 160",
   red: "200, 50, 50",
 };
-const COLOR_SHADES = ["", "033", "067", "1", "2", "3"];
+const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"];
 type SpanProps = {
   iconName?: string;
   size?: Size;
@@ -562,13 +562,9 @@ const button = makeComponent(function button(text: string, props: ButtonProps = 
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
   if (text) this.append(span(text));
-  const {attribute, cssVars} = this.baseProps;
+  const {attribute} = this.baseProps;
   if (size) attribute.dataSize = size;
-  if (color) {
-    cssVars.buttonColor = `var(--${color})`;
-    cssVars.buttonColorHover = `var(--${color}-033)`;
-    cssVars.buttonColorActive = `var(--${color}-067)`;
-  }
+  if (color) attribute.dataColor = color;
   if (disabled) attribute.disabled = "true";
   else if (onClick) {
     e.onclick = onClick;

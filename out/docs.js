@@ -35,8 +35,8 @@ function generateColorCssVars(colors, start, step, shades) {
     return acc;
 }
 setTimeout(function () {
-    console.log(generateFontSizeCssVars());
-    //console.log(generateColorCssVars());
+    //console.log(generateFontSizeCssVars());
+    console.log(generateColorCssVars());
 });
 var __extends = (this && this.__extends) || (function () {
     var extendStatics = function (d, b) {
@@ -542,7 +542,7 @@ var BASE_COLORS = {
     secondary: "20, 80, 160",
     red: "200, 50, 50",
 };
-var COLOR_SHADES = ["", "033", "067", "1", "2", "3"];
+var COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"];
 var span = makeComponent(function _span(text, props) {
     var _this = this;
     if (props === void 0) { props = {}; }
@@ -636,14 +636,11 @@ var button = makeComponent(function button(text, props) {
     var e = this.useNode(document.createElement("button"));
     if (text)
         this.append(span(text));
-    var _a = this.baseProps, attribute = _a.attribute, cssVars = _a.cssVars;
+    var attribute = this.baseProps.attribute;
     if (size)
         attribute.dataSize = size;
-    if (color) {
-        cssVars.buttonColor = "var(--".concat(color, ")");
-        cssVars.buttonColorHover = "var(--".concat(color, "-033)");
-        cssVars.buttonColorActive = "var(--".concat(color, "-067)");
-    }
+    if (color)
+        attribute.dataColor = color;
     if (disabled)
         attribute.disabled = "true";
     else if (onClick) {

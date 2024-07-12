@@ -33,6 +33,6 @@ function generateColorCssVars(colors: StringMap<string> = BASE_COLORS, start = 0
   return acc;
 }
 setTimeout(() => {
-  console.log(generateFontSizeCssVars());
-  //console.log(generateColorCssVars());
+  //console.log(generateFontSizeCssVars());
+  console.log(generateColorCssVars());
 })

@@ -32,18 +32,21 @@ body {
   --gray-067: rgba(0, 0, 0, 0.549);
   --gray-1: rgba(0, 0, 0, 0.437);
   --gray-2: rgba(0, 0, 0, 0.218);
+  --gray-250: rgba(0, 0, 0, 0.155);
   --gray-3: rgba(0, 0, 0, 0.109);
   --secondary: rgba(20, 80, 160, 0.874);
   --secondary-033: rgba(20, 80, 160, 0.695);
   --secondary-067: rgba(20, 80, 160, 0.549);
   --secondary-1: rgba(20, 80, 160, 0.437);
   --secondary-2: rgba(20, 80, 160, 0.218);
+  --secondary-250: rgba(20, 80, 160, 0.155);
   --secondary-3: rgba(20, 80, 160, 0.109);
   --red: rgba(200, 50, 50, 0.874);
   --red-033: rgba(200, 50, 50, 0.695);
   --red-067: rgba(200, 50, 50, 0.549);
   --red-1: rgba(200, 50, 50, 0.437);
   --red-2: rgba(200, 50, 50, 0.218);
+  --red-250: rgba(200, 50, 50, 0.155);
   --red-3: rgba(200, 50, 50, 0.109);
   /* end generated*/
   --timing-0d: cubic-bezier(.14, 0, .33, 1);
@@ -159,16 +162,22 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  --buttonColor: var(--gray-033);
-  --buttonColorHover: var(--gray-067);
-  --buttonColorActive: var(--gray-1);
+  --buttonColor: var(--gray-3);
+  --buttonColorHover: var(--gray-250);
+  --buttonColorActive: var(--gray-2);
+  --buttonFontColor: var(--gray);
+}
+button[data-color="secondary"] {
+  --buttonColor: var(--secondary);
+  --buttonColorHover: var(--secondary-067);
+  --buttonColorActive: var(--secondary-1);
   --buttonFontColor: white;
 }
-button:hover {
+button:hover:not([disabled]) {
   background: var(--buttonColorHover);
   box-shadow: none;
 }
-button:active {
+button:active:not([disabled]) {
   background: var(--buttonColorActive);
   margin-top: 1px;
   height: calc(var(--size-x) + 1px);
@@ -178,7 +187,9 @@ button:not([disabled]) {
   cursor: pointer;
 }
 button[disabled] {
-  opacity: 0.4; /* TODO */
+  background-color: var(--gray-3);
+  opacity: 0.5; /* TODO */
+  --buttonFontColor: var(--gray);
 }
 button > span:not(.icon) {
   align-self: flex-start;
