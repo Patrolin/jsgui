@@ -64,6 +64,10 @@ function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] 
 }
 
 // NOTE: tsc is stupid and removes comments before types
+type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
+type ComponentOptions = {
+  name?: string;
+};
 type BaseProps = {
   key?: string;
   attribute?: StringMap<string | number | boolean>;
@@ -74,12 +78,8 @@ type BaseProps = {
 };
 type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
 type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => {
-  onMount?: () => void,
+  onMount?: (havePrevNode: boolean) => void,
 } | void;
-type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
-type ComponentOptions = {
-  name?: string;
-};
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 // component
 class Component {
@@ -419,7 +419,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     _render(child, parentNode, inheritedBaseProps, isTopNode);
   }
   // on mount
-  if (onMount) onMount();
+  if (onMount) onMount(_.prevNode != null);
   _.prevNode = node;
   _.prevBaseProps = inheritedBaseProps;
   _.prevIndexedChildCount = _indexedChildCount;
@@ -552,6 +552,7 @@ const dialog = makeComponent(function dialog(props: DialogProps) {
     onMount: onLoad,
   }
 });
+// TODO: popover, onAnyScroll
 
 type ButtonProps = {
   size?: Size;
@@ -908,7 +909,7 @@ TODO: documentation
   useNavigate()
 */
 // TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
-// TODO: tooltips, badges, dialogs
+// TODO: tooltips, badges
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?

@@ -505,7 +505,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     }
     // on mount
     if (onMount)
-        onMount();
+        onMount(_.prevNode != null);
     _.prevNode = node;
     _.prevBaseProps = inheritedBaseProps;
     _.prevIndexedChildCount = _indexedChildCount;
@@ -918,7 +918,7 @@ TODO: documentation
   useNavigate()
 */
 // TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
-// TODO: tooltips, badges, dialogs
+// TODO: tooltips, badges
 // TODO: snackbar api
 // TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
 // TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
