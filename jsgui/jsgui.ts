@@ -519,6 +519,7 @@ const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = 
 const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseProps = {}) {
   const node = this.useNode(document.createElement("legend"));
   node.innerText = text;
+  this.baseProps.className.push("ellipsis");
 }, {
   name: "legend",
 });
@@ -553,7 +554,6 @@ const dialog = makeComponent(function dialog(props: DialogProps) {
 type ButtonProps = {
   size?: Size;
   color?: BaseColor;
-  secondary?: boolean;
   onClick?: () => void;
   disabled?: boolean;
 }
@@ -561,7 +561,7 @@ type ButtonProps = {
 const button = makeComponent(function button(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
-  e.innerText = text;
+  if (text) this.append(span(text));
   const {attribute, cssVars} = this.baseProps;
   if (size) attribute.dataSize = size;
   if (color) {
