@@ -57,6 +57,7 @@ body {
   line-height: 1;
   transition: color 0.1s var(--timing-0d);
 }
+/* basic components */
 span, a, button {
   display: inline-block; /* fix ellipsis */
   font-size: var(--size-normal);
@@ -109,6 +110,18 @@ a.icon {
     transform: rotate(360deg);
   }
 }
+dialog {
+  outline: none;
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  border-bottom: 1px solid var(--gray-3);
+  box-shadow: 0 1px 0 0 var(--gray-3);
+}
+dialog::backdrop {
+  background: var(--gray-2);
+}
+/* inputs */
 button {
   border: none;
   border-radius: 4px;
@@ -218,8 +231,8 @@ button[disabled] {
 .labeledInput input {
   width: 100%;
   height: calc(var(--fieldsetHeight) - 9px);
-  border: none;
   outline: none;
+  border: none;
   flex: 1;
   padding-inline: calc(4px + var(--labelMarginLeft)) 9px;
   font-family: var(--fontFamily-sans);
@@ -273,4 +286,5 @@ button[disabled] {
 .pageContent {
   padding: 8px;
   flex: 1;
+  overflow: auto;
 }

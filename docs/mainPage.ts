@@ -114,6 +114,20 @@ const buttonSection = makeComponent(function buttonSection() {
   row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
   for (let size of SIZES) row.append(button(getSizeLabel(size), {color: "secondary", size}));
 });
+const dialogSection = makeComponent(function dialogSection() {
+  const state = this.useState({ dialogOpen: false });
+  const openDialog = () => {
+    state.dialogOpen = true;
+    this.rerender();
+  };
+  const closeDialog = () => {
+    state.dialogOpen = false;
+    this.rerender();
+  };
+  this.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
+  const dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
+  dialogWrapper.append(span("hello world"));
+});
 
 type MainPageSection = {
   label: string;
@@ -151,6 +165,11 @@ const MAIN_PAGE_SECTIONS: MainPageSection[] = [
     id: "button",
     component: buttonSection,
   },
+  {
+    label: "Dialog",
+    id: "dialog",
+    component: dialogSection,
+  }
 ];
 
 const mainPage = makeComponent(function mainPage() {

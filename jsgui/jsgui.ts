@@ -17,7 +17,7 @@ function addPx(value: string | number) {
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
-type ElementType = HTMLElement;
+type NodeType = HTMLElement;
 type _EventListener<T = Event> = ((event: T) => void);
 type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
   & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
@@ -73,11 +73,12 @@ type BaseProps = {
   events?: EventsMap;
 };
 type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
-type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => void;
+type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => {
+  onMount?: () => void,
+} | void;
 type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
 type ComponentOptions = {
   name?: string;
-  onMount?: (this: Component, node: ElementType) => void; // TODO: remove this?
 };
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 // component
@@ -94,7 +95,7 @@ class Component {
   _: ComponentMetadata | RootComponentMetadata;
   key: string;
   // hooks
-  node: HTMLElement | null;
+  node: NodeType | null;
   indexedChildCount: number;
   mediaKeys: string[];
   constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: RenderedBaseProps, props: StringMap, options: ComponentOptions) {
@@ -114,7 +115,7 @@ class Component {
     this.indexedChildCount = 0;
     this.mediaKeys = [];
   }
-  useNode<T extends HTMLElement>(defaultNode: T): T {
+  useNode<T extends NodeType>(defaultNode: T): T {
     return (this.node = (this._?.prevNode ?? defaultNode)) as T;
   }
   append(child: Component) {
@@ -270,7 +271,7 @@ class ComponentMetadata {
   stateIsInitialized: boolean = false
   state: StringMap = {};
   prevState: any | null = null;
-  prevNode: ElementType | null = null;
+  prevNode: NodeType | null = null;
   prevBaseProps: InheritedBaseProps = _START_BASE_PROPS;
   prevEvents: EventsMap = {} as EventsMap;
   gcFlag: boolean = false;
@@ -287,9 +288,9 @@ class ComponentMetadata {
 }
 class RootComponentMetadata extends ComponentMetadata {
   component: Component;
-  parentNode: ElementType;
+  parentNode: NodeType;
   willRerenderNextFrame: boolean = false;
-  constructor(component: Component, parentNode: ElementType) {
+  constructor(component: Component, parentNode: NodeType) {
     super(null);
     this.root = this;
     this.component = component;
@@ -304,9 +305,9 @@ function renderRoot(rootComponent: Component, parentNode = null) {
   window.onload = () => {
     root_.parentNode = root_.parentNode ?? document.body;
     _render(rootComponent, root_.parentNode);
-    setTimeout(() => {
+    requestAnimationFrame(() => {
       _scrollToLocationHash();
-    })
+    });
   }
 }
 type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};
@@ -316,11 +317,10 @@ const _START_BASE_PROPS: InheritedBaseProps = {
   cssVars: {},
   style: {},
 };
-function _render(component: Component, parentNode: ElementType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
+function _render(component: Component, parentNode: NodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, options, indexedChildCount: _indexedChildCount} = component;
-  const {onMount} = options;
-  onRender.bind(component)(...args, props);
+  const {_, name, args, baseProps, props, onRender, indexedChildCount: _indexedChildCount} = component;
+  const {onMount} = onRender.bind(component)(...args, props) ?? {};
   const node = component.node;
   // warn if missing keys
   const prevIndexedChildCount = _.prevIndexedChildCount;
@@ -388,18 +388,14 @@ function _render(component: Component, parentNode: ElementType, _inheritedBasePr
       }
     }
     // events
-    const eventsDiff = getDiff(baseProps.events ?? {}, _.prevEvents);
+    const eventsDiff = getDiff(_.prevEvents, baseProps.events ?? {});
     for (let {key, oldValue, newValue} of eventsDiff) {
       node.removeEventListener(key, oldValue as _EventListener);
       if (newValue) {
         node.addEventListener(key, newValue as _EventListener);
       }
     }
-    // on mount
-    if (onMount) onMount.bind(component)(node);
-    _.prevNode = node;
     parentNode = node;
-    _.prevBaseProps = inheritedBaseProps;
     inheritedBaseProps = _START_BASE_PROPS;
     isTopNode = false;
   } else {
@@ -410,10 +406,6 @@ function _render(component: Component, parentNode: ElementType, _inheritedBasePr
     }
     if (name) inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
   }
-  // set prev state
-  _.prevIndexedChildCount = _indexedChildCount;
-  _.prevState = {..._.state};
-  _.prevComponent = component;
   // children
   const usedKeys = new Set();
   for (let child of component.children) {
@@ -426,6 +418,13 @@ function _render(component: Component, parentNode: ElementType, _inheritedBasePr
     child_.gcFlag = _.gcFlag;
     _render(child, parentNode, inheritedBaseProps, isTopNode);
   }
+  // on mount
+  if (onMount) onMount();
+  _.prevNode = node;
+  _.prevBaseProps = inheritedBaseProps;
+  _.prevIndexedChildCount = _indexedChildCount;
+  _.prevState = {..._.state};
+  _.prevComponent = component;
 }
 
 // rerender
@@ -521,6 +520,38 @@ const icon = makeComponent(function icon(iconName: string, props: IconProps = {}
 const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
   this.append(icon("progress_activity", props));
 });
+const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseProps = {}) {
+  const node = this.useNode(document.createElement("legend"));
+  node.innerText = text;
+}, {
+  name: "legend",
+});
+type DialogProps = BaseProps & {
+  open: boolean;
+  onClose: () => void;
+  closeOnClickBackdrop?: boolean;
+};
+const dialog = makeComponent(function dialog(props: DialogProps) {
+  const {open, onClose, closeOnClickBackdrop} = props;
+  const state = this.useState({ prevOpen: false });
+  const e = this.useNode(document.createElement("dialog"));
+  e.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === e)) onClose();
+  }
+  const onLoad = () => {
+    if (open !== state.prevOpen) {
+      if (open) {
+        e.showModal();
+      } else {
+        e.close();
+      }
+      state.prevOpen = open;
+    }
+  };
+  return {
+    onMount: onLoad,
+  }
+});
 
 type ButtonProps = {
   size?: Size;
@@ -594,12 +625,6 @@ const input = makeComponent(function input(props: InputProps) {
       e.value = allowedValue;
     }
   };
-});
-const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseProps = {}) {
-  const node = this.useNode(document.createElement("legend"));
-  node.innerText = text;
-}, {
-  name: "legend",
 });
 type LabeledInputProps = {
   label?: string;
