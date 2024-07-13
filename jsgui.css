@@ -180,6 +180,8 @@ dialog::backdrop {
   outline: none;
   box-shadow: none;
   background: transparent;
+  pointer-events: none;
+  user-select: contain;
 }
 .popup[data-show="false"] {
   overflow: hidden;
@@ -189,15 +191,16 @@ dialog::backdrop {
   overflow: visible;
   height: auto;
 }
-.popup[data-mouse="true"] {
-  pointer-events: none;
-  user-select: none;
-}
+/* TODO: make popup be at top z level */
 .popupContentWrapper {
   width: fit-content;
   border-radius: 8px;
   padding: 4px 8px;
   background: lightgray; /* TODO: background color */
+  pointer-events: auto;
+}
+.popup[data-mouse="true"] {
+  pointer-events: none;
 }
 /* inputs */
 button {
