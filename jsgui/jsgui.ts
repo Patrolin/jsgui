@@ -643,17 +643,24 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     state.open = true;
     this.rerender();
   };
-  if (direction === "mouse") {
-    wrapper.onmousemove = (event: MouseEvent) => {
-      state.mousePos = [event.clientX, event.clientY];
-      this.rerender();
-    }
-  }
   const onClose = () => {
     state.open = false;
     this.rerender();
   };
   wrapper.onmouseleave = onClose;
+  if (direction === "mouse") {
+    wrapper.onmousemove = (event: MouseEvent) => {
+      const [x, y] = [event.clientX, event.clientY]
+      state.mousePos = [x, y];
+      const wrapperRect = wrapper.getBoundingClientRect();
+      if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
+        state.open = false;
+      } else {
+        state.open = true;
+      }
+      this.rerender();
+    }
+  }
   const popup = this.append(dialog({
     open: true,
     onClose,

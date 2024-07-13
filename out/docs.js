@@ -707,17 +707,25 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         state.open = true;
         _this.rerender();
     };
-    if (direction === "mouse") {
-        wrapper.onmousemove = function (event) {
-            state.mousePos = [event.clientX, event.clientY];
-            _this.rerender();
-        };
-    }
     var onClose = function () {
         state.open = false;
         _this.rerender();
     };
     wrapper.onmouseleave = onClose;
+    if (direction === "mouse") {
+        wrapper.onmousemove = function (event) {
+            var _a = [event.clientX, event.clientY], x = _a[0], y = _a[1];
+            state.mousePos = [x, y];
+            var wrapperRect = wrapper.getBoundingClientRect();
+            if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
+                state.open = false;
+            }
+            else {
+                state.open = true;
+            }
+            _this.rerender();
+        };
+    }
     var popup = this.append(dialog({
         open: true,
         onClose: onClose,

@@ -201,6 +201,7 @@ dialog::backdrop {
 }
 .popup[data-mouse="true"] {
   pointer-events: none;
+  user-select: none;
 }
 /* inputs */
 button {
