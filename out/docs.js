@@ -596,18 +596,18 @@ var span = makeComponent(function _span(text, props) {
         className.push("ellipsis");
     if (fontFamily)
         style.fontFamily = "var(--fontFamily-".concat(fontFamily, ")"); // TODO: remove style?
-    if (isLink) {
+    if (isLink)
         e.href = href;
-    }
-    else {
-        attribute.tabindex = "-1";
-        attribute.clickable = "true";
-    }
-    if (onClick || (navigate && href)) {
+    navigate = (navigate !== null && navigate !== void 0 ? navigate : this.useNavigate().pushRoute);
+    if (onClick || href) {
+        if (!isLink) {
+            attribute.tabindex = "-1";
+            attribute.clickable = "true";
+        }
         e.onclick = function (event) {
             if (onClick)
                 onClick(event);
-            if (navigate && href) {
+            if (href) {
                 event.preventDefault();
                 navigate(href);
             }

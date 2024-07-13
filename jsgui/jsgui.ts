@@ -529,16 +529,16 @@ const span = makeComponent(function _span(text: string | number | null | undefin
   if (color) style.color = `var(--${color})`; // TODO: remove style?
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`; // TODO: remove style?
-  if (isLink) {
-    (e as HTMLAnchorElement).href = href;
-  } else {
-    attribute.tabindex = "-1";
-    attribute.clickable = "true";
-  }
-  if (onClick || (navigate && href)) {
+  if (isLink) (e as HTMLAnchorElement).href = href;
+  navigate = (navigate ?? this.useNavigate().pushRoute);
+  if (onClick || href) {
+    if (!isLink) {
+      attribute.tabindex = "-1";
+      attribute.clickable = "true";
+    }
     e.onclick = (event) => {
       if (onClick) onClick(event);
-      if (navigate && href) {
+      if (href) {
         event.preventDefault();
         navigate(href);
       }
