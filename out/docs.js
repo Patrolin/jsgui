@@ -241,10 +241,10 @@ var Component = /** @class */ (function () {
     };
     Component.prototype.useNavigate = function () {
         return {
-            pushRoute: function (url) { return location.href = url; },
-            replaceRoute: function (url) { return location.replace(url); },
-            pushHistory: function (url) { return history.pushState(null, "", url); },
-            replaceHistory: function (url) { return history.replaceState(null, "", url); },
+            pushRoute: function (url) { return location.href = url; }, // add url to history and reload page
+            replaceRoute: function (url) { return location.replace(url); }, // replace url in history and reload page
+            pushHistory: function (url) { return history.pushState(null, "", url); }, // add url to history
+            replaceHistory: function (url) { return history.replaceState(null, "", url); }, // replace url in history
         };
     };
     Component.prototype.rerender = function () {

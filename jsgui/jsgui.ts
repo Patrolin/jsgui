@@ -93,9 +93,13 @@ type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => {
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 type NavigateFunction = (url: string) => void;
 type UseNavigate = {
+  /** add url to history and reload page */
   pushRoute: NavigateFunction;
+  /** replace url in history and reload page */
   replaceRoute: NavigateFunction;
+  /** add url to history */
   pushHistory: NavigateFunction;
+  /** replace url in history */
   replaceHistory: NavigateFunction;
 }
 // component
@@ -198,10 +202,10 @@ class Component {
   }
   useNavigate(): UseNavigate {
     return {
-      pushRoute: (url: string) => location.href = url,
-      replaceRoute: (url: string) => location.replace(url),
-      pushHistory: (url: string) => history.pushState(null, "", url),
-      replaceHistory: (url: string) => history.replaceState(null, "", url),
+      pushRoute: (url: string) => location.href = url, // add url to history and reload page
+      replaceRoute: (url: string) => location.replace(url), // replace url in history and reload page
+      pushHistory: (url: string) => history.pushState(null, "", url), // add url to history
+      replaceHistory: (url: string) => history.replaceState(null, "", url), // replace url in history
     }
   }
   rerender() {
