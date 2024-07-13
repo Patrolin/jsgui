@@ -199,7 +199,7 @@ dialog::backdrop {
   background: lightgray; /* TODO: background color */
   pointer-events: auto;
 }
-.popup[data-mouse="true"] {
+.popup[data-mouse="true"], .popup[data-mouse="true"] > .popupContentWrapper {
   pointer-events: none;
   user-select: none;
 }

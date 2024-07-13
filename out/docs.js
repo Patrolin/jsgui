@@ -239,10 +239,6 @@ var Component = /** @class */ (function () {
         _dispatchTargets.windowResize.addComponent(this);
         return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
     };
-    Component.prototype.useMouse = function () {
-        _dispatchTargets.mouseMove.addComponent(this);
-        return _dispatchTargets.mouseMove.state;
-    };
     Component.prototype.useNavigate = function () {
         return {
             pushRoute: function (url) { return location.href = url; },
@@ -368,22 +364,21 @@ var _dispatchTargets = {
     }),
     anyScroll: new DispatchTarget(),
     windowResize: new DispatchTarget(function (dispatch) { return window.addEventListener("resize", dispatch); }),
-    mouseMove: new DispatchTarget(function (dispatch) {
-        var state = { x: -1, y: -1 };
-        window.addEventListener("mousemove", function (event) {
-            state.x = event.clientX;
-            state.y = event.clientY;
-            dispatch();
-        });
-        return state;
-    }),
+    /*mouseMove: new DispatchTarget((dispatch) => {
+      const state = {x: -1, y: -1};
+      window.addEventListener("mousemove", (event) => {
+        state.x = event.clientX;
+        state.y = event.clientY;
+        dispatch();
+      });
+      return state;
+    }),*/
     removeComponent: function (component) {
         _dispatchTargets.media.removeComponent(component);
         _dispatchTargets.localStorage.removeComponent(component);
         _dispatchTargets.locationHash.removeComponent(component);
         _dispatchTargets.anyScroll.removeComponent(component);
         _dispatchTargets.windowResize.removeComponent(component);
-        _dispatchTargets.mouseMove.removeComponent(component);
     },
 };
 function _scrollToLocationHash() {
@@ -711,7 +706,7 @@ function _computeScrollbarWidth() {
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var _this = this;
     var popupContent = props.popupContent, _a = props.direction, direction = _a === void 0 ? "up" : _a;
-    var state = this.useState({ open: false });
+    var state = this.useState({ open: false, mouse: { x: -1, y: -1 } });
     var wrapper = this.useNode(document.createElement("div"));
     wrapper.onmouseenter = function () {
         state.open = true;
@@ -722,17 +717,20 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         _this.rerender();
     };
     var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
-    var mouse = { x: -1, y: -1 };
     if (direction === "mouse") {
-        mouse = this.useMouse();
-        var wrapperRect = wrapper.getBoundingClientRect();
-        var x = mouse.x, y = mouse.y;
-        if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
-            state.open = false;
-        }
-        else {
-            state.open = true;
-        }
+        wrapper.onmousemove = function (event) {
+            var x = event.clientX;
+            var y = event.clientY;
+            state.mouse = { x: x, y: y };
+            var wrapperRect = wrapper.getBoundingClientRect();
+            if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
+                state.open = false;
+            }
+            else {
+                state.open = true;
+            }
+            _this.rerender();
+        };
     }
     var popup = this.append(dialog({
         open: true,
@@ -766,8 +764,8 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 ];
             case "mouse":
                 return [
-                    mouse.x - wrapperRect.left,
-                    mouse.y - wrapperRect.top - popupRect.height
+                    state.mouse.x - wrapperRect.left,
+                    state.mouse.y - wrapperRect.top - popupRect.height
                 ];
         }
     };
@@ -843,6 +841,8 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     };
     return {
         onMount: function () {
+            if (!state.open)
+                return;
             var popupNode = popup._.prevNode;
             var popupContentWrapperNode = popupContentWrapper._.prevNode;
             var wrapperRect = wrapper.getBoundingClientRect();
