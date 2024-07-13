@@ -36,6 +36,7 @@ const iconSection = makeComponent(function spanSection() {
   // TODO: circle buttons
 });
 const dialogSection = makeComponent(function dialogSection() {
+  const row = this.append(div({ className: "displayRow" }));
   const state = this.useState({ dialogOpen: false });
   const openDialog = () => {
     state.dialogOpen = true;
@@ -45,8 +46,8 @@ const dialogSection = makeComponent(function dialogSection() {
     state.dialogOpen = false;
     this.rerender();
   };
-  this.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
-  const dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
+  row.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
+  const dialogWrapper = row.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
   dialogWrapper.append(span("Hello world"));
 });
 const popupSection = makeComponent(function popupSection() {
@@ -69,10 +70,11 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   const mdOrBigger = this.useMedia({ minWidth: 900 });
   const lgOrBigger = this.useMedia({ minWidth: 1200 });
   const xlOrBigger = this.useMedia({ minWidth: 1500 });
-  this.append(span(`smOrBigger: ${smOrBigger}`));
-  this.append(span(`mdOrBigger: ${mdOrBigger}`));
-  this.append(span(`lgOrBigger: ${lgOrBigger}`));
-  this.append(span(`xlOrBigger: ${xlOrBigger}`));
+  const column = this.append(div({ className: "displayColumn" }));
+  column.append(span(`smOrBigger: ${smOrBigger}`));
+  column.append(span(`mdOrBigger: ${mdOrBigger}`));
+  column.append(span(`lgOrBigger: ${lgOrBigger}`));
+  column.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
 const BASIC_COMPONENT_SECTIONS: MainPageSection[] = [
   {

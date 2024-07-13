@@ -1186,6 +1186,7 @@ var iconSection = makeComponent(function spanSection() {
 });
 var dialogSection = makeComponent(function dialogSection() {
     var _this = this;
+    var row = this.append(div({ className: "displayRow" }));
     var state = this.useState({ dialogOpen: false });
     var openDialog = function () {
         state.dialogOpen = true;
@@ -1195,8 +1196,8 @@ var dialogSection = makeComponent(function dialogSection() {
         state.dialogOpen = false;
         _this.rerender();
     };
-    this.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
-    var dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
+    row.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
+    var dialogWrapper = row.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
     dialogWrapper.append(span("Hello world"));
 });
 var popupSection = makeComponent(function popupSection() {
@@ -1220,10 +1221,11 @@ var mediaQuerySection = makeComponent(function mediaQuerySection() {
     var mdOrBigger = this.useMedia({ minWidth: 900 });
     var lgOrBigger = this.useMedia({ minWidth: 1200 });
     var xlOrBigger = this.useMedia({ minWidth: 1500 });
-    this.append(span("smOrBigger: ".concat(smOrBigger)));
-    this.append(span("mdOrBigger: ".concat(mdOrBigger)));
-    this.append(span("lgOrBigger: ".concat(lgOrBigger)));
-    this.append(span("xlOrBigger: ".concat(xlOrBigger)));
+    var column = this.append(div({ className: "displayColumn" }));
+    column.append(span("smOrBigger: ".concat(smOrBigger)));
+    column.append(span("mdOrBigger: ".concat(mdOrBigger)));
+    column.append(span("lgOrBigger: ".concat(lgOrBigger)));
+    column.append(span("xlOrBigger: ".concat(xlOrBigger)));
 });
 var BASIC_COMPONENT_SECTIONS = [
     {
@@ -1296,7 +1298,8 @@ var tableSection = makeComponent(function tableSection() {
     var rows = Array(+(count !== null && count !== void 0 ? count : 0))
         .fill(0)
         .map(function (_, i) { return i; });
-    this.append(table({
+    var displayRow = this.append(div({ className: "wideDisplayRow" }));
+    displayRow.append(table({
         label: "Stuff",
         rows: rows,
         columns: [
@@ -1315,7 +1318,7 @@ var tableSection = makeComponent(function tableSection() {
         ],
     }));
     if ((count !== null && count !== void 0 ? count : 0) % 2 === 0) {
-        this.append(testKeysComponent({ key: "testKeysComponent" }));
+        displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
     }
 });
 var testKeysComponent = makeComponent(function testKeysComponent(_) {

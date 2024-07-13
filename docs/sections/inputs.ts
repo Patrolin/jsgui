@@ -41,7 +41,8 @@ const tableSection = makeComponent(function tableSection() {
   const rows = Array(+(count ?? 0))
     .fill(0)
     .map((_, i) => i);
-  this.append(
+  const displayRow = this.append(div({ className: "wideDisplayRow" }));
+  displayRow.append(
     table({
       label: "Stuff",
       rows,
@@ -62,7 +63,7 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    this.append(testKeysComponent({ key: "testKeysComponent" }));
+    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
   }
 });
 const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps) {
