@@ -20,6 +20,10 @@ function removeSuffix(value: string, prefix: string): string {
 function addPx(value: string | number) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
 }
+/** clamp value between min and max (defaulting to min) */
+function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(value, max));
+}
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
@@ -357,6 +361,7 @@ function renderRoot(rootComponent: Component, parentNode = null) {
   rootComponent._ = root_;
   window.onload = () => {
     root_.parentNode = root_.parentNode ?? document.body;
+    _computeScrollbarWidth();
     _render(rootComponent, root_.parentNode);
     requestAnimationFrame(() => {
       _scrollToLocationHash();
@@ -611,6 +616,15 @@ type PopupWrapperProps = {
   direction?: PopupDirection;
   // TODO: arrow?: boolean;
 };
+let SCROLLBAR_WIDTH = 0;
+function _computeScrollbarWidth() {
+  if (SCROLLBAR_WIDTH) return;
+  let e = document.createElement("div");
+  e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
+  document.body.append(e);
+  SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
+  e.remove();
+}
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
   let {popupContent, direction = "up"} = props;
   const state = this.useState({
@@ -618,14 +632,16 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     mousePos: [0, 0] as [number, number],
   });
   const wrapper = this.useNode(document.createElement("div"));
-  console.log('ayaya', state);
+  if (state.open) console.log('ayaya.state', state);
   wrapper.onmouseenter = () => {
     state.open = true;
     this.rerender();
   };
-  wrapper.onmousemove = (event: MouseEvent) => {
-    state.mousePos = [event.clientX, event.clientY];
-    this.rerender();
+  if (direction === "mouse") {
+    wrapper.onmousemove = (event: MouseEvent) => {
+      state.mousePos = [event.clientX, event.clientY];
+      this.rerender();
+    }
   }
   const onClose = () => {
     state.open = false;
@@ -637,11 +653,11 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     onClose,
     isPopover: true,
     className: "popup",
-    attribute: {dataShow: state.open},
+    attribute: {dataShow: state.open, dataMouse: direction === "mouse"},
   }));
   const popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
   popupContentWrapper.append(popupContent);
-  const getRelativeTopLeft = (wrapperRect: DOMRect, popupRect: DOMRect) => {
+  const getTopLeft = (wrapperRect: DOMRect, popupRect: DOMRect) => {
     switch (direction) {
       case "up":
         return [
@@ -665,8 +681,8 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         ];
       case "mouse":
         return [
-          state.mousePos[0] - wrapperRect.left + 0.5*popupRect.width,
-          state.mousePos[1] - wrapperRect.top + 0.5*popupRect.height
+          state.mousePos[0] - wrapperRect.left,
+          state.mousePos[1] - wrapperRect.top - popupRect.height
         ];
     }
   };
@@ -678,8 +694,8 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
       absoluteLeft: wrapperRect.left + left,
     };
   }
-  const getRelativeTopLeftWithFlip = (wrapperRect: DOMRect, popupRect: DOMRect) => {
-    let [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+  const getTopLeftWithFlip = (wrapperRect: DOMRect, popupRect: DOMRect) => {
+    let [left, top] = getTopLeft(wrapperRect, popupRect);
     const windowRight = window.innerWidth;
     const windowBottom = window.innerHeight;
     switch (direction) {
@@ -687,14 +703,14 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         const {absoluteTop} = getAbsoluteTopLeft(wrapperRect, left, top);
         if (absoluteTop < 0) {
           direction = "down";
-          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+          [left, top] = getTopLeft(wrapperRect, popupRect);
         }
       }
       case "down": {
         const {absoluteBottom} = getAbsoluteTopLeft(wrapperRect, left, top);
         if (absoluteBottom >= windowBottom) {
           direction = "down";
-          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+          [left, top] = getTopLeft(wrapperRect, popupRect);
         }
         break;
       }
@@ -702,7 +718,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         const {absoluteLeft} = getAbsoluteTopLeft(wrapperRect, left, top);
         if (absoluteLeft >= 0) {
           direction = "right";
-          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+          [left, top] = getTopLeft(wrapperRect, popupRect);
         }
         break;
       }
@@ -710,8 +726,36 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         const {absoluteRight} = getAbsoluteTopLeft(wrapperRect, left, top);
         if (absoluteRight >= windowRight) {
           direction = "left";
-          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+          [left, top] = getTopLeft(wrapperRect, popupRect);
         }
+        break;
+      }
+    }
+    return [left, top];
+  }
+  const getTopLeftWithFlipAndClamp = (wrapperRect: DOMRect, popupRect: DOMRect) => {
+    let [left, top] = getTopLeftWithFlip(wrapperRect, popupRect);
+    const windowRight = window.innerWidth;
+    const windowBottom = window.innerHeight;
+    switch (direction) {
+      case "up":
+      case "down":
+      case "mouse": {
+        const minLeft = -wrapperRect.left;
+        const maxLeft = windowRight - wrapperRect.left - popupRect.width - SCROLLBAR_WIDTH;
+        if (state.open) console.log("ayaya.clamp.1", left, minLeft, maxLeft)
+        left = clamp(left, minLeft, maxLeft);
+        if (state.open) console.log("ayaya.clamp.2", left)
+        break;
+      }
+    }
+    switch (direction) {
+      case "left":
+      case "right":
+      case "mouse": {
+        const minTop = -wrapperRect.top;
+        const maxTop = windowBottom - wrapperRect.top - popupRect.height - SCROLLBAR_WIDTH;
+        top = clamp(top, minTop, maxTop);
         break;
       }
     }
@@ -724,7 +768,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
       const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
       const wrapperRect = wrapper.getBoundingClientRect();
       const popupRect = popupContentWrapperNode.getBoundingClientRect();
-      const [left, top] = getRelativeTopLeftWithFlip(wrapperRect, popupRect);
+      const [left, top] = getTopLeftWithFlipAndClamp(wrapperRect, popupRect);
       popupNode.style.left = addPx(left);
       popupNode.style.top = addPx(top);
     }

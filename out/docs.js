@@ -109,6 +109,10 @@ function addPx(value) {
     var _a;
     return (((_a = value === null || value === void 0 ? void 0 : value.constructor) === null || _a === void 0 ? void 0 : _a.name) === "Number") ? "".concat(value, "px") : value;
 }
+/** clamp value between min and max (defaulting to min) */
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+}
 function getDiff(oldValue, newValue) {
     var _a, _b;
     var diffMap = {};
@@ -407,6 +411,7 @@ function renderRoot(rootComponent, parentNode) {
     window.onload = function () {
         var _a;
         root_.parentNode = (_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body;
+        _computeScrollbarWidth();
         _render(rootComponent, root_.parentNode);
         requestAnimationFrame(function () {
             _scrollToLocationHash();
@@ -672,6 +677,16 @@ var dialog = makeComponent(function dialog(props) {
         },
     };
 });
+var SCROLLBAR_WIDTH = 0;
+function _computeScrollbarWidth() {
+    if (SCROLLBAR_WIDTH)
+        return;
+    var e = document.createElement("div");
+    e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
+    document.body.append(e);
+    SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
+    e.remove();
+}
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var _this = this;
     var popupContent = props.popupContent, _a = props.direction, direction = _a === void 0 ? "up" : _a;
@@ -680,15 +695,18 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         mousePos: [0, 0],
     });
     var wrapper = this.useNode(document.createElement("div"));
-    console.log('ayaya', state);
+    if (state.open)
+        console.log('ayaya.state', state);
     wrapper.onmouseenter = function () {
         state.open = true;
         _this.rerender();
     };
-    wrapper.onmousemove = function (event) {
-        state.mousePos = [event.clientX, event.clientY];
-        _this.rerender();
-    };
+    if (direction === "mouse") {
+        wrapper.onmousemove = function (event) {
+            state.mousePos = [event.clientX, event.clientY];
+            _this.rerender();
+        };
+    }
     var onClose = function () {
         state.open = false;
         _this.rerender();
@@ -699,11 +717,11 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         onClose: onClose,
         isPopover: true,
         className: "popup",
-        attribute: { dataShow: state.open },
+        attribute: { dataShow: state.open, dataMouse: direction === "mouse" },
     }));
     var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
     popupContentWrapper.append(popupContent);
-    var getRelativeTopLeft = function (wrapperRect, popupRect) {
+    var getTopLeft = function (wrapperRect, popupRect) {
         switch (direction) {
             case "up":
                 return [
@@ -727,8 +745,8 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 ];
             case "mouse":
                 return [
-                    state.mousePos[0] - wrapperRect.left + 0.5 * popupRect.width,
-                    state.mousePos[1] - wrapperRect.top + 0.5 * popupRect.height
+                    state.mousePos[0] - wrapperRect.left,
+                    state.mousePos[1] - wrapperRect.top - popupRect.height
                 ];
         }
     };
@@ -740,9 +758,9 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
             absoluteLeft: wrapperRect.left + left,
         };
     };
-    var getRelativeTopLeftWithFlip = function (wrapperRect, popupRect) {
+    var getTopLeftWithFlip = function (wrapperRect, popupRect) {
         var _a, _b, _c, _d;
-        var _e = getRelativeTopLeft(wrapperRect, popupRect), left = _e[0], top = _e[1];
+        var _e = getTopLeft(wrapperRect, popupRect), left = _e[0], top = _e[1];
         var windowRight = window.innerWidth;
         var windowBottom = window.innerHeight;
         switch (direction) {
@@ -750,14 +768,14 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 var absoluteTop = getAbsoluteTopLeft(wrapperRect, left, top).absoluteTop;
                 if (absoluteTop < 0) {
                     direction = "down";
-                    _a = getRelativeTopLeft(wrapperRect, popupRect), left = _a[0], top = _a[1];
+                    _a = getTopLeft(wrapperRect, popupRect), left = _a[0], top = _a[1];
                 }
             }
             case "down": {
                 var absoluteBottom = getAbsoluteTopLeft(wrapperRect, left, top).absoluteBottom;
                 if (absoluteBottom >= windowBottom) {
                     direction = "down";
-                    _b = getRelativeTopLeft(wrapperRect, popupRect), left = _b[0], top = _b[1];
+                    _b = getTopLeft(wrapperRect, popupRect), left = _b[0], top = _b[1];
                 }
                 break;
             }
@@ -765,7 +783,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 var absoluteLeft = getAbsoluteTopLeft(wrapperRect, left, top).absoluteLeft;
                 if (absoluteLeft >= 0) {
                     direction = "right";
-                    _c = getRelativeTopLeft(wrapperRect, popupRect), left = _c[0], top = _c[1];
+                    _c = getTopLeft(wrapperRect, popupRect), left = _c[0], top = _c[1];
                 }
                 break;
             }
@@ -773,8 +791,38 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 var absoluteRight = getAbsoluteTopLeft(wrapperRect, left, top).absoluteRight;
                 if (absoluteRight >= windowRight) {
                     direction = "left";
-                    _d = getRelativeTopLeft(wrapperRect, popupRect), left = _d[0], top = _d[1];
+                    _d = getTopLeft(wrapperRect, popupRect), left = _d[0], top = _d[1];
                 }
+                break;
+            }
+        }
+        return [left, top];
+    };
+    var getTopLeftWithFlipAndClamp = function (wrapperRect, popupRect) {
+        var _a = getTopLeftWithFlip(wrapperRect, popupRect), left = _a[0], top = _a[1];
+        var windowRight = window.innerWidth;
+        var windowBottom = window.innerHeight;
+        switch (direction) {
+            case "up":
+            case "down":
+            case "mouse": {
+                var minLeft = -wrapperRect.left;
+                var maxLeft = windowRight - wrapperRect.left - popupRect.width - SCROLLBAR_WIDTH;
+                if (state.open)
+                    console.log("ayaya.clamp.1", left, minLeft, maxLeft);
+                left = clamp(left, minLeft, maxLeft);
+                if (state.open)
+                    console.log("ayaya.clamp.2", left);
+                break;
+            }
+        }
+        switch (direction) {
+            case "left":
+            case "right":
+            case "mouse": {
+                var minTop = -wrapperRect.top;
+                var maxTop = windowBottom - wrapperRect.top - popupRect.height - SCROLLBAR_WIDTH;
+                top = clamp(top, minTop, maxTop);
                 break;
             }
         }
@@ -787,7 +835,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
             var popupContentWrapperNode = popupContentWrapper._.prevNode;
             var wrapperRect = wrapper.getBoundingClientRect();
             var popupRect = popupContentWrapperNode.getBoundingClientRect();
-            var _a = getRelativeTopLeftWithFlip(wrapperRect, popupRect), left = _a[0], top = _a[1];
+            var _a = getTopLeftWithFlipAndClamp(wrapperRect, popupRect), left = _a[0], top = _a[1];
             popupNode.style.left = addPx(left);
             popupNode.style.top = addPx(top);
         }
@@ -1136,6 +1184,79 @@ var iconSection = makeComponent(function spanSection() {
     }
     // TODO: circle buttons
 });
+var dialogSection = makeComponent(function dialogSection() {
+    var _this = this;
+    var state = this.useState({ dialogOpen: false });
+    var openDialog = function () {
+        state.dialogOpen = true;
+        _this.rerender();
+    };
+    var closeDialog = function () {
+        state.dialogOpen = false;
+        _this.rerender();
+    };
+    this.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
+    var dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
+    dialogWrapper.append(span("Hello world"));
+});
+var popupSection = makeComponent(function popupSection() {
+    for (var _i = 0, _a = ["up", "right", "mouse"]; _i < _a.length; _i++) {
+        var direction = _a[_i];
+        var row = this.append(div({ className: "wideDisplayRow" }));
+        var dialogWrapperA = row.append(popupWrapper({
+            popupContent: span("Tiny"),
+            direction: direction,
+        }));
+        dialogWrapperA.append(span("direction: \"".concat(direction, "\"")));
+        var dialogWrapperB = row.append(popupWrapper({
+            popupContent: span("I can be too big to naively fit on the screen!"),
+            direction: direction,
+        }));
+        dialogWrapperB.append(span("direction: \"".concat(direction, "\"")));
+    }
+});
+var mediaQuerySection = makeComponent(function mediaQuerySection() {
+    var smOrBigger = this.useMedia({ minWidth: 600 });
+    var mdOrBigger = this.useMedia({ minWidth: 900 });
+    var lgOrBigger = this.useMedia({ minWidth: 1200 });
+    var xlOrBigger = this.useMedia({ minWidth: 1500 });
+    this.append(span("smOrBigger: ".concat(smOrBigger)));
+    this.append(span("mdOrBigger: ".concat(mdOrBigger)));
+    this.append(span("lgOrBigger: ".concat(lgOrBigger)));
+    this.append(span("xlOrBigger: ".concat(xlOrBigger)));
+});
+var BASIC_COMPONENT_SECTIONS = [
+    {
+        label: "Span",
+        id: "span",
+        component: spanSection,
+    },
+    {
+        label: "Button",
+        id: "button",
+        component: buttonSection,
+    },
+    {
+        label: "Icon",
+        id: "icon",
+        component: iconSection,
+    },
+    {
+        label: "Dialog",
+        id: "dialog",
+        component: dialogSection,
+    },
+    {
+        label: "Popup",
+        id: "popup",
+        component: popupSection,
+    },
+    {
+        label: "Media query",
+        id: "mediaQuery",
+        component: mediaQuerySection,
+    },
+];
 var textInputSection = makeComponent(function textInputSection() {
     var _this = this;
     var state = this.useState({ username: "" });
@@ -1194,59 +1315,13 @@ var tableSection = makeComponent(function tableSection() {
         ],
     }));
     if ((count !== null && count !== void 0 ? count : 0) % 2 === 0) {
-        //this.append(testKeysComponent({ key: "testKeysComponent" }));
+        this.append(testKeysComponent({ key: "testKeysComponent" }));
     }
 });
 var testKeysComponent = makeComponent(function testKeysComponent(_) {
     this.append(span(""));
 });
-var mediaQuerySection = makeComponent(function mediaQuerySection() {
-    var smOrBigger = this.useMedia({ minWidth: 600 });
-    var mdOrBigger = this.useMedia({ minWidth: 900 });
-    var lgOrBigger = this.useMedia({ minWidth: 1200 });
-    var xlOrBigger = this.useMedia({ minWidth: 1500 });
-    this.append(span("smOrBigger: ".concat(smOrBigger)));
-    this.append(span("mdOrBigger: ".concat(mdOrBigger)));
-    this.append(span("lgOrBigger: ".concat(lgOrBigger)));
-    this.append(span("xlOrBigger: ".concat(xlOrBigger)));
-});
-var dialogSection = makeComponent(function dialogSection() {
-    var _this = this;
-    var state = this.useState({ dialogOpen: false });
-    var openDialog = function () {
-        state.dialogOpen = true;
-        _this.rerender();
-    };
-    var closeDialog = function () {
-        state.dialogOpen = false;
-        _this.rerender();
-    };
-    this.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
-    var dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
-    dialogWrapper.append(span("hello world"));
-});
-var popupSection = makeComponent(function popupSection() {
-    var dialogWrapper = this.append(popupWrapper({
-        popupContent: span("Hello world"),
-    }));
-    dialogWrapper.append(span("Hover over me!"));
-});
-var MAIN_PAGE_SECTIONS = [
-    {
-        label: "Span",
-        id: "span",
-        component: spanSection,
-    },
-    {
-        label: "Button",
-        id: "button",
-        component: buttonSection,
-    },
-    {
-        label: "Icon",
-        id: "icon",
-        component: iconSection,
-    },
+var INPUT_SECTIONS = [
     {
         label: "Text input",
         id: "textInput",
@@ -1257,22 +1332,8 @@ var MAIN_PAGE_SECTIONS = [
         id: "table",
         component: tableSection,
     },
-    {
-        label: "Media query",
-        id: "mediaQuery",
-        component: mediaQuerySection,
-    },
-    {
-        label: "Dialog",
-        id: "dialog",
-        component: dialogSection,
-    },
-    {
-        label: "Popup",
-        id: "popup",
-        component: popupSection,
-    }
 ];
+var MAIN_PAGE_SECTIONS = __spreadArray(__spreadArray([], BASIC_COMPONENT_SECTIONS, true), INPUT_SECTIONS, true);
 var mainPage = makeComponent(function mainPage() {
     var wrapper = this.append(div({
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
