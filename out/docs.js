@@ -220,7 +220,13 @@ var Component = /** @class */ (function () {
         var setValue = function (newValue) {
             localStorage.setItem(key, JSON.stringify([newValue]));
         };
-        return [value, setValue];
+        var setValueAndDispatch = function (newValue) {
+            setValue(newValue);
+            if (JSON.stringify([newValue]) !== localStorage[key]) {
+                _dispatchTargets.localStorage.dispatch();
+            }
+        };
+        return [value, setValue, setValueAndDispatch];
     };
     Component.prototype.useLocationHash = function () {
         _dispatchTargets.locationHash.addComponent(this);
@@ -630,7 +636,7 @@ var span = makeComponent(function _span(text, props) {
             }
         };
     }
-    e.innerText = iconName || (text == null ? "" : String(text));
+    e.innerText = iconName || (text == null ? "" : String(text)); // TODO: don't change innerText if equal?
 }, { name: "span" });
 var icon = makeComponent(function icon(iconName, props) {
     if (props === void 0) { props = {}; }
@@ -828,7 +834,6 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         }
         return [left, top];
     };
-    // TODO: move back inside window rect
     return {
         onMount: function () {
             var popupNode = popup._.prevNode;
@@ -1099,13 +1104,6 @@ var router = makeComponent(function router(props) {
 });
 /*
 TODO: documentation
-  div({...})
-  span(text)
-  span(text, {href})
-  icon(iconName)
-  textInput({label, value})
-  numberInput({label, value})
-  loadingSpinner()
   router()
   validation api
     const validate = this.useValidate((errors) => {
@@ -1116,15 +1114,13 @@ TODO: documentation
         // ...
       }
     }
-  useState()
   useLocalStorage()
   useNavigate()
 */
-// TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
-// TODO: tooltips, badges
+// TODO: more input components (icon button, radio, checkbox/switch, select, date/date range input, file input)
+// TODO: badgeWrapper
 // TODO: snackbar api
-// TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
-// TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
+// https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 function getSizeLabel(size) {
     return size[0].toUpperCase() + size.slice(1);
 }

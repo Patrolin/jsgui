@@ -150,7 +150,7 @@ class Component {
     }
     return _.state as T;
   }
-  useValidate<K extends string>(getErrors: GetErrorsFunction<K>) { // TODO: document this
+  useValidate<K extends string>(getErrors: GetErrorsFunction<K>) {
     return () => {
       let errors: Partial<Record<K, string>> = {};
       getErrors(errors);
@@ -171,13 +171,19 @@ class Component {
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
   }
-  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] { // TODO: signal same page option
+  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void, (newValue: T) => void] {
     _dispatchTargets.localStorage.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
     const setValue = (newValue: T) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
     }
-    return [value, setValue];
+    const setValueAndDispatch = (newValue: T) => {
+      setValue(newValue);
+      if (JSON.stringify([newValue]) !== localStorage[key]) {
+        _dispatchTargets.localStorage.dispatch();
+      }
+    }
+    return [value, setValue, setValueAndDispatch];
   }
   useLocationHash(): string { // TODO: use location
     _dispatchTargets.locationHash.addComponent(this);
@@ -561,7 +567,7 @@ const span = makeComponent(function _span(text: string | number | null | undefin
       }
     }
   }
-  e.innerText = iconName || (text == null ? "" : String(text));
+  e.innerText = iconName || (text == null ? "" : String(text)); // TODO: don't change innerText if equal?
 }, { name: "span" });
 // https://fonts.google.com/icons
 type IconProps = SpanProps;
@@ -761,7 +767,6 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     }
     return [left, top];
   }
-  // TODO: move back inside window rect
   return {
     onMount: () => {
       const popupNode = popup._.prevNode as HTMLDialogElement;
@@ -1104,13 +1109,6 @@ const router = makeComponent(function router(props: RouterProps) {
 });
 /*
 TODO: documentation
-  div({...})
-  span(text)
-  span(text, {href})
-  icon(iconName)
-  textInput({label, value})
-  numberInput({label, value})
-  loadingSpinner()
   router()
   validation api
     const validate = this.useValidate((errors) => {
@@ -1121,12 +1119,10 @@ TODO: documentation
         // ...
       }
     }
-  useState()
   useLocalStorage()
   useNavigate()
 */
-// TODO: more input components (button, radio, checkbox/switch, select, date/date range input, file input)
-// TODO: tooltips, badges
+// TODO: more input components (icon button, radio, checkbox/switch, select, date/date range input, file input)
+// TODO: badgeWrapper
 // TODO: snackbar api
-// TODO: https://developer.mozilla.org/en-US/docs/Web/API/Popover_API ?
-// TODO: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog ?
+// https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
