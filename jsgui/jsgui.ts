@@ -709,26 +709,18 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         ];
     }
   };
-  const getAbsoluteTopLeft = (wrapperRect: DOMRect, left: number, top: number) => { // TODO: inline this
-    return {
-      absoluteTop: wrapperRect.top + top,
-      absoluteRight: wrapperRect.right + left,
-      absoluteBottom: wrapperRect.bottom + top,
-      absoluteLeft: wrapperRect.left + left,
-    };
-  }
   const getTopLeftWithFlip = (wrapperRect: DOMRect, popupRect: DOMRect) => {
     let [left, top] = getTopLeft(wrapperRect, popupRect);
     switch (direction) {
       case "up": {
-        const {absoluteTop} = getAbsoluteTopLeft(wrapperRect, left, top);
+        const absoluteTop = wrapperRect.top + top;
         if (absoluteTop < 0) {
           direction = "down";
           [left, top] = getTopLeft(wrapperRect, popupRect);
         }
       }
       case "down": {
-        const {absoluteBottom} = getAbsoluteTopLeft(wrapperRect, left, top);
+        const absoluteBottom = wrapperRect.bottom + top;
         if (absoluteBottom >= windowBottom) {
           direction = "down";
           [left, top] = getTopLeft(wrapperRect, popupRect);
@@ -736,7 +728,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         break;
       }
       case "left": {
-        const {absoluteLeft} = getAbsoluteTopLeft(wrapperRect, left, top);
+        const absoluteLeft = wrapperRect.left + left;
         if (absoluteLeft >= 0) {
           direction = "right";
           [left, top] = getTopLeft(wrapperRect, popupRect);
@@ -744,7 +736,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         break;
       }
       case "right": {
-        const {absoluteRight} = getAbsoluteTopLeft(wrapperRect, left, top);
+        const absoluteRight = wrapperRect.right + left;
         if (absoluteRight >= windowRight) {
           direction = "left";
           [left, top] = getTopLeft(wrapperRect, popupRect);

@@ -769,27 +769,19 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 ];
         }
     };
-    var getAbsoluteTopLeft = function (wrapperRect, left, top) {
-        return {
-            absoluteTop: wrapperRect.top + top,
-            absoluteRight: wrapperRect.right + left,
-            absoluteBottom: wrapperRect.bottom + top,
-            absoluteLeft: wrapperRect.left + left,
-        };
-    };
     var getTopLeftWithFlip = function (wrapperRect, popupRect) {
         var _a, _b, _c, _d;
         var _e = getTopLeft(wrapperRect, popupRect), left = _e[0], top = _e[1];
         switch (direction) {
             case "up": {
-                var absoluteTop = getAbsoluteTopLeft(wrapperRect, left, top).absoluteTop;
+                var absoluteTop = wrapperRect.top + top;
                 if (absoluteTop < 0) {
                     direction = "down";
                     _a = getTopLeft(wrapperRect, popupRect), left = _a[0], top = _a[1];
                 }
             }
             case "down": {
-                var absoluteBottom = getAbsoluteTopLeft(wrapperRect, left, top).absoluteBottom;
+                var absoluteBottom = wrapperRect.bottom + top;
                 if (absoluteBottom >= windowBottom) {
                     direction = "down";
                     _b = getTopLeft(wrapperRect, popupRect), left = _b[0], top = _b[1];
@@ -797,7 +789,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 break;
             }
             case "left": {
-                var absoluteLeft = getAbsoluteTopLeft(wrapperRect, left, top).absoluteLeft;
+                var absoluteLeft = wrapperRect.left + left;
                 if (absoluteLeft >= 0) {
                     direction = "right";
                     _c = getTopLeft(wrapperRect, popupRect), left = _c[0], top = _c[1];
@@ -805,7 +797,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 break;
             }
             case "right": {
-                var absoluteRight = getAbsoluteTopLeft(wrapperRect, left, top).absoluteRight;
+                var absoluteRight = wrapperRect.right + left;
                 if (absoluteRight >= windowRight) {
                     direction = "left";
                     _d = getTopLeft(wrapperRect, popupRect), left = _d[0], top = _d[1];
