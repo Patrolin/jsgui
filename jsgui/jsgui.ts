@@ -709,7 +709,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         ];
     }
   };
-  const getAbsoluteTopLeft = (wrapperRect: DOMRect, left: number, top: number) => {
+  const getAbsoluteTopLeft = (wrapperRect: DOMRect, left: number, top: number) => { // TODO: inline this
     return {
       absoluteTop: wrapperRect.top + top,
       absoluteRight: wrapperRect.right + left,
