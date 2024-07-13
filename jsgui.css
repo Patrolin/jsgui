@@ -147,6 +147,30 @@ dialog {
 dialog::backdrop {
   background: var(--gray-2);
 }
+.popupWrapper {
+  position: relative;
+}
+.popup {
+  position: absolute;
+  top: 0;
+  left: 0;
+  padding: 0;
+  margin: 0;
+  border: none;
+}
+.popup[data-show="false"] {
+  overflow: hidden;
+  height: 0;
+}
+.popup[data-show="true"] {
+  overflow: visible;
+  height: auto;
+}
+.popupContentWrapper {
+  border-radius: 8px;
+  padding: 4px 8px;
+  background: lightgray; /* TODO: background color */
+}
 /* inputs */
 button {
   border: none;

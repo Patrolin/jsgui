@@ -11,6 +11,12 @@ function parseJsonOrNull(jsonString: string): JSONValue {
 function camelCaseToKebabCase(key: string) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
+function removePrefix(value: string, prefix: string): string {
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+function removeSuffix(value: string, prefix: string): string {
+  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
+}
 function addPx(value: string | number) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
 }
@@ -159,7 +165,7 @@ class Component {
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
     const dispatchTarget = _dispatchTargets.media.addDispatchTarget(key);
     dispatchTarget.addComponent(this);
-    return dispatchTarget.state.matches;
+    return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
   }
   useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] { // TODO: signal same page option
     _dispatchTargets.localStorage.addComponent(this);
@@ -175,6 +181,9 @@ class Component {
   }
   useAnyScroll() {
     _dispatchTargets.anyScroll.addComponent(this);
+  }
+  useWindowResize() {
+    _dispatchTargets.windowResize.addComponent(this);
   }
   useNavigate(): UseNavigate {
     return {
@@ -295,10 +304,13 @@ const _dispatchTargets = {
     });
   }),
   anyScroll: new DispatchTarget(),
+  windowResize: new DispatchTarget((dispatch) => window.addEventListener("resize", dispatch)),
   removeComponent(component: Component) {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
     _dispatchTargets.locationHash.removeComponent(component);
+    _dispatchTargets.anyScroll.removeComponent(component);
+    _dispatchTargets.windowResize.removeComponent(component);
   },
 }
 function _scrollToLocationHash() {
@@ -393,7 +405,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     // style
     const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
     for (let {key, newValue} of styleDiff) {
-      if (newValue) {
+      if (newValue != null) {
         node.style[key as any] = addPx(newValue);
       } else {
         node.style.removeProperty(key);
@@ -402,7 +414,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     // cssVars
     const cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
     for (let {key, newValue} of cssVarsDiff) {
-      if (newValue) {
+      if (newValue != null) {
         node.style.setProperty(`--${key}`, addPx(newValue));
       } else {
         node.style.removeProperty(`--${key}`);
@@ -425,7 +437,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     // attribute
     const attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
     for (let {key, newValue} of attributeDiff) {
-      if (newValue) {
+      if (newValue != null) {
         node.setAttribute(camelCaseToKebabCase(key), String(newValue));
       } else {
         node.removeAttribute(camelCaseToKebabCase(key));
@@ -567,29 +579,157 @@ type DialogProps = BaseProps & {
   open: boolean;
   onClose: () => void;
   closeOnClickBackdrop?: boolean;
+  isPopover?: boolean;
 };
 const dialog = makeComponent(function dialog(props: DialogProps) {
-  const {open, onClose, closeOnClickBackdrop} = props;
+  const {open, onClose, closeOnClickBackdrop, isPopover} = props;
   const state = this.useState({ prevOpen: false });
   const e = this.useNode(document.createElement("dialog"));
   e.onclick = (event) => {
     if (closeOnClickBackdrop && (event.target === e)) onClose();
   }
-  const onMount = () => {
-    if (open !== state.prevOpen) {
-      if (open) {
-        e.showModal();
-      } else {
-        e.close();
+  return {
+    onMount: () => {
+      if (open !== state.prevOpen) {
+        if (open) {
+          if (isPopover) {
+            e.show();
+          } else {
+            e.showModal();
+          }
+        } else {
+          e.close();
+        }
+        state.prevOpen = open;
       }
-      state.prevOpen = open;
+    },
+  };
+});
+type PopupDirection = "up" | "right" | "down" | "left" | "mouse";
+type PopupWrapperProps = {
+  popupContent: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+};
+const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
+  let {popupContent, direction = "up"} = props;
+  const state = this.useState({
+    open: false,
+    mousePos: [0, 0] as [number, number],
+  });
+  const wrapper = this.useNode(document.createElement("div"));
+  console.log('ayaya', state);
+  wrapper.onmouseenter = () => {
+    state.open = true;
+    this.rerender();
+  };
+  wrapper.onmousemove = (event: MouseEvent) => {
+    state.mousePos = [event.clientX, event.clientY];
+    this.rerender();
+  }
+  const onClose = () => {
+    state.open = false;
+    this.rerender();
+  };
+  wrapper.onmouseleave = onClose;
+  const popup = this.append(dialog({
+    open: true,
+    onClose,
+    isPopover: true,
+    className: "popup",
+    attribute: {dataShow: state.open},
+  }));
+  const popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
+  popupContentWrapper.append(popupContent);
+  const getRelativeTopLeft = (wrapperRect: DOMRect, popupRect: DOMRect) => {
+    switch (direction) {
+      case "up":
+        return [
+          0.5 * (wrapperRect.width - popupRect.width),
+          -popupRect.height
+        ];
+      case "right":
+        return [
+          wrapperRect.width,
+          0.5 * (wrapperRect.height - popupRect.height)
+        ];
+      case "down":
+        return [
+          0.5 * (wrapperRect.width - popupRect.width),
+          wrapperRect.height
+        ]
+      case "left":
+        return [
+          -popupRect.width,
+          0.5 * (wrapperRect.height - popupRect.height)
+        ];
+      case "mouse":
+        return [
+          state.mousePos[0] - wrapperRect.left + 0.5*popupRect.width,
+          state.mousePos[1] - wrapperRect.top + 0.5*popupRect.height
+        ];
     }
   };
+  const getAbsoluteTopLeft = (wrapperRect: DOMRect, left: number, top: number) => {
+    return {
+      absoluteTop: wrapperRect.top + top,
+      absoluteRight: wrapperRect.right + left,
+      absoluteBottom: wrapperRect.bottom + top,
+      absoluteLeft: wrapperRect.left + left,
+    };
+  }
+  const getRelativeTopLeftWithFlip = (wrapperRect: DOMRect, popupRect: DOMRect) => {
+    let [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+    const windowRight = window.innerWidth;
+    const windowBottom = window.innerHeight;
+    switch (direction) {
+      case "up": {
+        const {absoluteTop} = getAbsoluteTopLeft(wrapperRect, left, top);
+        if (absoluteTop < 0) {
+          direction = "down";
+          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+        }
+      }
+      case "down": {
+        const {absoluteBottom} = getAbsoluteTopLeft(wrapperRect, left, top);
+        if (absoluteBottom >= windowBottom) {
+          direction = "down";
+          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+        }
+        break;
+      }
+      case "left": {
+        const {absoluteLeft} = getAbsoluteTopLeft(wrapperRect, left, top);
+        if (absoluteLeft >= 0) {
+          direction = "right";
+          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+        }
+        break;
+      }
+      case "right": {
+        const {absoluteRight} = getAbsoluteTopLeft(wrapperRect, left, top);
+        if (absoluteRight >= windowRight) {
+          direction = "left";
+          [left, top] = getRelativeTopLeft(wrapperRect, popupRect);
+        }
+        break;
+      }
+    }
+    return [left, top];
+  }
+  // TODO: move back inside window rect
   return {
-    onMount,
+    onMount: () => {
+      const popupNode = popup._.prevNode as HTMLDialogElement;
+      const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const popupRect = popupContentWrapperNode.getBoundingClientRect();
+      const [left, top] = getRelativeTopLeftWithFlip(wrapperRect, popupRect);
+      popupNode.style.left = addPx(left);
+      popupNode.style.top = addPx(top);
+    }
   }
 });
-// TODO: popover, onAnyScroll
 
 type ButtonProps = {
   size?: Size;
@@ -710,9 +850,9 @@ type NumberArrowProps = {
 } & BaseProps;
 const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
-  const wrapper = this.append(div());
-  wrapper.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
-  wrapper.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
+  this.useNode(document.createElement("div"));
+  this.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
+  this.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
 });
 type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,

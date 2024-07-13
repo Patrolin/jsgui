@@ -99,6 +99,12 @@ function camelCaseToKebabCase(key) {
     var _a;
     return ((_a = key.match(/[A-Z][a-z]*|[a-z]+/g)) !== null && _a !== void 0 ? _a : []).map(function (v) { return v.toLowerCase(); }).join("-");
 }
+function removePrefix(value, prefix) {
+    return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+function removeSuffix(value, prefix) {
+    return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
+}
 function addPx(value) {
     var _a;
     return (((_a = value === null || value === void 0 ? void 0 : value.constructor) === null || _a === void 0 ? void 0 : _a.name) === "Number") ? "".concat(value, "px") : value;
@@ -201,7 +207,7 @@ var Component = /** @class */ (function () {
         }).join(' and ');
         var dispatchTarget = _dispatchTargets.media.addDispatchTarget(key);
         dispatchTarget.addComponent(this);
-        return dispatchTarget.state.matches;
+        return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
     };
     Component.prototype.useLocalStorage = function (key, defaultValue) {
         var _a, _b;
@@ -218,6 +224,9 @@ var Component = /** @class */ (function () {
     };
     Component.prototype.useAnyScroll = function () {
         _dispatchTargets.anyScroll.addComponent(this);
+    };
+    Component.prototype.useWindowResize = function () {
+        _dispatchTargets.windowResize.addComponent(this);
     };
     Component.prototype.useNavigate = function () {
         return {
@@ -343,10 +352,13 @@ var _dispatchTargets = {
         });
     }),
     anyScroll: new DispatchTarget(),
+    windowResize: new DispatchTarget(function (dispatch) { return window.addEventListener("resize", dispatch); }),
     removeComponent: function (component) {
         _dispatchTargets.media.removeComponent(component);
         _dispatchTargets.localStorage.removeComponent(component);
         _dispatchTargets.locationHash.removeComponent(component);
+        _dispatchTargets.anyScroll.removeComponent(component);
+        _dispatchTargets.windowResize.removeComponent(component);
     },
 };
 function _scrollToLocationHash() {
@@ -447,7 +459,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
         for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
             var _e = styleDiff_1[_i], key = _e.key, newValue = _e.newValue;
-            if (newValue) {
+            if (newValue != null) {
                 node.style[key] = addPx(newValue);
             }
             else {
@@ -458,7 +470,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
         for (var _f = 0, cssVarsDiff_1 = cssVarsDiff; _f < cssVarsDiff_1.length; _f++) {
             var _g = cssVarsDiff_1[_f], key = _g.key, newValue = _g.newValue;
-            if (newValue) {
+            if (newValue != null) {
                 node.style.setProperty("--".concat(key), addPx(newValue));
             }
             else {
@@ -488,7 +500,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
         for (var _k = 0, attributeDiff_1 = attributeDiff; _k < attributeDiff_1.length; _k++) {
             var _l = attributeDiff_1[_k], key = _l.key, newValue = _l.newValue;
-            if (newValue) {
+            if (newValue != null) {
                 node.setAttribute(camelCaseToKebabCase(key), String(newValue));
             }
             else {
@@ -634,26 +646,151 @@ var htmlLegend = makeComponent(function htmlLegend(text, _props) {
     name: "legend",
 });
 var dialog = makeComponent(function dialog(props) {
-    var open = props.open, onClose = props.onClose, closeOnClickBackdrop = props.closeOnClickBackdrop;
+    var open = props.open, onClose = props.onClose, closeOnClickBackdrop = props.closeOnClickBackdrop, isPopover = props.isPopover;
     var state = this.useState({ prevOpen: false });
     var e = this.useNode(document.createElement("dialog"));
     e.onclick = function (event) {
         if (closeOnClickBackdrop && (event.target === e))
             onClose();
     };
-    var onMount = function () {
-        if (open !== state.prevOpen) {
-            if (open) {
-                e.showModal();
+    return {
+        onMount: function () {
+            if (open !== state.prevOpen) {
+                if (open) {
+                    if (isPopover) {
+                        e.show();
+                    }
+                    else {
+                        e.showModal();
+                    }
+                }
+                else {
+                    e.close();
+                }
+                state.prevOpen = open;
             }
-            else {
-                e.close();
-            }
-            state.prevOpen = open;
+        },
+    };
+});
+var popupWrapper = makeComponent(function popupWrapper(props) {
+    var _this = this;
+    var popupContent = props.popupContent, _a = props.direction, direction = _a === void 0 ? "up" : _a;
+    var state = this.useState({
+        open: false,
+        mousePos: [0, 0],
+    });
+    var wrapper = this.useNode(document.createElement("div"));
+    console.log('ayaya', state);
+    wrapper.onmouseenter = function () {
+        state.open = true;
+        _this.rerender();
+    };
+    wrapper.onmousemove = function (event) {
+        state.mousePos = [event.clientX, event.clientY];
+        _this.rerender();
+    };
+    var onClose = function () {
+        state.open = false;
+        _this.rerender();
+    };
+    wrapper.onmouseleave = onClose;
+    var popup = this.append(dialog({
+        open: true,
+        onClose: onClose,
+        isPopover: true,
+        className: "popup",
+        attribute: { dataShow: state.open },
+    }));
+    var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
+    popupContentWrapper.append(popupContent);
+    var getRelativeTopLeft = function (wrapperRect, popupRect) {
+        switch (direction) {
+            case "up":
+                return [
+                    0.5 * (wrapperRect.width - popupRect.width),
+                    -popupRect.height
+                ];
+            case "right":
+                return [
+                    wrapperRect.width,
+                    0.5 * (wrapperRect.height - popupRect.height)
+                ];
+            case "down":
+                return [
+                    0.5 * (wrapperRect.width - popupRect.width),
+                    wrapperRect.height
+                ];
+            case "left":
+                return [
+                    -popupRect.width,
+                    0.5 * (wrapperRect.height - popupRect.height)
+                ];
+            case "mouse":
+                return [
+                    state.mousePos[0] - wrapperRect.left + 0.5 * popupRect.width,
+                    state.mousePos[1] - wrapperRect.top + 0.5 * popupRect.height
+                ];
         }
     };
+    var getAbsoluteTopLeft = function (wrapperRect, left, top) {
+        return {
+            absoluteTop: wrapperRect.top + top,
+            absoluteRight: wrapperRect.right + left,
+            absoluteBottom: wrapperRect.bottom + top,
+            absoluteLeft: wrapperRect.left + left,
+        };
+    };
+    var getRelativeTopLeftWithFlip = function (wrapperRect, popupRect) {
+        var _a, _b, _c, _d;
+        var _e = getRelativeTopLeft(wrapperRect, popupRect), left = _e[0], top = _e[1];
+        var windowRight = window.innerWidth;
+        var windowBottom = window.innerHeight;
+        switch (direction) {
+            case "up": {
+                var absoluteTop = getAbsoluteTopLeft(wrapperRect, left, top).absoluteTop;
+                if (absoluteTop < 0) {
+                    direction = "down";
+                    _a = getRelativeTopLeft(wrapperRect, popupRect), left = _a[0], top = _a[1];
+                }
+            }
+            case "down": {
+                var absoluteBottom = getAbsoluteTopLeft(wrapperRect, left, top).absoluteBottom;
+                if (absoluteBottom >= windowBottom) {
+                    direction = "down";
+                    _b = getRelativeTopLeft(wrapperRect, popupRect), left = _b[0], top = _b[1];
+                }
+                break;
+            }
+            case "left": {
+                var absoluteLeft = getAbsoluteTopLeft(wrapperRect, left, top).absoluteLeft;
+                if (absoluteLeft >= 0) {
+                    direction = "right";
+                    _c = getRelativeTopLeft(wrapperRect, popupRect), left = _c[0], top = _c[1];
+                }
+                break;
+            }
+            case "right": {
+                var absoluteRight = getAbsoluteTopLeft(wrapperRect, left, top).absoluteRight;
+                if (absoluteRight >= windowRight) {
+                    direction = "left";
+                    _d = getRelativeTopLeft(wrapperRect, popupRect), left = _d[0], top = _d[1];
+                }
+                break;
+            }
+        }
+        return [left, top];
+    };
+    // TODO: move back inside window rect
     return {
-        onMount: onMount,
+        onMount: function () {
+            var popupNode = popup._.prevNode;
+            var popupContentWrapperNode = popupContentWrapper._.prevNode;
+            var wrapperRect = wrapper.getBoundingClientRect();
+            var popupRect = popupContentWrapperNode.getBoundingClientRect();
+            var _a = getRelativeTopLeftWithFlip(wrapperRect, popupRect), left = _a[0], top = _a[1];
+            popupNode.style.left = addPx(left);
+            popupNode.style.top = addPx(top);
+        }
     };
 });
 // inputs
@@ -758,9 +895,9 @@ var textInput = makeComponent(function textInput(props) {
 var numberArrows = makeComponent(function numberArrows(props) {
     if (props === void 0) { props = {}; }
     var onClickUp = props.onClickUp, onClickDown = props.onClickDown;
-    var wrapper = this.append(div());
-    wrapper.append(icon("arrow_drop_up", { size: "small", onClick: onClickUp }));
-    wrapper.append(icon("arrow_drop_down", { size: "small", onClick: onClickDown }));
+    this.useNode(document.createElement("div"));
+    this.append(icon("arrow_drop_up", { size: "small", onClick: onClickUp }));
+    this.append(icon("arrow_drop_down", { size: "small", onClick: onClickDown }));
 });
 var numberInput = makeComponent(function numberInput(props) {
     var label = props.label, leftComponent = props.leftComponent, customRightComponent = props.rightComponent, error = props.error, // labeledInput
@@ -1088,6 +1225,12 @@ var dialogSection = makeComponent(function dialogSection() {
     var dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
     dialogWrapper.append(span("hello world"));
 });
+var popupSection = makeComponent(function popupSection() {
+    var dialogWrapper = this.append(popupWrapper({
+        popupContent: span("Hello world"),
+    }));
+    dialogWrapper.append(span("Hover over me!"));
+});
 var MAIN_PAGE_SECTIONS = [
     {
         label: "Span",
@@ -1123,6 +1266,11 @@ var MAIN_PAGE_SECTIONS = [
         label: "Dialog",
         id: "dialog",
         component: dialogSection,
+    },
+    {
+        label: "Popup",
+        id: "popup",
+        component: popupSection,
     }
 ];
 var mainPage = makeComponent(function mainPage() {

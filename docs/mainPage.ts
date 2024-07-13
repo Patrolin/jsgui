@@ -131,6 +131,12 @@ const dialogSection = makeComponent(function dialogSection() {
   const dialogWrapper = this.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
   dialogWrapper.append(span("hello world"));
 });
+const popupSection = makeComponent(function popupSection() {
+  const dialogWrapper = this.append(popupWrapper({
+    popupContent: span("Hello world"),
+  }));
+  dialogWrapper.append(span("Hover over me!"));
+});
 
 type MainPageSection = {
   label: string;
@@ -172,6 +178,11 @@ const MAIN_PAGE_SECTIONS: MainPageSection[] = [
     label: "Dialog",
     id: "dialog",
     component: dialogSection,
+  },
+  {
+    label: "Popup",
+    id: "popup",
+    component: popupSection,
   }
 ];
 
