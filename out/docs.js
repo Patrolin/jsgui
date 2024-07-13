@@ -237,6 +237,11 @@ var Component = /** @class */ (function () {
     };
     Component.prototype.useWindowResize = function () {
         _dispatchTargets.windowResize.addComponent(this);
+        return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
+    };
+    Component.prototype.useMouse = function () {
+        _dispatchTargets.mouseMove.addComponent(this);
+        return _dispatchTargets.mouseMove.state;
     };
     Component.prototype.useNavigate = function () {
         return {
@@ -363,12 +368,22 @@ var _dispatchTargets = {
     }),
     anyScroll: new DispatchTarget(),
     windowResize: new DispatchTarget(function (dispatch) { return window.addEventListener("resize", dispatch); }),
+    mouseMove: new DispatchTarget(function (dispatch) {
+        var state = { x: -1, y: -1 };
+        window.addEventListener("mousemove", function (event) {
+            state.x = event.clientX;
+            state.y = event.clientY;
+            dispatch();
+        });
+        return state;
+    }),
     removeComponent: function (component) {
         _dispatchTargets.media.removeComponent(component);
         _dispatchTargets.localStorage.removeComponent(component);
         _dispatchTargets.locationHash.removeComponent(component);
         _dispatchTargets.anyScroll.removeComponent(component);
         _dispatchTargets.windowResize.removeComponent(component);
+        _dispatchTargets.mouseMove.removeComponent(component);
     },
 };
 function _scrollToLocationHash() {
@@ -661,7 +676,7 @@ var dialog = makeComponent(function dialog(props) {
     var state = this.useState({ prevOpen: false });
     var e = this.useNode(document.createElement("dialog"));
     e.onclick = function (event) {
-        if (closeOnClickBackdrop && (event.target === e))
+        if (closeOnClickBackdrop && (event.target === e) && onClose)
             onClose();
     };
     return {
@@ -696,39 +711,31 @@ function _computeScrollbarWidth() {
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var _this = this;
     var popupContent = props.popupContent, _a = props.direction, direction = _a === void 0 ? "up" : _a;
-    var state = this.useState({
-        open: false,
-        mousePos: [0, 0],
-    });
+    var state = this.useState({ open: false });
     var wrapper = this.useNode(document.createElement("div"));
-    if (state.open)
-        console.log('ayaya.state', state);
     wrapper.onmouseenter = function () {
         state.open = true;
         _this.rerender();
     };
-    var onClose = function () {
+    wrapper.onmouseleave = function () {
         state.open = false;
         _this.rerender();
     };
-    wrapper.onmouseleave = onClose;
+    var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
+    var mouse = { x: -1, y: -1 };
     if (direction === "mouse") {
-        wrapper.onmousemove = function (event) {
-            var _a = [event.clientX, event.clientY], x = _a[0], y = _a[1];
-            state.mousePos = [x, y];
-            var wrapperRect = wrapper.getBoundingClientRect();
-            if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
-                state.open = false;
-            }
-            else {
-                state.open = true;
-            }
-            _this.rerender();
-        };
+        mouse = this.useMouse();
+        var wrapperRect = wrapper.getBoundingClientRect();
+        var x = mouse.x, y = mouse.y;
+        if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
+            state.open = false;
+        }
+        else {
+            state.open = true;
+        }
     }
     var popup = this.append(dialog({
         open: true,
-        onClose: onClose,
         isPopover: true,
         className: "popup",
         attribute: { dataShow: state.open, dataMouse: direction === "mouse" },
@@ -759,8 +766,8 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
                 ];
             case "mouse":
                 return [
-                    state.mousePos[0] - wrapperRect.left,
-                    state.mousePos[1] - wrapperRect.top - popupRect.height
+                    mouse.x - wrapperRect.left,
+                    mouse.y - wrapperRect.top - popupRect.height
                 ];
         }
     };
@@ -775,8 +782,6 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     var getTopLeftWithFlip = function (wrapperRect, popupRect) {
         var _a, _b, _c, _d;
         var _e = getTopLeft(wrapperRect, popupRect), left = _e[0], top = _e[1];
-        var windowRight = window.innerWidth;
-        var windowBottom = window.innerHeight;
         switch (direction) {
             case "up": {
                 var absoluteTop = getAbsoluteTopLeft(wrapperRect, left, top).absoluteTop;
@@ -814,19 +819,13 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     };
     var getTopLeftWithFlipAndClamp = function (wrapperRect, popupRect) {
         var _a = getTopLeftWithFlip(wrapperRect, popupRect), left = _a[0], top = _a[1];
-        var windowRight = window.innerWidth;
-        var windowBottom = window.innerHeight;
         switch (direction) {
             case "up":
             case "down":
             case "mouse": {
                 var minLeft = -wrapperRect.left;
                 var maxLeft = windowRight - wrapperRect.left - popupRect.width - SCROLLBAR_WIDTH;
-                if (state.open)
-                    console.log("ayaya.clamp.1", left, minLeft, maxLeft);
                 left = clamp(left, minLeft, maxLeft);
-                if (state.open)
-                    console.log("ayaya.clamp.2", left);
                 break;
             }
         }

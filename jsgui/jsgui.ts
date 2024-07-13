@@ -192,8 +192,13 @@ class Component {
   useAnyScroll() {
     _dispatchTargets.anyScroll.addComponent(this);
   }
-  useWindowResize() {
+  useWindowResize(): { windowBottom: number, windowRight: number } {
     _dispatchTargets.windowResize.addComponent(this);
+    return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
+  }
+  useMouse(): {x: number, y: number} {
+    _dispatchTargets.mouseMove.addComponent(this);
+    return _dispatchTargets.mouseMove.state as {x: number, y: number};
   }
   useNavigate(): UseNavigate {
     return {
@@ -315,12 +320,22 @@ const _dispatchTargets = {
   }),
   anyScroll: new DispatchTarget(),
   windowResize: new DispatchTarget((dispatch) => window.addEventListener("resize", dispatch)),
+  mouseMove: new DispatchTarget((dispatch) => {
+    const state = {x: -1, y: -1};
+    window.addEventListener("mousemove", (event) => {
+      state.x = event.clientX;
+      state.y = event.clientY;
+      dispatch();
+    });
+    return state;
+  }),
   removeComponent(component: Component) {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
     _dispatchTargets.locationHash.removeComponent(component);
     _dispatchTargets.anyScroll.removeComponent(component);
     _dispatchTargets.windowResize.removeComponent(component);
+    _dispatchTargets.mouseMove.removeComponent(component);
   },
 }
 function _scrollToLocationHash() {
@@ -586,18 +601,18 @@ const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseP
 }, {
   name: "legend",
 });
-type DialogProps = BaseProps & {
+type DialogProps = BaseProps & ({
   open: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   closeOnClickBackdrop?: boolean;
-  isPopover?: boolean;
-};
+  isPopover?: true;
+});
 const dialog = makeComponent(function dialog(props: DialogProps) {
   const {open, onClose, closeOnClickBackdrop, isPopover} = props;
   const state = this.useState({ prevOpen: false });
   const e = this.useNode(document.createElement("dialog"));
   e.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === e)) onClose();
+    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
   }
   return {
     onMount: () => {
@@ -633,37 +648,30 @@ function _computeScrollbarWidth() {
 }
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
   let {popupContent, direction = "up"} = props;
-  const state = this.useState({
-    open: false,
-    mousePos: [0, 0] as [number, number],
-  });
+  const state = this.useState({open: false});
   const wrapper = this.useNode(document.createElement("div"));
-  if (state.open) console.log('ayaya.state', state);
   wrapper.onmouseenter = () => {
     state.open = true;
     this.rerender();
   };
-  const onClose = () => {
+  wrapper.onmouseleave = () => {
     state.open = false;
     this.rerender();
   };
-  wrapper.onmouseleave = onClose;
+  const { windowBottom, windowRight } = this.useWindowResize();
+  let mouse = {x: -1, y: -1};
   if (direction === "mouse") {
-    wrapper.onmousemove = (event: MouseEvent) => {
-      const [x, y] = [event.clientX, event.clientY]
-      state.mousePos = [x, y];
-      const wrapperRect = wrapper.getBoundingClientRect();
-      if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
-        state.open = false;
-      } else {
-        state.open = true;
-      }
-      this.rerender();
+    mouse = this.useMouse();
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const {x, y} = mouse;
+    if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
+      state.open = false;
+    } else {
+      state.open = true;
     }
   }
   const popup = this.append(dialog({
     open: true,
-    onClose,
     isPopover: true,
     className: "popup",
     attribute: {dataShow: state.open, dataMouse: direction === "mouse"},
@@ -694,8 +702,8 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
         ];
       case "mouse":
         return [
-          state.mousePos[0] - wrapperRect.left,
-          state.mousePos[1] - wrapperRect.top - popupRect.height
+          mouse.x - wrapperRect.left,
+          mouse.y - wrapperRect.top - popupRect.height
         ];
     }
   };
@@ -709,8 +717,6 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }
   const getTopLeftWithFlip = (wrapperRect: DOMRect, popupRect: DOMRect) => {
     let [left, top] = getTopLeft(wrapperRect, popupRect);
-    const windowRight = window.innerWidth;
-    const windowBottom = window.innerHeight;
     switch (direction) {
       case "up": {
         const {absoluteTop} = getAbsoluteTopLeft(wrapperRect, left, top);
@@ -748,17 +754,13 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }
   const getTopLeftWithFlipAndClamp = (wrapperRect: DOMRect, popupRect: DOMRect) => {
     let [left, top] = getTopLeftWithFlip(wrapperRect, popupRect);
-    const windowRight = window.innerWidth;
-    const windowBottom = window.innerHeight;
     switch (direction) {
       case "up":
       case "down":
       case "mouse": {
         const minLeft = -wrapperRect.left;
         const maxLeft = windowRight - wrapperRect.left - popupRect.width - SCROLLBAR_WIDTH;
-        if (state.open) console.log("ayaya.clamp.1", left, minLeft, maxLeft)
         left = clamp(left, minLeft, maxLeft);
-        if (state.open) console.log("ayaya.clamp.2", left)
         break;
       }
     }
