@@ -783,7 +783,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
             case "down": {
                 var absoluteBottom = wrapperRect.bottom + top;
                 if (absoluteBottom >= windowBottom) {
-                    direction = "down";
+                    direction = "up";
                     _b = getTopLeft(wrapperRect, popupRect), left = _b[0], top = _b[1];
                 }
                 break;
