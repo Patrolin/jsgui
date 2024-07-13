@@ -277,18 +277,11 @@ function _copyRootComponent(component) {
 // dispatch
 var DispatchTarget = /** @class */ (function () {
     function DispatchTarget(addListeners) {
+        if (addListeners === void 0) { addListeners = function () { }; }
         var _this = this;
         this.components = [];
         this.state = addListeners(function () { return _this.dispatch(); });
     }
-    DispatchTarget.init = function (key, store, addListeners) {
-        var oldDT = store[key];
-        if (oldDT != null)
-            return oldDT;
-        var newDT = new DispatchTarget(addListeners);
-        store[key] = newDT;
-        return newDT;
-    };
     DispatchTarget.prototype.addComponent = function (component) {
         this.components.push(component);
     };
@@ -339,6 +332,7 @@ var _dispatchTargets = {
             dispatch();
         });
     }),
+    anyScroll: new DispatchTarget(), // TODO: dispatch any scroll
     removeComponent: function (component) {
         _dispatchTargets.media.removeComponent(component);
         _dispatchTargets.localStorage.removeComponent(component);

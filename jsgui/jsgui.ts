@@ -221,16 +221,9 @@ type DispatchTargetAddListeners = (dispatch: () => void) => any;
 class DispatchTarget {
   components: Component[];
   state: any;
-  constructor(addListeners: DispatchTargetAddListeners) {
+  constructor(addListeners: DispatchTargetAddListeners = () => {}) {
     this.components = [];
     this.state = addListeners(() => this.dispatch());
-  }
-  static init(key: string, store: StringMap<DispatchTarget>, addListeners: DispatchTargetAddListeners) {
-    const oldDT = store[key];
-    if (oldDT != null) return oldDT;
-    const newDT = new DispatchTarget(addListeners);
-    store[key] = newDT;
-    return newDT;
   }
   addComponent(component: Component) {
     this.components.push(component);
@@ -284,6 +277,7 @@ const _dispatchTargets = {
       dispatch();
     });
   }),
+  anyScroll: new DispatchTarget(), // TODO: dispatch any scroll
   removeComponent(component: Component) {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
