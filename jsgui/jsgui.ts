@@ -185,11 +185,11 @@ class Component {
     }
     return [value, setValue, setValueAndDispatch];
   }
-  useLocationHash(): string { // TODO: use location
+  useLocationHash(): string { // TODO: add useLocation
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
   }
-  useAnyScroll() {
+  useAnyScroll() { // TODO: remove this?
     _dispatchTargets.anyScroll.addComponent(this);
   }
   useWindowResize(): { windowBottom: number, windowRight: number } {
@@ -645,7 +645,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   let {popupContent, direction = "up"} = props;
   const state = this.useState({open: false, mouse: {x: -1, y: -1}});
   const wrapper = this.useNode(document.createElement("div"));
-  wrapper.onmouseenter = () => {
+  wrapper.onmouseenter = () => { // TODO: move this to css?
     state.open = true;
     this.rerender();
   };
