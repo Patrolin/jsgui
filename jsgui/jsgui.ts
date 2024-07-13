@@ -97,7 +97,6 @@ class Component {
   // hooks
   node: NodeType | null;
   indexedChildCount: number;
-  mediaKeys: string[];
   constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: RenderedBaseProps, props: StringMap, options: ComponentOptions) {
     this.name = options.name ?? onRender.name;
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
@@ -113,7 +112,6 @@ class Component {
     // hooks
     this.node = null;
     this.indexedChildCount = 0;
-    this.mediaKeys = [];
   }
   useNode<T extends NodeType>(defaultNode: T): T {
     return (this.node = (this._?.prevNode ?? defaultNode)) as T;
@@ -151,17 +149,12 @@ class Component {
   }
   useMedia(mediaQuery: StringMap<string | number>) { // TODO: type this
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
-    this.mediaKeys.push(key);
-    const dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, (dispatch) => {
-      const mediaQueryList = window.matchMedia(key);
-      mediaQueryList.addEventListener("change", dispatch);
-      return mediaQueryList;
-    });
+    const dispatchTarget = _dispatchTargets.media.addDispatchTarget(key);
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches;
   }
   useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void] { // TODO: signal same page option
-    _localStorageDispatchTarget.addComponent(this);
+    _dispatchTargets.localStorage.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
     const setValue = (newValue: T) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
@@ -252,18 +245,55 @@ class DispatchTarget {
     }
   }
 }
-const _mediaQueryDispatchTargets: StringMap<DispatchTarget> = {};
-const _localStorageDispatchTarget = new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch));
+class DispatchTargetMap {
+  data: StringMap<DispatchTarget>;
+  addListeners: (key: string) => DispatchTargetAddListeners;
+  constructor(addListeners: (key: string) => DispatchTargetAddListeners) {
+    this.data = {};
+    this.addListeners = addListeners;
+  }
+  addDispatchTarget(key: string) {
+    const {data, addListeners} = this;
+    const oldDT = data[key];
+    if (oldDT != null) return oldDT;
+    const newDT = new DispatchTarget(addListeners(key));
+    data[key] = newDT;
+    return newDT;
+  }
+  removeComponent(component: Component) {
+    for (let key in this.data) {
+      this.data[key].removeComponent(component);
+    }
+  }
+}
+type AddDispatchTarget = {
+  map: StringMap<DispatchTarget>;
+  key: string;
+  addListeners: DispatchTargetAddListeners;
+}
+const _dispatchTargets = {
+  media: new DispatchTargetMap((key) => (dispatch) => {
+    const mediaQueryList = window.matchMedia(key);
+    mediaQueryList.addEventListener("change", dispatch);
+    return mediaQueryList;
+  }),
+  localStorage: new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch)),
+  locationHash: new DispatchTarget((dispatch) => {
+    window.addEventListener("hashchange", () => {
+      _scrollToLocationHash();
+      dispatch();
+    });
+  }),
+  removeComponent(component: Component) {
+    _dispatchTargets.media.removeComponent(component);
+    _dispatchTargets.localStorage.removeComponent(component);
+    _dispatchTargets.locationHash.removeComponent(component);
+  },
+}
 function _scrollToLocationHash() {
   const element = document.getElementById(location.hash.slice(1));
   if (element) element.scrollIntoView();
 }
-const _locationHashDispatchTarget = new DispatchTarget((dispatch) => {
-  window.addEventListener("hashchange", () => {
-    _scrollToLocationHash();
-    dispatch();
-  });
-});
 
 // metadata
 class ComponentMetadata {
@@ -432,10 +462,7 @@ function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) 
   for (let child of prevComponent.children) {
     const child_ = child._;
     if (child_.gcFlag !== rootGcFlag) {
-      for (let key of child.mediaKeys) {
-        _mediaQueryDispatchTargets[key].removeComponent(prevComponent);
-      }
-      _localStorageDispatchTarget.removeComponent(prevComponent);
+      _dispatchTargets.removeComponent(prevComponent);
       const key = child.key;
       delete child_.parent?.keyToChild[key];
       const prevNode = child_.prevNode;

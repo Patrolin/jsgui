@@ -156,7 +156,6 @@ var Component = /** @class */ (function () {
         // hooks
         this.node = null;
         this.indexedChildCount = 0;
-        this.mediaKeys = [];
     }
     Component.prototype.useNode = function (defaultNode) {
         var _a, _b;
@@ -199,18 +198,13 @@ var Component = /** @class */ (function () {
             var k = _a[0], v = _a[1];
             return "(".concat(camelCaseToKebabCase(k), ": ").concat(addPx(v), ")");
         }).join(' and ');
-        this.mediaKeys.push(key);
-        var dispatchTarget = DispatchTarget.init(key, _mediaQueryDispatchTargets, function (dispatch) {
-            var mediaQueryList = window.matchMedia(key);
-            mediaQueryList.addEventListener("change", dispatch);
-            return mediaQueryList;
-        });
+        var dispatchTarget = _dispatchTargets.media.addDispatchTarget(key);
         dispatchTarget.addComponent(this);
         return dispatchTarget.state.matches;
     };
     Component.prototype.useLocalStorage = function (key, defaultValue) {
         var _a, _b;
-        _localStorageDispatchTarget.addComponent(this);
+        _dispatchTargets.localStorage.addComponent(this);
         var value = (_b = (_a = parseJsonOrNull(localStorage[key])) === null || _a === void 0 ? void 0 : _a[0]) !== null && _b !== void 0 ? _b : defaultValue;
         var setValue = function (newValue) {
             localStorage.setItem(key, JSON.stringify([newValue]));
@@ -311,19 +305,51 @@ var DispatchTarget = /** @class */ (function () {
     };
     return DispatchTarget;
 }());
-var _mediaQueryDispatchTargets = {};
-var _localStorageDispatchTarget = new DispatchTarget(function (dispatch) { return window.addEventListener("storage", dispatch); });
+var DispatchTargetMap = /** @class */ (function () {
+    function DispatchTargetMap(addListeners) {
+        this.data = {};
+        this.addListeners = addListeners;
+    }
+    DispatchTargetMap.prototype.addDispatchTarget = function (key) {
+        var _a = this, data = _a.data, addListeners = _a.addListeners;
+        var oldDT = data[key];
+        if (oldDT != null)
+            return oldDT;
+        var newDT = new DispatchTarget(addListeners(key));
+        data[key] = newDT;
+        return newDT;
+    };
+    DispatchTargetMap.prototype.removeComponent = function (component) {
+        for (var key in this.data) {
+            this.data[key].removeComponent(component);
+        }
+    };
+    return DispatchTargetMap;
+}());
+var _dispatchTargets = {
+    media: new DispatchTargetMap(function (key) { return function (dispatch) {
+        var mediaQueryList = window.matchMedia(key);
+        mediaQueryList.addEventListener("change", dispatch);
+        return mediaQueryList;
+    }; }),
+    localStorage: new DispatchTarget(function (dispatch) { return window.addEventListener("storage", dispatch); }),
+    locationHash: new DispatchTarget(function (dispatch) {
+        window.addEventListener("hashchange", function () {
+            _scrollToLocationHash();
+            dispatch();
+        });
+    }),
+    removeComponent: function (component) {
+        _dispatchTargets.media.removeComponent(component);
+        _dispatchTargets.localStorage.removeComponent(component);
+        _dispatchTargets.locationHash.removeComponent(component);
+    },
+};
 function _scrollToLocationHash() {
     var element = document.getElementById(location.hash.slice(1));
     if (element)
         element.scrollIntoView();
 }
-var _locationHashDispatchTarget = new DispatchTarget(function (dispatch) {
-    window.addEventListener("hashchange", function () {
-        _scrollToLocationHash();
-        dispatch();
-    });
-});
 // metadata
 var ComponentMetadata = /** @class */ (function () {
     function ComponentMetadata(parent) {
@@ -514,11 +540,7 @@ function _unloadUnusedComponents(prevComponent, rootGcFlag) {
         var child = _b[_i];
         var child_ = child._;
         if (child_.gcFlag !== rootGcFlag) {
-            for (var _c = 0, _d = child.mediaKeys; _c < _d.length; _c++) {
-                var key_1 = _d[_c];
-                _mediaQueryDispatchTargets[key_1].removeComponent(prevComponent);
-            }
-            _localStorageDispatchTarget.removeComponent(prevComponent);
+            _dispatchTargets.removeComponent(prevComponent);
             var key = child.key;
             (_a = child_.parent) === null || _a === void 0 ? true : delete _a.keyToChild[key];
             var prevNode = child_.prevNode;
