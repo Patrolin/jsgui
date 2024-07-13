@@ -81,6 +81,13 @@ type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => {
   onMount?: (havePrevNode: boolean) => void,
 } | void;
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
+type NavigateFunction = (url: string) => void;
+type UseNavigate = {
+  pushRoute: NavigateFunction;
+  replaceRoute: NavigateFunction;
+  pushHistory: NavigateFunction;
+  replaceHistory: NavigateFunction;
+}
 // component
 class Component {
   // props
@@ -147,6 +154,7 @@ class Component {
       return !hasErrors;
     }
   }
+  // dispatch
   useMedia(mediaQuery: StringMap<string | number>) { // TODO: type this
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
     const dispatchTarget = _dispatchTargets.media.addDispatchTarget(key);
@@ -161,10 +169,19 @@ class Component {
     }
     return [value, setValue];
   }
-  useNavigate() {
+  useLocationHash(): string { // TODO: use location
+    _dispatchTargets.locationHash.addComponent(this);
+    return window.location.hash;
+  }
+  useAnyScroll() {
+    _dispatchTargets.anyScroll.addComponent(this);
+  }
+  useNavigate(): UseNavigate {
     return {
-      navigate: (url: string) => location.href = url,
-      replace: (url: string) => location.replace(url),
+      pushRoute: (url: string) => location.href = url,
+      replaceRoute: (url: string) => location.replace(url),
+      pushHistory: (url: string) => history.pushState(null, "", url),
+      replaceHistory: (url: string) => history.replaceState(null, "", url),
     }
   }
   rerender() {
@@ -277,7 +294,7 @@ const _dispatchTargets = {
       dispatch();
     });
   }),
-  anyScroll: new DispatchTarget(), // TODO: dispatch any scroll
+  anyScroll: new DispatchTarget(),
   removeComponent(component: Component) {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
@@ -369,6 +386,9 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
       }
     } else {
       parentNode.append(node);
+      node.addEventListener("scroll", () => {
+        _dispatchTargets.anyScroll.dispatch();
+      }, {passive: true});
     }
     // style
     const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
@@ -487,13 +507,13 @@ type SpanProps = {
   singleLine?: string;
   fontFamily?: string;
   href?: string;
-  replacePath?: boolean;
+  navigate?: NavigateFunction;
   id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 } & BaseProps;
 const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, replacePath, id, selfLink, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
@@ -509,20 +529,18 @@ const span = makeComponent(function _span(text: string | number | null | undefin
   if (color) style.color = `var(--${color})`; // TODO: remove style?
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`; // TODO: remove style?
-  if (isLink) {
-    (e as HTMLAnchorElement).href = href;
-    if (replacePath) {
-      e.onclick = (event: MouseEvent) => {
-        event.preventDefault();
-        this.useNavigate().replace(href);
-        if (onClick) onClick(event);
-      }
-    }
-  } else {
-    if (onClick) {
-      e.onclick = onClick;
+  if (isLink) (e as HTMLAnchorElement).href = href;
+  if (onClick || (navigate && href)) {
+    if (!isLink) {
       attribute.tabindex = "-1";
       attribute.clickable = "true";
+    }
+    e.onclick = (event) => {
+      if (onClick) onClick(event);
+      if (navigate && href) {
+        event.preventDefault();
+        navigate(href);
+      }
     }
   }
   e.innerText = iconName || (text == null ? "" : String(text));

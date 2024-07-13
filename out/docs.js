@@ -193,6 +193,7 @@ var Component = /** @class */ (function () {
             return !hasErrors;
         };
     };
+    // dispatch
     Component.prototype.useMedia = function (mediaQuery) {
         var key = Object.entries(mediaQuery).map(function (_a) {
             var k = _a[0], v = _a[1];
@@ -211,10 +212,19 @@ var Component = /** @class */ (function () {
         };
         return [value, setValue];
     };
+    Component.prototype.useLocationHash = function () {
+        _dispatchTargets.locationHash.addComponent(this);
+        return window.location.hash;
+    };
+    Component.prototype.useAnyScroll = function () {
+        _dispatchTargets.anyScroll.addComponent(this);
+    };
     Component.prototype.useNavigate = function () {
         return {
-            navigate: function (url) { return location.href = url; },
-            replace: function (url) { return location.replace(url); },
+            pushRoute: function (url) { return location.href = url; },
+            replaceRoute: function (url) { return location.replace(url); },
+            pushHistory: function (url) { return history.pushState(null, "", url); },
+            replaceHistory: function (url) { return history.replaceState(null, "", url); },
         };
     };
     Component.prototype.rerender = function () {
@@ -332,7 +342,7 @@ var _dispatchTargets = {
             dispatch();
         });
     }),
-    anyScroll: new DispatchTarget(), // TODO: dispatch any scroll
+    anyScroll: new DispatchTarget(),
     removeComponent: function (component) {
         _dispatchTargets.media.removeComponent(component);
         _dispatchTargets.localStorage.removeComponent(component);
@@ -429,6 +439,9 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         else {
             parentNode.append(node);
+            node.addEventListener("scroll", function () {
+                _dispatchTargets.anyScroll.dispatch();
+            }, { passive: true });
         }
         // style
         var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
@@ -560,9 +573,8 @@ var BASE_COLORS = {
 };
 var COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
 var span = makeComponent(function _span(text, props) {
-    var _this = this;
     if (props === void 0) { props = {}; }
-    var iconName = props.iconName, size = props.size, color = props.color, singleLine = props.singleLine, fontFamily = props.fontFamily, href = props.href, replacePath = props.replacePath, id = props.id, selfLink = props.selfLink, onClick = props.onClick;
+    var iconName = props.iconName, size = props.size, color = props.color, singleLine = props.singleLine, fontFamily = props.fontFamily, href = props.href, navigate = props.navigate, id = props.id, selfLink = props.selfLink, onClick = props.onClick;
     if (selfLink != null) {
         var selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
         selfLinkWrapper.append(span(text, __assign(__assign({}, props), { selfLink: undefined })));
@@ -584,23 +596,21 @@ var span = makeComponent(function _span(text, props) {
         className.push("ellipsis");
     if (fontFamily)
         style.fontFamily = "var(--fontFamily-".concat(fontFamily, ")"); // TODO: remove style?
-    if (isLink) {
+    if (isLink)
         e.href = href;
-        if (replacePath) {
-            e.onclick = function (event) {
-                event.preventDefault();
-                _this.useNavigate().replace(href);
-                if (onClick)
-                    onClick(event);
-            };
-        }
-    }
-    else {
-        if (onClick) {
-            e.onclick = onClick;
+    if (onClick || (navigate && href)) {
+        if (!isLink) {
             attribute.tabindex = "-1";
             attribute.clickable = "true";
         }
+        e.onclick = function (event) {
+            if (onClick)
+                onClick(event);
+            if (navigate && href) {
+                event.preventDefault();
+                navigate(href);
+            }
+        };
     }
     e.innerText = iconName || (text == null ? "" : String(text));
 }, { name: "span" });
