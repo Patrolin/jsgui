@@ -169,7 +169,7 @@ dialog::backdrop {
   position: relative;
 }
 .popup {
-  width: 100vw;
+  inset: unset;
   max-width: unset;
   position: absolute;
   top: 0;
@@ -183,16 +183,8 @@ dialog::backdrop {
   pointer-events: none;
   user-select: contain;
 }
-.popup[data-show="false"] {
-  overflow: hidden;
-  height: 0;
-}
-.popup[data-show="true"] {
-  overflow: visible;
-  height: auto;
-}
-/* TODO: make popup be at top z level */
 .popupContentWrapper {
+  max-width: calc(100vw - var(--scrollbarWidth));
   width: fit-content;
   border-radius: 8px;
   padding: 4px 8px;

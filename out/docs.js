@@ -427,7 +427,8 @@ function renderRoot(rootComponent, parentNode) {
     window.onload = function () {
         var _a;
         root_.parentNode = (_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body;
-        _computeScrollbarWidth();
+        if (SCROLLBAR_WIDTH === 0)
+            _computeScrollbarWidth();
         _render(rootComponent, root_.parentNode);
         requestAnimationFrame(function () {
             _scrollToLocationHash();
@@ -667,7 +668,7 @@ var htmlLegend = makeComponent(function htmlLegend(text, _props) {
     name: "legend",
 });
 var dialog = makeComponent(function dialog(props) {
-    var open = props.open, onClose = props.onClose, closeOnClickBackdrop = props.closeOnClickBackdrop, isPopover = props.isPopover;
+    var open = props.open, onClose = props.onClose, closeOnClickBackdrop = props.closeOnClickBackdrop;
     var state = this.useState({ prevOpen: false });
     var e = this.useNode(document.createElement("dialog"));
     e.onclick = function (event) {
@@ -678,12 +679,7 @@ var dialog = makeComponent(function dialog(props) {
         onMount: function () {
             if (open !== state.prevOpen) {
                 if (open) {
-                    if (isPopover) {
-                        e.show();
-                    }
-                    else {
-                        e.showModal();
-                    }
+                    e.showModal();
                 }
                 else {
                     e.close();
@@ -694,30 +690,126 @@ var dialog = makeComponent(function dialog(props) {
     };
 });
 var SCROLLBAR_WIDTH = 0;
+var THIN_SCROLLBAR_WIDTH = 0;
 function _computeScrollbarWidth() {
-    if (SCROLLBAR_WIDTH)
-        return;
     var e = document.createElement("div");
     e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
     document.body.append(e);
     SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
+    e.style.scrollbarWidth = "thin";
+    THIN_SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
     e.remove();
+    document.body.style.setProperty("--scrollbarWidth", addPx(SCROLLBAR_WIDTH));
+    document.body.style.setProperty("--thinScrollbarWidth", addPx(THIN_SCROLLBAR_WIDTH));
+}
+function _getPopupLeftTop(direction, props) {
+    var mouse = props.mouse, popupRect = props.popupRect, wrapperRect = props.wrapperRect;
+    switch (direction) {
+        case "up":
+            return [
+                wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+                wrapperRect.top - popupRect.height
+            ];
+        case "right":
+            return [
+                wrapperRect.left + wrapperRect.width,
+                wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+            ];
+        case "down":
+            return [
+                wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+                wrapperRect.top + wrapperRect.height
+            ];
+        case "left":
+            return [
+                wrapperRect.left - popupRect.width,
+                wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+            ];
+        case "mouse":
+            return [
+                mouse.x,
+                mouse.y - popupRect.height
+            ];
+    }
+}
+function _getPopupLeftTopWithFlipAndClamp(props) {
+    var _a, _b, _c, _d;
+    var direction = props.direction, windowBottom = props.windowBottom, windowRight = props.windowRight, popupRect = props.popupRect;
+    // flip
+    var _e = _getPopupLeftTop(direction, props), left = _e[0], top = _e[1];
+    switch (direction) {
+        case "up": {
+            if (top < 0) {
+                direction = "down";
+                _a = _getPopupLeftTop(direction, props), left = _a[0], top = _a[1];
+            }
+        }
+        case "down": {
+            var bottom = top + popupRect.height;
+            if (bottom >= windowBottom) {
+                direction = "up";
+                _b = _getPopupLeftTop(direction, props), left = _b[0], top = _b[1];
+            }
+            break;
+        }
+        case "left": {
+            if (left >= 0) {
+                direction = "right";
+                _c = _getPopupLeftTop(direction, props), left = _c[0], top = _c[1];
+            }
+            break;
+        }
+        case "right": {
+            var right = left + popupRect.width;
+            if (right >= windowRight) {
+                direction = "left";
+                _d = _getPopupLeftTop(direction, props), left = _d[0], top = _d[1];
+            }
+            break;
+        }
+    }
+    // clamp
+    var maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+    left = clamp(left, 0, maxLeft);
+    var maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+    top = clamp(top, 0, maxTop);
+    return [left, top];
 }
 var popupWrapper = makeComponent(function popupWrapper(props) {
-    var _this = this;
-    var popupContent = props.popupContent, _a = props.direction, direction = _a === void 0 ? "up" : _a;
+    var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a;
     var state = this.useState({ open: false, mouse: { x: -1, y: -1 } });
     var wrapper = this.useNode(document.createElement("div"));
+    var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
+    var movePopup = function () {
+        if (!state.open)
+            return;
+        var popupNode = popup._.prevNode;
+        var popupContentWrapperNode = popupContentWrapper._.prevNode;
+        var wrapperRect = wrapper.getBoundingClientRect();
+        var popupRect = popupContentWrapperNode.getBoundingClientRect();
+        var _a = _getPopupLeftTopWithFlipAndClamp({
+            direction: _direction,
+            mouse: state.mouse,
+            popupRect: popupRect,
+            windowBottom: windowBottom,
+            windowRight: windowRight,
+            wrapperRect: wrapperRect
+        }), left = _a[0], top = _a[1];
+        popupNode.style.left = addPx(left);
+        popupNode.style.top = addPx(top);
+    };
     wrapper.onmouseenter = function () {
+        var _a;
         state.open = true;
-        _this.rerender();
+        (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.showPopover();
+        movePopup();
     };
     wrapper.onmouseleave = function () {
+        var _a;
         state.open = false;
-        _this.rerender();
+        (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.hidePopover();
     };
-    var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
-    if (direction === "mouse") {
+    if (_direction === "mouse") {
         wrapper.onmousemove = function (event) {
             var x = event.clientX;
             var y = event.clientY;
@@ -729,121 +821,15 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
             else {
                 state.open = true;
             }
-            _this.rerender();
+            movePopup();
         };
     }
-    var popup = this.append(dialog({
-        open: true,
-        isPopover: true,
+    var popup = this.append(div({
         className: "popup",
-        attribute: { dataShow: state.open, dataMouse: direction === "mouse" },
+        attribute: { popover: "manual", dataShow: state.open, dataMouse: _direction === "mouse" },
     }));
     var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
     popupContentWrapper.append(popupContent);
-    var getTopLeft = function (wrapperRect, popupRect) {
-        switch (direction) {
-            case "up":
-                return [
-                    0.5 * (wrapperRect.width - popupRect.width),
-                    -popupRect.height
-                ];
-            case "right":
-                return [
-                    wrapperRect.width,
-                    0.5 * (wrapperRect.height - popupRect.height)
-                ];
-            case "down":
-                return [
-                    0.5 * (wrapperRect.width - popupRect.width),
-                    wrapperRect.height
-                ];
-            case "left":
-                return [
-                    -popupRect.width,
-                    0.5 * (wrapperRect.height - popupRect.height)
-                ];
-            case "mouse":
-                return [
-                    state.mouse.x - wrapperRect.left,
-                    state.mouse.y - wrapperRect.top - popupRect.height
-                ];
-        }
-    };
-    var getTopLeftWithFlip = function (wrapperRect, popupRect) {
-        var _a, _b, _c, _d;
-        var _e = getTopLeft(wrapperRect, popupRect), left = _e[0], top = _e[1];
-        switch (direction) {
-            case "up": {
-                var absoluteTop = wrapperRect.top + top;
-                if (absoluteTop < 0) {
-                    direction = "down";
-                    _a = getTopLeft(wrapperRect, popupRect), left = _a[0], top = _a[1];
-                }
-            }
-            case "down": {
-                var absoluteBottom = wrapperRect.bottom + top;
-                if (absoluteBottom >= windowBottom) {
-                    direction = "up";
-                    _b = getTopLeft(wrapperRect, popupRect), left = _b[0], top = _b[1];
-                }
-                break;
-            }
-            case "left": {
-                var absoluteLeft = wrapperRect.left + left;
-                if (absoluteLeft >= 0) {
-                    direction = "right";
-                    _c = getTopLeft(wrapperRect, popupRect), left = _c[0], top = _c[1];
-                }
-                break;
-            }
-            case "right": {
-                var absoluteRight = wrapperRect.right + left;
-                if (absoluteRight >= windowRight) {
-                    direction = "left";
-                    _d = getTopLeft(wrapperRect, popupRect), left = _d[0], top = _d[1];
-                }
-                break;
-            }
-        }
-        return [left, top];
-    };
-    var getTopLeftWithFlipAndClamp = function (wrapperRect, popupRect) {
-        var _a = getTopLeftWithFlip(wrapperRect, popupRect), left = _a[0], top = _a[1];
-        switch (direction) {
-            case "up":
-            case "down":
-            case "mouse": {
-                var minLeft = -wrapperRect.left;
-                var maxLeft = windowRight - wrapperRect.left - popupRect.width - SCROLLBAR_WIDTH;
-                left = clamp(left, minLeft, maxLeft);
-                break;
-            }
-        }
-        switch (direction) {
-            case "left":
-            case "right":
-            case "mouse": {
-                var minTop = -wrapperRect.top;
-                var maxTop = windowBottom - wrapperRect.top - popupRect.height - SCROLLBAR_WIDTH;
-                top = clamp(top, minTop, maxTop);
-                break;
-            }
-        }
-        return [left, top];
-    };
-    return {
-        onMount: function () {
-            if (!state.open)
-                return;
-            var popupNode = popup._.prevNode;
-            var popupContentWrapperNode = popupContentWrapper._.prevNode;
-            var wrapperRect = wrapper.getBoundingClientRect();
-            var popupRect = popupContentWrapperNode.getBoundingClientRect();
-            var _a = getTopLeftWithFlipAndClamp(wrapperRect, popupRect), left = _a[0], top = _a[1];
-            popupNode.style.left = addPx(left);
-            popupNode.style.top = addPx(top);
-        }
-    };
 });
 // inputs
 var button = makeComponent(function button(text, props) {

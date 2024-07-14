@@ -381,7 +381,7 @@ function renderRoot(rootComponent: Component, parentNode = null) {
   rootComponent._ = root_;
   window.onload = () => {
     root_.parentNode = root_.parentNode ?? document.body;
-    _computeScrollbarWidth();
+    if (SCROLLBAR_WIDTH === 0) _computeScrollbarWidth();
     _render(rootComponent, root_.parentNode);
     requestAnimationFrame(() => {
       _scrollToLocationHash();
@@ -604,10 +604,9 @@ type DialogProps = BaseProps & ({
   open: boolean;
   onClose?: () => void;
   closeOnClickBackdrop?: boolean;
-  isPopover?: true;
 });
 const dialog = makeComponent(function dialog(props: DialogProps) {
-  const {open, onClose, closeOnClickBackdrop, isPopover} = props;
+  const {open, onClose, closeOnClickBackdrop} = props;
   const state = this.useState({ prevOpen: false });
   const e = this.useNode(document.createElement("dialog"));
   e.onclick = (event) => {
@@ -617,11 +616,7 @@ const dialog = makeComponent(function dialog(props: DialogProps) {
     onMount: () => {
       if (open !== state.prevOpen) {
         if (open) {
-          if (isPopover) {
-            e.show();
-          } else {
-            e.showModal();
-          }
+          e.showModal();
         } else {
           e.close();
         }
@@ -637,28 +632,133 @@ type PopupWrapperProps = {
   // TODO: arrow?: boolean;
 };
 let SCROLLBAR_WIDTH = 0;
+let THIN_SCROLLBAR_WIDTH = 0;
 function _computeScrollbarWidth() {
-  if (SCROLLBAR_WIDTH) return;
   let e = document.createElement("div");
   e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
   document.body.append(e);
   SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
+  e.style.scrollbarWidth = "thin";
+  THIN_SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
   e.remove();
+  document.body.style.setProperty("--scrollbarWidth", addPx(SCROLLBAR_WIDTH));
+  document.body.style.setProperty("--thinScrollbarWidth", addPx(THIN_SCROLLBAR_WIDTH));
+}
+function _getPopupLeftTop(direction: PopupDirection, props: {
+  mouse: {x: number, y: number},
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}) {
+  const {mouse, popupRect, wrapperRect} = props;
+  switch (direction) {
+    case "up":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top - popupRect.height
+      ];
+    case "right":
+      return [
+        wrapperRect.left + wrapperRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "down":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top + wrapperRect.height
+      ]
+    case "left":
+      return [
+        wrapperRect.left - popupRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "mouse":
+      return [
+        mouse.x,
+        mouse.y - popupRect.height
+      ];
+  }
+}
+function _getPopupLeftTopWithFlipAndClamp(props: {
+  direction: PopupDirection,
+  mouse: {x: number, y: number},
+  windowRight: number;
+  windowBottom: number;
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}) {
+  let {direction, windowBottom, windowRight, popupRect} = props;
+  // flip
+  let [left, top] = _getPopupLeftTop(direction, props);
+  switch (direction) {
+    case "up": {
+      if (top < 0) {
+        direction = "down";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+    }
+    case "down": {
+      const bottom = top + popupRect.height;
+      if (bottom >= windowBottom) {
+        direction = "up";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "left": {
+      if (left >= 0) {
+        direction = "right";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "right": {
+      const right = left + popupRect.width;
+      if (right >= windowRight) {
+        direction = "left";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+  }
+  // clamp
+  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+  left = clamp(left, 0, maxLeft);
+  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+  top = clamp(top, 0, maxTop);
+  return [left, top] as [number, number];
 }
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
-  let {popupContent, direction = "up"} = props;
+  const {popupContent, direction: _direction = "up"} = props;
   const state = this.useState({open: false, mouse: {x: -1, y: -1}});
   const wrapper = this.useNode(document.createElement("div"));
+  const { windowBottom, windowRight } = this.useWindowResize();
+  const movePopup = () => {
+    if (!state.open) return;
+    const popupNode = popup._.prevNode as HTMLDialogElement;
+    const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    const popupRect = popupContentWrapperNode.getBoundingClientRect();
+    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
+      direction: _direction,
+      mouse: state.mouse,
+      popupRect,
+      windowBottom,
+      windowRight,
+      wrapperRect
+    });
+    popupNode.style.left = addPx(left);
+    popupNode.style.top = addPx(top);
+  }
   wrapper.onmouseenter = () => { // TODO: move this to css?
     state.open = true;
-    this.rerender();
+    popup._.prevNode?.showPopover();
+    movePopup();
   };
   wrapper.onmouseleave = () => {
     state.open = false;
-    this.rerender();
+    popup._.prevNode?.hidePopover();
   };
-  const { windowBottom, windowRight } = this.useWindowResize();
-  if (direction === "mouse") {
+  if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
       const x = event.clientX;
       const y = event.clientY
@@ -669,119 +769,15 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
       } else {
         state.open = true;
       }
-      this.rerender();
+      movePopup();
     }
   }
-  const popup = this.append(dialog({
-    open: true,
-    isPopover: true,
+  const popup = this.append(div({
     className: "popup",
-    attribute: {dataShow: state.open, dataMouse: direction === "mouse"},
+    attribute: {popover: "manual", dataShow: state.open, dataMouse: _direction === "mouse"},
   }));
-  const popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
+  const popupContentWrapper = popup.append(div({className: "popupContentWrapper"}));
   popupContentWrapper.append(popupContent);
-  const getTopLeft = (wrapperRect: DOMRect, popupRect: DOMRect) => {
-    switch (direction) {
-      case "up":
-        return [
-          0.5 * (wrapperRect.width - popupRect.width),
-          -popupRect.height
-        ];
-      case "right":
-        return [
-          wrapperRect.width,
-          0.5 * (wrapperRect.height - popupRect.height)
-        ];
-      case "down":
-        return [
-          0.5 * (wrapperRect.width - popupRect.width),
-          wrapperRect.height
-        ]
-      case "left":
-        return [
-          -popupRect.width,
-          0.5 * (wrapperRect.height - popupRect.height)
-        ];
-      case "mouse":
-        return [
-          state.mouse.x - wrapperRect.left,
-          state.mouse.y - wrapperRect.top - popupRect.height
-        ];
-    }
-  };
-  const getTopLeftWithFlip = (wrapperRect: DOMRect, popupRect: DOMRect) => {
-    let [left, top] = getTopLeft(wrapperRect, popupRect);
-    switch (direction) {
-      case "up": {
-        const absoluteTop = wrapperRect.top + top;
-        if (absoluteTop < 0) {
-          direction = "down";
-          [left, top] = getTopLeft(wrapperRect, popupRect);
-        }
-      }
-      case "down": {
-        const absoluteBottom = wrapperRect.bottom + top;
-        if (absoluteBottom >= windowBottom) {
-          direction = "up";
-          [left, top] = getTopLeft(wrapperRect, popupRect);
-        }
-        break;
-      }
-      case "left": {
-        const absoluteLeft = wrapperRect.left + left;
-        if (absoluteLeft >= 0) {
-          direction = "right";
-          [left, top] = getTopLeft(wrapperRect, popupRect);
-        }
-        break;
-      }
-      case "right": {
-        const absoluteRight = wrapperRect.right + left;
-        if (absoluteRight >= windowRight) {
-          direction = "left";
-          [left, top] = getTopLeft(wrapperRect, popupRect);
-        }
-        break;
-      }
-    }
-    return [left, top];
-  }
-  const getTopLeftWithFlipAndClamp = (wrapperRect: DOMRect, popupRect: DOMRect) => {
-    let [left, top] = getTopLeftWithFlip(wrapperRect, popupRect);
-    switch (direction) {
-      case "up":
-      case "down":
-      case "mouse": {
-        const minLeft = -wrapperRect.left;
-        const maxLeft = windowRight - wrapperRect.left - popupRect.width - SCROLLBAR_WIDTH;
-        left = clamp(left, minLeft, maxLeft);
-        break;
-      }
-    }
-    switch (direction) {
-      case "left":
-      case "right":
-      case "mouse": {
-        const minTop = -wrapperRect.top;
-        const maxTop = windowBottom - wrapperRect.top - popupRect.height - SCROLLBAR_WIDTH;
-        top = clamp(top, minTop, maxTop);
-        break;
-      }
-    }
-    return [left, top];
-  }
-  return {
-    onMount: () => {
-      if (!state.open) return;
-      const popupNode = popup._.prevNode as HTMLDialogElement;
-      const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
-      const wrapperRect = wrapper.getBoundingClientRect();
-      const popupRect = popupContentWrapperNode.getBoundingClientRect();
-      const [left, top] = getTopLeftWithFlipAndClamp(wrapperRect, popupRect);
-      popupNode.style.left = addPx(left);
-      popupNode.style.top = addPx(top);
-    }
-  }
 });
 
 type ButtonProps = {
