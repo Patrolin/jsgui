@@ -728,7 +728,7 @@ type PopupWrapperProps = {
 };
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
   const {popupContent, direction: _direction = "up"} = props;
-  const state = this.useState({open: false, mouse: {x: -1, y: -1}});
+  const state = this.useState({mouse: {x: -1, y: -1}});
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize();
   const movePopup = () => {
@@ -747,13 +747,11 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     popupNode.style.left = addPx(left);
     popupNode.style.top = addPx(top);
   }
-  wrapper.onmouseenter = () => { // TODO: move this to css?
-    state.open = true;
+  wrapper.onmouseenter = () => {
     popup._.prevNode?.showPopover();
     movePopup();
   };
   wrapper.onmouseleave = () => {
-    state.open = false;
     popup._.prevNode?.hidePopover();
     const popupNode = popup._.prevNode as HTMLDialogElement;
     popupNode.style.left = "0px";

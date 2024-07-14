@@ -775,7 +775,7 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
 }
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a;
-    var state = this.useState({ open: false, mouse: { x: -1, y: -1 } });
+    var state = this.useState({ mouse: { x: -1, y: -1 } });
     var wrapper = this.useNode(document.createElement("div"));
     var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
     var movePopup = function () {
@@ -796,13 +796,11 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     };
     wrapper.onmouseenter = function () {
         var _a;
-        state.open = true;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.showPopover();
         movePopup();
     };
     wrapper.onmouseleave = function () {
         var _a;
-        state.open = false;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.hidePopover();
         var popupNode = popup._.prevNode;
         popupNode.style.left = "0px";
