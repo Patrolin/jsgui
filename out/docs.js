@@ -781,7 +781,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     var content = props.content, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open, _b = props.interactable, interactable = _b === void 0 ? false : _b;
     var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false, prevOnScroll: null });
     var wrapper = this.useNode(document.createElement("div"));
-    var _c = this.useWindowResize(), windowBottom = _c.windowBottom, windowRight = _c.windowRight;
+    var _c = this.useWindowResize(), windowBottom = _c.windowBottom, windowRight = _c.windowRight; // TODO: just add a window listener
     var movePopup = function () {
         var popupNode = popup._.prevNode;
         var popupContentWrapperNode = popupContentWrapper._.prevNode;
