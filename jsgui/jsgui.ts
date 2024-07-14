@@ -735,10 +735,11 @@ type PopupWrapperProps = {
 };
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
   const {content, direction: _direction = "up", open, interactable = false} = props;
-  const state = this.useState({mouse: {x: -1, y: -1}, prevOpen: false, prevOnScroll: null as EventListener | null});
+  const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener
   const movePopup = () => {
+    if (!state.open) return;
     const popupNode = popup._.prevNode as HTMLDivElement;
     const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
     const wrapperRect = wrapper.getBoundingClientRect();
@@ -757,10 +758,12 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     popupNode.style.top = addPx(top);
   }
   const openPopup = () => {
+    state.open = true;
     popup._.prevNode?.showPopover();
     movePopup();
   }
   const closePopup = () => {
+    state.open = false;
     popup._.prevNode?.hidePopover();
   };
   if (open == null) {
@@ -787,8 +790,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
       }
       state.prevOnScroll = movePopup;
       if (open == null) return;
-      if (open != state.prevOpen) {
-        state.prevOpen = open;
+      if (open != state.open) {
         if (open) {
           openPopup();
         } else {

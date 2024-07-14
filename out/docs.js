@@ -779,10 +779,12 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var _this = this;
     var content = props.content, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open, _b = props.interactable, interactable = _b === void 0 ? false : _b;
-    var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false, prevOnScroll: null });
+    var state = this.useState({ mouse: { x: -1, y: -1 }, open: false, prevOnScroll: null });
     var wrapper = this.useNode(document.createElement("div"));
     var _c = this.useWindowResize(), windowBottom = _c.windowBottom, windowRight = _c.windowRight; // TODO: just add a window listener
     var movePopup = function () {
+        if (!state.open)
+            return;
         var popupNode = popup._.prevNode;
         var popupContentWrapperNode = popupContentWrapper._.prevNode;
         var wrapperRect = wrapper.getBoundingClientRect();
@@ -802,11 +804,13 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     };
     var openPopup = function () {
         var _a;
+        state.open = true;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.showPopover();
         movePopup();
     };
     var closePopup = function () {
         var _a;
+        state.open = false;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.hidePopover();
     };
     if (open == null) {
@@ -834,8 +838,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
             state.prevOnScroll = movePopup;
             if (open == null)
                 return;
-            if (open != state.prevOpen) {
-                state.prevOpen = open;
+            if (open != state.open) {
                 if (open) {
                     openPopup();
                 }
