@@ -87,9 +87,11 @@ type BaseProps = {
   events?: EventsMap;
 };
 type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
-type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => {
+type RenderReturn = {
   onMount?: () => void,
-} | void;
+  onUnmount?: () => void,
+} | void
+type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 type NavigateFunction = (url: string) => void;
 type UseNavigate = {
@@ -200,9 +202,6 @@ class Component {
   useLocationHash(): string { // TODO: add useLocation
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
-  }
-  useAnyScroll() { // TODO: remove this?
-    _dispatchTargets.anyScroll.addComponent(this);
   }
   useWindowResize(): { windowBottom: number, windowRight: number } {
     _dispatchTargets.windowResize.addComponent(this);
@@ -326,7 +325,6 @@ const _dispatchTargets = {
       dispatch();
     });
   }),
-  anyScroll: new DispatchTarget(),
   windowResize: new DispatchTarget((dispatch) => window.addEventListener("resize", dispatch)),
   /*mouseMove: new DispatchTarget((dispatch) => {
     const state = {x: -1, y: -1};
@@ -341,7 +339,6 @@ const _dispatchTargets = {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
     _dispatchTargets.locationHash.removeComponent(component);
-    _dispatchTargets.anyScroll.removeComponent(component);
     _dispatchTargets.windowResize.removeComponent(component);
   },
 }
@@ -360,6 +357,7 @@ class ComponentMetadata {
   prevBaseProps: InheritedBaseProps = _START_BASE_PROPS;
   prevEvents: EventsMap = {} as EventsMap;
   gcFlag: boolean = false;
+  onUnmount?: () => void;
   // navigation
   prevComponent: Component | null = null;
   keyToChild: StringMap<ComponentMetadata> = {};
@@ -406,7 +404,7 @@ const _START_BASE_PROPS: InheritedBaseProps = {
 function _render(component: Component, parentNode: NodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender, indexedChildCount: _indexedChildCount} = component;
-  const {onMount} = onRender.bind(component)(...args, props) ?? {};
+  const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
   const node = component.node;
   // warn if missing keys
   const prevIndexedChildCount = _.prevIndexedChildCount;
@@ -431,9 +429,6 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
       }
     } else {
       parentNode.append(node);
-      node.addEventListener("scroll", () => {
-        _dispatchTargets.anyScroll.dispatch();
-      }, {passive: true});
     }
     // style
     const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
@@ -515,17 +510,17 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
   _.prevState = {..._.state};
   _.prevComponent = component;
   if (onMount) onMount();
+  if (onUnmount) _.onUnmount = onUnmount;
 }
 
 // rerender
 function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) {
   for (let child of prevComponent.children) {
-    const child_ = child._;
-    if (child_.gcFlag !== rootGcFlag) {
+    const {gcFlag, parent, onUnmount, prevNode} = child._;
+    if (gcFlag !== rootGcFlag) {
       _dispatchTargets.removeComponent(prevComponent);
-      const key = child.key;
-      delete child_.parent?.keyToChild[key];
-      const prevNode = child_.prevNode;
+      delete parent?.keyToChild[child.key];
+      if (onUnmount) onUnmount();
       if (prevNode) prevNode.remove();
     }
     _unloadUnusedComponents(child, rootGcFlag);
@@ -614,7 +609,7 @@ type DialogProps = BaseProps & ({
   onClose?: () => void;
   closeOnClickBackdrop?: boolean;
 });
-const dialog = makeComponent(function dialog(props: DialogProps) {
+const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
   const {open, onClose, closeOnClickBackdrop} = props;
   const state = this.useState({ prevOpen: false });
   const e = this.useNode(document.createElement("dialog"));
@@ -736,15 +731,17 @@ type PopupWrapperProps = {
   // TODO: arrow?: boolean;
   open?: boolean; // NOTE: open on hover if undefined
 };
-const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
+const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
   const {popupContent, direction: _direction = "up", open} = props;
-  const state = this.useState({mouse: {x: -1, y: -1}, prevOpen: false});
+  const state = this.useState({mouse: {x: -1, y: -1}, prevOpen: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize();
   const movePopup = () => {
     const popupNode = popup._.prevNode as HTMLDivElement;
     const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
     const wrapperRect = wrapper.getBoundingClientRect();
+    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+    popupNode.style.top = "0px";
     const popupRect = popupContentWrapperNode.getBoundingClientRect();
     const [left, top] = _getPopupLeftTopWithFlipAndClamp({
       direction: _direction,
@@ -763,9 +760,6 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }
   const closePopup = () => {
     popup._.prevNode?.hidePopover();
-    const popupNode = popup._.prevNode as HTMLDivElement;
-    popupNode.style.left = "0px";
-    popupNode.style.top = "0px";
   };
   if (open == null) {
     wrapper.onmouseenter = openPopup;
@@ -773,7 +767,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }
   if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
-      state.mouse = { x: event.clientX, y: event.clientY };
+      state.mouse = { x: event.clientX, y: event.clientY }; // TODO: useGlobalMouse() and recheck bounds on scroll?
       movePopup();
     }
   }
@@ -785,18 +779,27 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   popupContentWrapper.append(popupContent);
   return {
     onMount: () => {
-      if (open != null) {
-        if (open != state.prevOpen) {
-          state.prevOpen = open;
-          if (open) {
-            openPopup();
-          } else {
-            closePopup();
-          }
+      for (let acc: ParentNode | null = this._.prevNode; acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+        acc.addEventListener("scroll", movePopup, {passive: true});
+      }
+      state.prevOnScroll = movePopup;
+      if (open == null) return;
+      if (open != state.prevOpen) {
+        state.prevOpen = open;
+        if (open) {
+          openPopup();
+        } else {
+          closePopup();
         }
       }
-    }
-  }
+    },
+    onUnmount: () => {
+      for (let acc: ParentNode | null = this._.prevNode; acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+      }
+    },
+  };
 });
 
 type ButtonProps = {
@@ -815,7 +818,7 @@ const button = makeComponent(function button(text: string, props: ButtonProps = 
   if (color) attribute.dataColor = color;
   if (disabled) attribute.disabled = "true";
   else if (onClick) {
-    e.onclick = onClick;
+    e.onmousedown = onClick;
   }
 });
 type InputProps = {

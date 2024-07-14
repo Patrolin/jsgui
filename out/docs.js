@@ -240,9 +240,6 @@ var Component = /** @class */ (function () {
         _dispatchTargets.locationHash.addComponent(this);
         return window.location.hash;
     };
-    Component.prototype.useAnyScroll = function () {
-        _dispatchTargets.anyScroll.addComponent(this);
-    };
     Component.prototype.useWindowResize = function () {
         _dispatchTargets.windowResize.addComponent(this);
         return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
@@ -370,7 +367,6 @@ var _dispatchTargets = {
             dispatch();
         });
     }),
-    anyScroll: new DispatchTarget(),
     windowResize: new DispatchTarget(function (dispatch) { return window.addEventListener("resize", dispatch); }),
     /*mouseMove: new DispatchTarget((dispatch) => {
       const state = {x: -1, y: -1};
@@ -385,7 +381,6 @@ var _dispatchTargets = {
         _dispatchTargets.media.removeComponent(component);
         _dispatchTargets.localStorage.removeComponent(component);
         _dispatchTargets.locationHash.removeComponent(component);
-        _dispatchTargets.anyScroll.removeComponent(component);
         _dispatchTargets.windowResize.removeComponent(component);
     },
 };
@@ -455,7 +450,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
     var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, _indexedChildCount = component.indexedChildCount;
-    var onMount = ((_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}).onMount;
+    var _e = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _e.onMount, onUnmount = _e.onUnmount;
     var node = component.node;
     // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
@@ -481,14 +476,11 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         else {
             parentNode.append(node);
-            node.addEventListener("scroll", function () {
-                _dispatchTargets.anyScroll.dispatch();
-            }, { passive: true });
         }
         // style
         var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
         for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
-            var _e = styleDiff_1[_i], key = _e.key, newValue = _e.newValue;
+            var _f = styleDiff_1[_i], key = _f.key, newValue = _f.newValue;
             if (newValue != null) {
                 node.style[key] = addPx(newValue);
             }
@@ -498,8 +490,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         // cssVars
         var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
-        for (var _f = 0, cssVarsDiff_1 = cssVarsDiff; _f < cssVarsDiff_1.length; _f++) {
-            var _g = cssVarsDiff_1[_f], key = _g.key, newValue = _g.newValue;
+        for (var _g = 0, cssVarsDiff_1 = cssVarsDiff; _g < cssVarsDiff_1.length; _g++) {
+            var _h = cssVarsDiff_1[_g], key = _h.key, newValue = _h.newValue;
             if (newValue != null) {
                 node.style.setProperty("--".concat(key), addPx(newValue));
             }
@@ -513,8 +505,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         ;
         var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
-        for (var _h = 0, classNameDiff_1 = classNameDiff; _h < classNameDiff_1.length; _h++) {
-            var _j = classNameDiff_1[_h], key = _j.key, newValue = _j.newValue;
+        for (var _j = 0, classNameDiff_1 = classNameDiff; _j < classNameDiff_1.length; _j++) {
+            var _k = classNameDiff_1[_j], key = _k.key, newValue = _k.newValue;
             if (newValue != null) {
                 if (key === "")
                     console.warn("className cannot be empty,", name, inheritedBaseProps.className);
@@ -528,8 +520,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         // attribute
         var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
-        for (var _k = 0, attributeDiff_1 = attributeDiff; _k < attributeDiff_1.length; _k++) {
-            var _l = attributeDiff_1[_k], key = _l.key, newValue = _l.newValue;
+        for (var _l = 0, attributeDiff_1 = attributeDiff; _l < attributeDiff_1.length; _l++) {
+            var _m = attributeDiff_1[_l], key = _m.key, newValue = _m.newValue;
             if (newValue != null) {
                 node.setAttribute(camelCaseToKebabCase(key), String(newValue));
             }
@@ -539,8 +531,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         // events
         var eventsDiff = getDiff(_.prevEvents, (_c = baseProps.events) !== null && _c !== void 0 ? _c : {});
-        for (var _m = 0, eventsDiff_1 = eventsDiff; _m < eventsDiff_1.length; _m++) {
-            var _o = eventsDiff_1[_m], key = _o.key, oldValue = _o.oldValue, newValue = _o.newValue;
+        for (var _o = 0, eventsDiff_1 = eventsDiff; _o < eventsDiff_1.length; _o++) {
+            var _p = eventsDiff_1[_o], key = _p.key, oldValue = _p.oldValue, newValue = _p.newValue;
             node.removeEventListener(key, oldValue);
             if (newValue) {
                 var passive = key === "scroll" || key === "wheel";
@@ -562,8 +554,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     }
     // children
     var usedKeys = new Set();
-    for (var _p = 0, _q = component.children; _p < _q.length; _p++) {
-        var child = _q[_p];
+    for (var _q = 0, _r = component.children; _q < _r.length; _q++) {
+        var child = _r[_q];
         var key = child.key;
         if (usedKeys.has(key))
             console.warn("Duplicate key: '".concat(key, "'"), component);
@@ -582,18 +574,19 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     _.prevComponent = component;
     if (onMount)
         onMount();
+    if (onUnmount)
+        _.onUnmount = onUnmount;
 }
 // rerender
 function _unloadUnusedComponents(prevComponent, rootGcFlag) {
-    var _a;
-    for (var _i = 0, _b = prevComponent.children; _i < _b.length; _i++) {
-        var child = _b[_i];
-        var child_ = child._;
-        if (child_.gcFlag !== rootGcFlag) {
+    for (var _i = 0, _a = prevComponent.children; _i < _a.length; _i++) {
+        var child = _a[_i];
+        var _b = child._, gcFlag = _b.gcFlag, parent_1 = _b.parent, onUnmount = _b.onUnmount, prevNode = _b.prevNode;
+        if (gcFlag !== rootGcFlag) {
             _dispatchTargets.removeComponent(prevComponent);
-            var key = child.key;
-            (_a = child_.parent) === null || _a === void 0 ? true : delete _a.keyToChild[key];
-            var prevNode = child_.prevNode;
+            parent_1 === null || parent_1 === void 0 ? true : delete parent_1.keyToChild[child.key];
+            if (onUnmount)
+                onUnmount();
             if (prevNode)
                 prevNode.remove();
         }
@@ -784,14 +777,17 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
     return [left, top];
 }
 var popupWrapper = makeComponent(function popupWrapper(props) {
+    var _this = this;
     var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open;
-    var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false });
+    var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false, prevOnScroll: null });
     var wrapper = this.useNode(document.createElement("div"));
     var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
     var movePopup = function () {
         var popupNode = popup._.prevNode;
         var popupContentWrapperNode = popupContentWrapper._.prevNode;
         var wrapperRect = wrapper.getBoundingClientRect();
+        popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+        popupNode.style.top = "0px";
         var popupRect = popupContentWrapperNode.getBoundingClientRect();
         var _a = _getPopupLeftTopWithFlipAndClamp({
             direction: _direction,
@@ -812,9 +808,6 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     var closePopup = function () {
         var _a;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.hidePopover();
-        var popupNode = popup._.prevNode;
-        popupNode.style.left = "0px";
-        popupNode.style.top = "0px";
     };
     if (open == null) {
         wrapper.onmouseenter = openPopup;
@@ -822,7 +815,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     }
     if (_direction === "mouse") {
         wrapper.onmousemove = function (event) {
-            state.mouse = { x: event.clientX, y: event.clientY };
+            state.mouse = { x: event.clientX, y: event.clientY }; // TODO: useGlobalMouse() and recheck bounds on scroll?
             movePopup();
         };
     }
@@ -834,18 +827,28 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     popupContentWrapper.append(popupContent);
     return {
         onMount: function () {
-            if (open != null) {
-                if (open != state.prevOpen) {
-                    state.prevOpen = open;
-                    if (open) {
-                        openPopup();
-                    }
-                    else {
-                        closePopup();
-                    }
+            for (var acc = _this._.prevNode; acc != null; acc = acc.parentNode) {
+                acc.removeEventListener("scroll", state.prevOnScroll);
+                acc.addEventListener("scroll", movePopup, { passive: true });
+            }
+            state.prevOnScroll = movePopup;
+            if (open == null)
+                return;
+            if (open != state.prevOpen) {
+                state.prevOpen = open;
+                if (open) {
+                    openPopup();
+                }
+                else {
+                    closePopup();
                 }
             }
-        }
+        },
+        onUnmount: function () {
+            for (var acc = _this._.prevNode; acc != null; acc = acc.parentNode) {
+                acc.removeEventListener("scroll", state.prevOnScroll);
+            }
+        },
     };
 });
 // inputs
@@ -863,7 +866,7 @@ var button = makeComponent(function button(text, props) {
     if (disabled)
         attribute.disabled = "true";
     else if (onClick) {
-        e.onclick = onClick;
+        e.onmousedown = onClick;
     }
 });
 var input = makeComponent(function input(props) {

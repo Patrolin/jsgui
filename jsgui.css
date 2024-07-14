@@ -224,7 +224,7 @@ button:hover:not([disabled]) {
 }
 button:active:not([disabled]) {
   background: var(--buttonColorActive);
-  margin-top: 1px; /* TODO: prevent mouse click being eaten */
+  margin-top: 1px;
   height: calc(var(--size-x) + 1px);
   border-bottom: none;
 }
