@@ -732,7 +732,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize();
   const movePopup = () => {
-    const popupNode = popup._.prevNode as HTMLDialogElement;
+    const popupNode = popup._.prevNode as HTMLDivElement;
     const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
     const wrapperRect = wrapper.getBoundingClientRect();
     const popupRect = popupContentWrapperNode.getBoundingClientRect();
@@ -753,7 +753,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   };
   wrapper.onmouseleave = () => {
     popup._.prevNode?.hidePopover();
-    const popupNode = popup._.prevNode as HTMLDialogElement;
+    const popupNode = popup._.prevNode as HTMLDivElement;
     popupNode.style.left = "0px";
     popupNode.style.top = "0px";
   };
