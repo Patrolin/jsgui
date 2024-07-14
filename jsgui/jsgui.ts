@@ -761,7 +761,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
       const x = event.clientX;
-      const y = event.clientY
+      const y = event.clientY;
       state.mouse = { x, y };
       const wrapperRect = wrapper.getBoundingClientRect();
       if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
