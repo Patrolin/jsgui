@@ -51,19 +51,32 @@ const dialogSection = makeComponent(function dialogSection() {
   dialogWrapper.append(span("Hello world"));
 });
 const popupSection = makeComponent(function popupSection() {
-  for (let direction of ["up", "right", "mouse"] as PopupDirection[]) {
+  for (let direction of ["up", "right", "down", "left", "mouse"] as PopupDirection[]) {
     const row = this.append(div({ className: "wideDisplayRow" }));
-    const dialogWrapperA = row.append(popupWrapper({
+    const popupA = row.append(popupWrapper({
       popupContent: span("Tiny"),
       direction,
     }));
-    dialogWrapperA.append(span(`direction: "${direction}"`));
-    const dialogWrapperB = row.append(popupWrapper({
+    popupA.append(span(`direction: "${direction}"`));
+    const popupB = row.append(popupWrapper({
       popupContent: span("I can be too big to naively fit on the screen!"),
       direction,
     }));
-    dialogWrapperB.append(span(`direction: "${direction}"`));
+    popupB.append(span(`direction: "${direction}"`));
   }
+  const state = this.useState({ buttonPopupOpen: false });
+  const row = this.append(div({ className: "wideDisplayRow" }));
+  const popup = row.append(popupWrapper({
+    popupContent: span("Tiny"),
+    direction: "down",
+    open: state.buttonPopupOpen,
+  }));
+  popup.append(button(`Toggle popup`, {
+    onClick: () => {
+      state.buttonPopupOpen = !state.buttonPopupOpen;
+      this.rerender();
+    },
+  }));
 });
 const mediaQuerySection = makeComponent(function mediaQuerySection() {
   const smOrBigger = this.useMedia({ minWidth: 600 });

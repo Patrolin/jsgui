@@ -566,13 +566,13 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         _render(child, parentNode, inheritedBaseProps, isTopNode);
     }
     // on mount
-    if (onMount)
-        onMount(_.prevNode != null);
     _.prevNode = node;
     _.prevBaseProps = inheritedBaseProps;
     _.prevIndexedChildCount = _indexedChildCount;
     _.prevState = __assign({}, _.state);
     _.prevComponent = component;
+    if (onMount)
+        onMount();
 }
 // rerender
 function _unloadUnusedComponents(prevComponent, rootGcFlag) {
@@ -750,9 +750,10 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
                 direction = "up";
                 _b = _getPopupLeftTop(direction, props), left = _b[0], top = _b[1];
             }
+            break;
         }
         case "left":
-            if (left >= 0) {
+            if (left < 0) {
                 direction = "right";
                 _c = _getPopupLeftTop(direction, props), left = _c[0], top = _c[1];
             }
@@ -774,8 +775,8 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
     return [left, top];
 }
 var popupWrapper = makeComponent(function popupWrapper(props) {
-    var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a;
-    var state = this.useState({ mouse: { x: -1, y: -1 } });
+    var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open;
+    var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false });
     var wrapper = this.useNode(document.createElement("div"));
     var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
     var movePopup = function () {
@@ -794,18 +795,22 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         popupNode.style.left = addPx(left);
         popupNode.style.top = addPx(top);
     };
-    wrapper.onmouseenter = function () {
+    var openPopup = function () {
         var _a;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.showPopover();
         movePopup();
     };
-    wrapper.onmouseleave = function () {
+    var closePopup = function () {
         var _a;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.hidePopover();
         var popupNode = popup._.prevNode;
         popupNode.style.left = "0px";
         popupNode.style.top = "0px";
     };
+    if (open == null) {
+        wrapper.onmouseenter = openPopup;
+        wrapper.onmouseleave = closePopup;
+    }
     if (_direction === "mouse") {
         wrapper.onmousemove = function (event) {
             state.mouse = { x: event.clientX, y: event.clientY };
@@ -818,6 +823,21 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     }));
     var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
     popupContentWrapper.append(popupContent);
+    return {
+        onMount: function () {
+            if (open != null) {
+                if (open != state.prevOpen) {
+                    state.prevOpen = open;
+                    if (open) {
+                        openPopup();
+                    }
+                    else {
+                        closePopup();
+                    }
+                }
+            }
+        }
+    };
 });
 // inputs
 var button = makeComponent(function button(text, props) {
@@ -1171,20 +1191,34 @@ var dialogSection = makeComponent(function dialogSection() {
     dialogWrapper.append(span("Hello world"));
 });
 var popupSection = makeComponent(function popupSection() {
-    for (var _i = 0, _a = ["up", "right", "mouse"]; _i < _a.length; _i++) {
+    var _this = this;
+    for (var _i = 0, _a = ["up", "right", "down", "left", "mouse"]; _i < _a.length; _i++) {
         var direction = _a[_i];
-        var row = this.append(div({ className: "wideDisplayRow" }));
-        var dialogWrapperA = row.append(popupWrapper({
+        var row_1 = this.append(div({ className: "wideDisplayRow" }));
+        var popupA = row_1.append(popupWrapper({
             popupContent: span("Tiny"),
             direction: direction,
         }));
-        dialogWrapperA.append(span("direction: \"".concat(direction, "\"")));
-        var dialogWrapperB = row.append(popupWrapper({
+        popupA.append(span("direction: \"".concat(direction, "\"")));
+        var popupB = row_1.append(popupWrapper({
             popupContent: span("I can be too big to naively fit on the screen!"),
             direction: direction,
         }));
-        dialogWrapperB.append(span("direction: \"".concat(direction, "\"")));
+        popupB.append(span("direction: \"".concat(direction, "\"")));
     }
+    var state = this.useState({ buttonPopupOpen: false });
+    var row = this.append(div({ className: "wideDisplayRow" }));
+    var popup = row.append(popupWrapper({
+        popupContent: span("Tiny"),
+        direction: "down",
+        open: state.buttonPopupOpen,
+    }));
+    popup.append(button("Toggle popup", {
+        onClick: function () {
+            state.buttonPopupOpen = !state.buttonPopupOpen;
+            _this.rerender();
+        },
+    }));
 });
 var mediaQuerySection = makeComponent(function mediaQuerySection() {
     var smOrBigger = this.useMedia({ minWidth: 600 });

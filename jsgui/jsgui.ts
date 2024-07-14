@@ -88,7 +88,7 @@ type BaseProps = {
 };
 type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
 type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => {
-  onMount?: (havePrevNode: boolean) => void,
+  onMount?: () => void,
 } | void;
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 type NavigateFunction = (url: string) => void;
@@ -500,12 +500,12 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     _render(child, parentNode, inheritedBaseProps, isTopNode);
   }
   // on mount
-  if (onMount) onMount(_.prevNode != null);
   _.prevNode = node;
   _.prevBaseProps = inheritedBaseProps;
   _.prevIndexedChildCount = _indexedChildCount;
   _.prevState = {..._.state};
   _.prevComponent = component;
+  if (onMount) onMount();
 }
 
 // rerender
@@ -697,9 +697,10 @@ function _getPopupLeftTopWithFlipAndClamp(props: {
         direction = "up";
         [left, top] = _getPopupLeftTop(direction, props);
       }
+      break;
     }
     case "left":
-      if (left >= 0) {
+      if (left < 0) {
         direction = "right";
         [left, top] = _getPopupLeftTop(direction, props);
       }
@@ -724,11 +725,11 @@ type PopupWrapperProps = {
   popupContent: Component;
   direction?: PopupDirection;
   // TODO: arrow?: boolean;
-  // TODO: open?: boolean; // open on hover if undefined
+  open?: boolean; // NOTE: open on hover if undefined
 };
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
-  const {popupContent, direction: _direction = "up"} = props;
-  const state = this.useState({mouse: {x: -1, y: -1}});
+  const {popupContent, direction: _direction = "up", open} = props;
+  const state = this.useState({mouse: {x: -1, y: -1}, prevOpen: false});
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize();
   const movePopup = () => {
@@ -747,16 +748,20 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     popupNode.style.left = addPx(left);
     popupNode.style.top = addPx(top);
   }
-  wrapper.onmouseenter = () => {
+  const openPopup = () => {
     popup._.prevNode?.showPopover();
     movePopup();
-  };
-  wrapper.onmouseleave = () => {
+  }
+  const closePopup = () => {
     popup._.prevNode?.hidePopover();
     const popupNode = popup._.prevNode as HTMLDivElement;
     popupNode.style.left = "0px";
     popupNode.style.top = "0px";
   };
+  if (open == null) {
+    wrapper.onmouseenter = openPopup;
+    wrapper.onmouseleave = closePopup;
+  }
   if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
       state.mouse = { x: event.clientX, y: event.clientY };
@@ -769,6 +774,20 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }));
   const popupContentWrapper = popup.append(div({className: "popupContentWrapper"}));
   popupContentWrapper.append(popupContent);
+  return {
+    onMount: () => {
+      if (open != null) {
+        if (open != state.prevOpen) {
+          state.prevOpen = open;
+          if (open) {
+            openPopup();
+          } else {
+            closePopup();
+          }
+        }
+      }
+    }
+  }
 });
 
 type ButtonProps = {
