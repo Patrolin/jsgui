@@ -726,14 +726,15 @@ function _getPopupLeftTopWithFlipAndClamp(props: {
   return [left, top] as [number, number];
 }
 type PopupWrapperProps = {
-  popupContent: Component;
+  content: Component;
   direction?: PopupDirection;
   // TODO: arrow?: boolean;
-  open?: boolean; // NOTE: open on hover if undefined
+  /** NOTE: open on hover if undefined */
+  open?: boolean;
   interactable?: boolean;
 };
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
-  const {popupContent, direction: _direction = "up", open, interactable = false} = props;
+  const {content, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, prevOpen: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize();
@@ -777,7 +778,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
     attribute: {popover: "manual", dataInteractable: interactable},
   }));
   const popupContentWrapper = popup.append(div({className: "popupContentWrapper"}));
-  popupContentWrapper.append(popupContent);
+  popupContentWrapper.append(content);
   return {
     onMount: () => {
       for (let acc: ParentNode | null = this._.prevNode; acc != null; acc = acc.parentNode) {

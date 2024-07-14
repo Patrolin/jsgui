@@ -55,12 +55,12 @@ const popupSection = makeComponent(function popupSection() {
     const popupProps = {direction, interactable: direction !== "mouse"};
     const row = this.append(div({ className: "wideDisplayRow" }));
     const popupA = row.append(popupWrapper({
-      popupContent: span("Tiny"),
+      content: span("Tiny"),
       ...popupProps,
     }));
     popupA.append(span(`direction: "${direction}"`));
     const popupB = row.append(popupWrapper({
-      popupContent: span("I can be too big to naively fit on the screen!"),
+      content: span("I can be too big to naively fit on the screen!"),
       ...popupProps,
     }));
     popupB.append(span(`direction: "${direction}"`));
@@ -68,7 +68,7 @@ const popupSection = makeComponent(function popupSection() {
   const state = this.useState({ buttonPopupOpen: false });
   const row = this.append(div({ className: "wideDisplayRow" }));
   const popup = row.append(popupWrapper({
-    popupContent: span("Tiny"),
+    content: span("Tiny"),
     direction: "down",
     open: state.buttonPopupOpen,
   }));

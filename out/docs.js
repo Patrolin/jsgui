@@ -778,7 +778,7 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
 }
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var _this = this;
-    var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open, _b = props.interactable, interactable = _b === void 0 ? false : _b;
+    var content = props.content, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open, _b = props.interactable, interactable = _b === void 0 ? false : _b;
     var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false, prevOnScroll: null });
     var wrapper = this.useNode(document.createElement("div"));
     var _c = this.useWindowResize(), windowBottom = _c.windowBottom, windowRight = _c.windowRight;
@@ -824,7 +824,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         attribute: { popover: "manual", dataInteractable: interactable },
     }));
     var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
-    popupContentWrapper.append(popupContent);
+    popupContentWrapper.append(content);
     return {
         onMount: function () {
             for (var acc = _this._.prevNode; acc != null; acc = acc.parentNode) {
@@ -1210,15 +1210,15 @@ var popupSection = makeComponent(function popupSection() {
         var direction = _a[_i];
         var popupProps = { direction: direction, interactable: direction !== "mouse" };
         var row_1 = this.append(div({ className: "wideDisplayRow" }));
-        var popupA = row_1.append(popupWrapper(__assign({ popupContent: span("Tiny") }, popupProps)));
+        var popupA = row_1.append(popupWrapper(__assign({ content: span("Tiny") }, popupProps)));
         popupA.append(span("direction: \"".concat(direction, "\"")));
-        var popupB = row_1.append(popupWrapper(__assign({ popupContent: span("I can be too big to naively fit on the screen!") }, popupProps)));
+        var popupB = row_1.append(popupWrapper(__assign({ content: span("I can be too big to naively fit on the screen!") }, popupProps)));
         popupB.append(span("direction: \"".concat(direction, "\"")));
     }
     var state = this.useState({ buttonPopupOpen: false });
     var row = this.append(div({ className: "wideDisplayRow" }));
     var popup = row.append(popupWrapper({
-        popupContent: span("Tiny"),
+        content: span("Tiny"),
         direction: "down",
         open: state.buttonPopupOpen,
     }));
