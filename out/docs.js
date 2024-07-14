@@ -148,6 +148,13 @@ function getDiffArray(oldValues, newValues) {
     return Object.values(diffMap).filter(function (v) { return v.newValue !== v.oldValue; });
 }
 // component
+function _setChildKey(component, child) {
+    var key = child.baseProps.key;
+    if (key == null) {
+        key = "".concat(child.name, "-").concat(component.indexedChildCount++);
+    }
+    child.key = key;
+}
 var Component = /** @class */ (function () {
     function Component(onRender, args, baseProps, props, options) {
         var _a;
@@ -171,13 +178,14 @@ var Component = /** @class */ (function () {
         var _a, _b;
         return (this.node = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : defaultNode));
     };
+    Component.prototype.prepend = function (child) {
+        this.children = __spreadArray([child], this.children, true);
+        _setChildKey(this, child);
+        return child;
+    };
     Component.prototype.append = function (child) {
         this.children.push(child);
-        var key = child.baseProps.key;
-        if (key == null) {
-            key = "".concat(child.name, "-").concat(this.indexedChildCount++);
-        }
-        child.key = key;
+        _setChildKey(this, child);
         return child;
     };
     Component.prototype.useState = function (defaultState) {
@@ -535,7 +543,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             var _o = eventsDiff_1[_m], key = _o.key, oldValue = _o.oldValue, newValue = _o.newValue;
             node.removeEventListener(key, oldValue);
             if (newValue) {
-                node.addEventListener(key, newValue); // TODO: passive events?
+                var passive = key === "scroll" || key === "wheel";
+                node.addEventListener(key, newValue, { passive: passive });
             }
         }
         parentNode = node;

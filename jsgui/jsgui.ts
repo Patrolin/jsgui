@@ -103,6 +103,13 @@ type UseNavigate = {
   replaceHistory: NavigateFunction;
 }
 // component
+function _setChildKey(component: Component, child: Component) {
+  let key = child.baseProps.key;
+  if (key == null) {
+    key = `${child.name}-${component.indexedChildCount++}`;
+  }
+  child.key = key;
+}
 class Component {
   // props
   name: string;
@@ -137,13 +144,14 @@ class Component {
   useNode<T extends NodeType>(defaultNode: T): T {
     return (this.node = (this._?.prevNode ?? defaultNode)) as T;
   }
+  prepend(child: Component) {
+    this.children = [child, ...this.children];
+    _setChildKey(this, child);
+    return child;
+  }
   append(child: Component) {
     this.children.push(child);
-    let key = child.baseProps.key;
-    if (key == null) {
-      key = `${child.name}-${this.indexedChildCount++}`;
-    }
-    child.key = key;
+    _setChildKey(this, child);
     return child;
   }
   useState<T extends object>(defaultState: T): T {
@@ -473,7 +481,8 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     for (let {key, oldValue, newValue} of eventsDiff) {
       node.removeEventListener(key, oldValue as _EventListener);
       if (newValue) {
-        node.addEventListener(key, newValue as _EventListener); // TODO: passive events?
+        const passive = key === "scroll" || key === "wheel";
+        node.addEventListener(key, newValue as _EventListener, {passive});
       }
     }
     parentNode = node;
