@@ -818,7 +818,9 @@ const button = makeComponent(function button(text: string, props: ButtonProps = 
   if (color) attribute.dataColor = color;
   if (disabled) attribute.disabled = "true";
   else if (onClick) {
-    e.onmousedown = onClick;
+    e.onmousedown = () => {
+      requestAnimationFrame(onClick);
+    }
   }
 });
 type InputProps = {

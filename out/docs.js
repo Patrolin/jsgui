@@ -866,7 +866,9 @@ var button = makeComponent(function button(text, props) {
     if (disabled)
         attribute.disabled = "true";
     else if (onClick) {
-        e.onmousedown = onClick;
+        e.onmousedown = function () {
+            requestAnimationFrame(onClick);
+        };
     }
 });
 var input = makeComponent(function input(props) {
