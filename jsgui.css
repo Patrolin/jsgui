@@ -165,9 +165,6 @@ dialog {
 dialog::backdrop {
   background: var(--gray-2);
 }
-.popupWrapper {
-  position: relative;
-}
 .popup {
   inset: unset;
   max-width: unset;

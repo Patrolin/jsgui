@@ -738,27 +738,25 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
     // flip
     var _e = _getPopupLeftTop(direction, props), left = _e[0], top = _e[1];
     switch (direction) {
-        case "up": {
+        case "up":
             if (top < 0) {
                 direction = "down";
                 _a = _getPopupLeftTop(direction, props), left = _a[0], top = _a[1];
             }
-        }
+            break;
         case "down": {
             var bottom = top + popupRect.height;
             if (bottom >= windowBottom) {
                 direction = "up";
                 _b = _getPopupLeftTop(direction, props), left = _b[0], top = _b[1];
             }
-            break;
         }
-        case "left": {
+        case "left":
             if (left >= 0) {
                 direction = "right";
                 _c = _getPopupLeftTop(direction, props), left = _c[0], top = _c[1];
             }
             break;
-        }
         case "right": {
             var right = left + popupRect.width;
             if (right >= windowRight) {
@@ -781,8 +779,6 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     var wrapper = this.useNode(document.createElement("div"));
     var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
     var movePopup = function () {
-        if (!state.open)
-            return;
         var popupNode = popup._.prevNode;
         var popupContentWrapperNode = popupContentWrapper._.prevNode;
         var wrapperRect = wrapper.getBoundingClientRect();
@@ -808,25 +804,19 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
         var _a;
         state.open = false;
         (_a = popup._.prevNode) === null || _a === void 0 ? void 0 : _a.hidePopover();
+        var popupNode = popup._.prevNode;
+        popupNode.style.left = "0px";
+        popupNode.style.top = "0px";
     };
     if (_direction === "mouse") {
         wrapper.onmousemove = function (event) {
-            var x = event.clientX;
-            var y = event.clientY;
-            state.mouse = { x: x, y: y };
-            var wrapperRect = wrapper.getBoundingClientRect();
-            if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
-                state.open = false;
-            }
-            else {
-                state.open = true;
-            }
+            state.mouse = { x: event.clientX, y: event.clientY };
             movePopup();
         };
     }
     var popup = this.append(div({
         className: "popup",
-        attribute: { popover: "manual", dataShow: state.open, dataMouse: _direction === "mouse" },
+        attribute: { popover: "manual", dataMouse: _direction === "mouse" },
     }));
     var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
     popupContentWrapper.append(popupContent);

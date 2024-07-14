@@ -626,11 +626,6 @@ const dialog = makeComponent(function dialog(props: DialogProps) {
   };
 });
 type PopupDirection = "up" | "right" | "down" | "left" | "mouse";
-type PopupWrapperProps = {
-  popupContent: Component;
-  direction?: PopupDirection;
-  // TODO: arrow?: boolean;
-};
 let SCROLLBAR_WIDTH = 0;
 let THIN_SCROLLBAR_WIDTH = 0;
 function _computeScrollbarWidth() {
@@ -690,27 +685,25 @@ function _getPopupLeftTopWithFlipAndClamp(props: {
   // flip
   let [left, top] = _getPopupLeftTop(direction, props);
   switch (direction) {
-    case "up": {
+    case "up":
       if (top < 0) {
         direction = "down";
         [left, top] = _getPopupLeftTop(direction, props);
       }
-    }
+      break;
     case "down": {
       const bottom = top + popupRect.height;
       if (bottom >= windowBottom) {
         direction = "up";
         [left, top] = _getPopupLeftTop(direction, props);
       }
-      break;
     }
-    case "left": {
+    case "left":
       if (left >= 0) {
         direction = "right";
         [left, top] = _getPopupLeftTop(direction, props);
       }
       break;
-    }
     case "right": {
       const right = left + popupRect.width;
       if (right >= windowRight) {
@@ -727,13 +720,18 @@ function _getPopupLeftTopWithFlipAndClamp(props: {
   top = clamp(top, 0, maxTop);
   return [left, top] as [number, number];
 }
+type PopupWrapperProps = {
+  popupContent: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+  // TODO: open?: boolean; // open on hover if undefined
+};
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps) {
   const {popupContent, direction: _direction = "up"} = props;
   const state = this.useState({open: false, mouse: {x: -1, y: -1}});
   const wrapper = this.useNode(document.createElement("div"));
-  const { windowBottom, windowRight } = this.useWindowResize();
+  const {windowBottom, windowRight} = this.useWindowResize();
   const movePopup = () => {
-    if (!state.open) return;
     const popupNode = popup._.prevNode as HTMLDialogElement;
     const popupContentWrapperNode = popupContentWrapper._.prevNode as HTMLDivElement;
     const wrapperRect = wrapper.getBoundingClientRect();
@@ -757,24 +755,19 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   wrapper.onmouseleave = () => {
     state.open = false;
     popup._.prevNode?.hidePopover();
+    const popupNode = popup._.prevNode as HTMLDialogElement;
+    popupNode.style.left = "0px";
+    popupNode.style.top = "0px";
   };
   if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
-      const x = event.clientX;
-      const y = event.clientY;
-      state.mouse = { x, y };
-      const wrapperRect = wrapper.getBoundingClientRect();
-      if (x < wrapperRect.left || x > wrapperRect.right || y < wrapperRect.top || y > wrapperRect.bottom) {
-        state.open = false;
-      } else {
-        state.open = true;
-      }
+      state.mouse = { x: event.clientX, y: event.clientY };
       movePopup();
     }
   }
   const popup = this.append(div({
     className: "popup",
-    attribute: {popover: "manual", dataShow: state.open, dataMouse: _direction === "mouse"},
+    attribute: {popover: "manual", dataMouse: _direction === "mouse"},
   }));
   const popupContentWrapper = popup.append(div({className: "popupContentWrapper"}));
   popupContentWrapper.append(popupContent);
