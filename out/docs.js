@@ -778,10 +778,10 @@ function _getPopupLeftTopWithFlipAndClamp(props) {
 }
 var popupWrapper = makeComponent(function popupWrapper(props) {
     var _this = this;
-    var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open;
+    var popupContent = props.popupContent, _a = props.direction, _direction = _a === void 0 ? "up" : _a, open = props.open, _b = props.interactable, interactable = _b === void 0 ? false : _b;
     var state = this.useState({ mouse: { x: -1, y: -1 }, prevOpen: false, prevOnScroll: null });
     var wrapper = this.useNode(document.createElement("div"));
-    var _b = this.useWindowResize(), windowBottom = _b.windowBottom, windowRight = _b.windowRight;
+    var _c = this.useWindowResize(), windowBottom = _c.windowBottom, windowRight = _c.windowRight;
     var movePopup = function () {
         var popupNode = popup._.prevNode;
         var popupContentWrapperNode = popupContentWrapper._.prevNode;
@@ -821,7 +821,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     }
     var popup = this.append(div({
         className: "popup",
-        attribute: { popover: "manual", dataMouse: _direction === "mouse" },
+        attribute: { popover: "manual", dataInteractable: interactable },
     }));
     var popupContentWrapper = popup.append(div({ className: "popupContentWrapper" }));
     popupContentWrapper.append(popupContent);
@@ -1208,16 +1208,11 @@ var popupSection = makeComponent(function popupSection() {
     var _this = this;
     for (var _i = 0, _a = ["up", "right", "down", "left", "mouse"]; _i < _a.length; _i++) {
         var direction = _a[_i];
+        var popupProps = { direction: direction, interactable: direction !== "mouse" };
         var row_1 = this.append(div({ className: "wideDisplayRow" }));
-        var popupA = row_1.append(popupWrapper({
-            popupContent: span("Tiny"),
-            direction: direction,
-        }));
+        var popupA = row_1.append(popupWrapper(__assign({ popupContent: span("Tiny") }, popupProps)));
         popupA.append(span("direction: \"".concat(direction, "\"")));
-        var popupB = row_1.append(popupWrapper({
-            popupContent: span("I can be too big to naively fit on the screen!"),
-            direction: direction,
-        }));
+        var popupB = row_1.append(popupWrapper(__assign({ popupContent: span("I can be too big to naively fit on the screen!") }, popupProps)));
         popupB.append(span("direction: \"".concat(direction, "\"")));
     }
     var state = this.useState({ buttonPopupOpen: false });

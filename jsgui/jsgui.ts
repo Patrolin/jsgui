@@ -730,9 +730,10 @@ type PopupWrapperProps = {
   direction?: PopupDirection;
   // TODO: arrow?: boolean;
   open?: boolean; // NOTE: open on hover if undefined
+  interactable?: boolean;
 };
 const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
-  const {popupContent, direction: _direction = "up", open} = props;
+  const {popupContent, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, prevOpen: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize();
@@ -773,7 +774,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }
   const popup = this.append(div({
     className: "popup",
-    attribute: {popover: "manual", dataMouse: _direction === "mouse"},
+    attribute: {popover: "manual", dataInteractable: interactable},
   }));
   const popupContentWrapper = popup.append(div({className: "popupContentWrapper"}));
   popupContentWrapper.append(popupContent);

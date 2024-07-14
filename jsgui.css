@@ -177,8 +177,7 @@ dialog::backdrop {
   outline: none;
   box-shadow: none;
   background: transparent;
-  pointer-events: none;
-  user-select: contain;
+  /* NOTE: Scrolling inside .popup only scrolls the <html> tag, there is nothing we can do. */
 }
 .popupContentWrapper {
   max-width: calc(100vw - var(--scrollbarWidth));
@@ -186,9 +185,8 @@ dialog::backdrop {
   border-radius: 8px;
   padding: 4px 8px;
   background: lightgray; /* TODO: background color */
-  pointer-events: auto;
 }
-.popup[data-mouse="true"], .popup[data-mouse="true"] > .popupContentWrapper {
+.popup[data-interactable="false"] {
   pointer-events: none;
   user-select: none;
 }

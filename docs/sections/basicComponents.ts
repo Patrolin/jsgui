@@ -52,15 +52,16 @@ const dialogSection = makeComponent(function dialogSection() {
 });
 const popupSection = makeComponent(function popupSection() {
   for (let direction of ["up", "right", "down", "left", "mouse"] as PopupDirection[]) {
+    const popupProps = {direction, interactable: direction !== "mouse"};
     const row = this.append(div({ className: "wideDisplayRow" }));
     const popupA = row.append(popupWrapper({
       popupContent: span("Tiny"),
-      direction,
+      ...popupProps,
     }));
     popupA.append(span(`direction: "${direction}"`));
     const popupB = row.append(popupWrapper({
       popupContent: span("I can be too big to naively fit on the screen!"),
-      direction,
+      ...popupProps,
     }));
     popupB.append(span(`direction: "${direction}"`));
   }
