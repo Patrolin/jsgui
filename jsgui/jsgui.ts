@@ -1,6 +1,6 @@
 // TODO: make a typescript compiler to compile packages like odin
 // utils
-const JSGUI_VERSION = "v0.4";
+const JSGUI_VERSION = "v0.5-dev";
 function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -431,6 +431,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
       const prevName = _.prevComponent?.name;
       if (name !== prevName) {
         prevNode.replaceWith(node);
+        _.prevBaseProps = {} as InheritedBaseProps;
         _.prevEvents = {} as EventsMap;
       }
     } else {
@@ -486,14 +487,16 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
         node.addEventListener(key, newValue as _EventListener, {passive});
       }
     }
+    _.prevBaseProps = inheritedBaseProps;
+    _.prevEvents = baseProps.events ?? {};
     parentNode = node;
     inheritedBaseProps = _START_BASE_PROPS;
     isTopNode = false;
   } else {
     if (prevNode) {
       prevNode.remove(); // NOTE: removing components is handled by _unloadUnusedComponents()
-      _.prevNode = null;
-      _.prevBaseProps = _START_BASE_PROPS;
+      _.prevBaseProps = {} as InheritedBaseProps;
+      _.prevEvents = {} as EventsMap;
     }
     if (name) inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
   }
@@ -511,7 +514,6 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
   }
   // on mount
   _.prevNode = node;
-  _.prevBaseProps = inheritedBaseProps;
   _.prevIndexedChildCount = _indexedChildCount;
   _.prevState = {..._.state};
   _.prevComponent = component;
@@ -542,6 +544,56 @@ function unloadRoot(root_: RootComponentMetadata) {
 
 // basic components
 const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
+const ul = makeComponent(function ul(_props: BaseProps = {}) {
+    this.useNode(document.createElement("ul"));
+});
+const ol = makeComponent(function ol(_props: BaseProps = {}) {
+    this.useNode(document.createElement("ol"));
+});
+const li = makeComponent(function li(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("li"));
+    e.innerText = text;
+});
+const h1 = makeComponent(function h1(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("h1"));
+    e.innerText = text;
+});
+const h2 = makeComponent(function h2(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("h2"));
+    e.innerText = text;
+});
+const h3 = makeComponent(function h3(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("h3"));
+    e.innerText = text;
+});
+const h4 = makeComponent(function h4(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("h4"));
+    e.innerText = text;
+});
+const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("h5"));
+    e.innerText = text;
+});
+const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("h6"));
+    e.innerText = text;
+});
+const htmlButton = makeComponent(function htmlButton(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("button"));
+    e.innerText = text;
+}, {name: "button"});
+const htmlInput = makeComponent(function htmlInput(_props: BaseProps = {}) {
+    this.useNode(document.createElement("input"));
+}, {name: "input"});
+const svg = makeComponent(function svg(svgText: string, _props: BaseProps = {}) {
+    let defaultNode = this._.prevNode;
+    if (defaultNode == null) {
+        const tmp = document.createElement("span");
+        tmp.innerHTML = svgText;
+        defaultNode = (tmp.children[0] ?? document.createElement("svg")) as NodeType;
+    }
+    this.useNode(defaultNode);
+});
 const div = makeComponent(function div(_props: BaseProps = {}) {
   this.useNode(document.createElement('div'));
 });

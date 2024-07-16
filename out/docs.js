@@ -86,7 +86,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 // TODO: make a typescript compiler to compile packages like odin
 // utils
-var JSGUI_VERSION = "v0.4";
+var JSGUI_VERSION = "v0.5-dev";
 function parseJsonOrNull(jsonString) {
     try {
         return JSON.parse(jsonString);
@@ -453,12 +453,12 @@ var _START_BASE_PROPS = {
     style: {},
 };
 function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
-    var _a, _b, _c, _d;
+    var _a, _b, _c, _d, _e;
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
     var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, _indexedChildCount = component.indexedChildCount;
-    var _e = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _e.onMount, onUnmount = _e.onUnmount;
+    var _f = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _f.onMount, onUnmount = _f.onUnmount;
     var node = component.node;
     // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
@@ -479,6 +479,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             var prevName = (_b = _.prevComponent) === null || _b === void 0 ? void 0 : _b.name;
             if (name !== prevName) {
                 prevNode.replaceWith(node);
+                _.prevBaseProps = {};
                 _.prevEvents = {};
             }
         }
@@ -488,7 +489,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         // style
         var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
         for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
-            var _f = styleDiff_1[_i], key = _f.key, newValue = _f.newValue;
+            var _g = styleDiff_1[_i], key = _g.key, newValue = _g.newValue;
             if (newValue != null) {
                 node.style[key] = addPx(newValue);
             }
@@ -498,8 +499,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         // cssVars
         var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
-        for (var _g = 0, cssVarsDiff_1 = cssVarsDiff; _g < cssVarsDiff_1.length; _g++) {
-            var _h = cssVarsDiff_1[_g], key = _h.key, newValue = _h.newValue;
+        for (var _h = 0, cssVarsDiff_1 = cssVarsDiff; _h < cssVarsDiff_1.length; _h++) {
+            var _j = cssVarsDiff_1[_h], key = _j.key, newValue = _j.newValue;
             if (newValue != null) {
                 node.style.setProperty("--".concat(key), addPx(newValue));
             }
@@ -513,8 +514,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         ;
         var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
-        for (var _j = 0, classNameDiff_1 = classNameDiff; _j < classNameDiff_1.length; _j++) {
-            var _k = classNameDiff_1[_j], key = _k.key, newValue = _k.newValue;
+        for (var _k = 0, classNameDiff_1 = classNameDiff; _k < classNameDiff_1.length; _k++) {
+            var _l = classNameDiff_1[_k], key = _l.key, newValue = _l.newValue;
             if (newValue != null) {
                 if (key === "")
                     console.warn("className cannot be empty,", name, inheritedBaseProps.className);
@@ -528,8 +529,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         // attribute
         var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
-        for (var _l = 0, attributeDiff_1 = attributeDiff; _l < attributeDiff_1.length; _l++) {
-            var _m = attributeDiff_1[_l], key = _m.key, newValue = _m.newValue;
+        for (var _m = 0, attributeDiff_1 = attributeDiff; _m < attributeDiff_1.length; _m++) {
+            var _o = attributeDiff_1[_m], key = _o.key, newValue = _o.newValue;
             if (newValue != null) {
                 node.setAttribute(camelCaseToKebabCase(key), String(newValue));
             }
@@ -539,14 +540,16 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         }
         // events
         var eventsDiff = getDiff(_.prevEvents, (_c = baseProps.events) !== null && _c !== void 0 ? _c : {});
-        for (var _o = 0, eventsDiff_1 = eventsDiff; _o < eventsDiff_1.length; _o++) {
-            var _p = eventsDiff_1[_o], key = _p.key, oldValue = _p.oldValue, newValue = _p.newValue;
+        for (var _p = 0, eventsDiff_1 = eventsDiff; _p < eventsDiff_1.length; _p++) {
+            var _q = eventsDiff_1[_p], key = _q.key, oldValue = _q.oldValue, newValue = _q.newValue;
             node.removeEventListener(key, oldValue);
             if (newValue) {
                 var passive = key === "scroll" || key === "wheel";
                 node.addEventListener(key, newValue, { passive: passive });
             }
         }
+        _.prevBaseProps = inheritedBaseProps;
+        _.prevEvents = (_d = baseProps.events) !== null && _d !== void 0 ? _d : {};
         parentNode = node;
         inheritedBaseProps = _START_BASE_PROPS;
         isTopNode = false;
@@ -554,21 +557,21 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     else {
         if (prevNode) {
             prevNode.remove(); // NOTE: removing components is handled by _unloadUnusedComponents()
-            _.prevNode = null;
-            _.prevBaseProps = _START_BASE_PROPS;
+            _.prevBaseProps = {};
+            _.prevEvents = {};
         }
         if (name)
             inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
     }
     // children
     var usedKeys = new Set();
-    for (var _q = 0, _r = component.children; _q < _r.length; _q++) {
-        var child = _r[_q];
+    for (var _r = 0, _s = component.children; _r < _s.length; _r++) {
+        var child = _s[_r];
         var key = child.key;
         if (usedKeys.has(key))
             console.warn("Duplicate key: '".concat(key, "'"), component);
         usedKeys.add(key);
-        var child_ = (_d = _.keyToChild[key]) !== null && _d !== void 0 ? _d : new ComponentMetadata(_);
+        var child_ = (_e = _.keyToChild[key]) !== null && _e !== void 0 ? _e : new ComponentMetadata(_);
         _.keyToChild[key] = child_;
         child._ = child_;
         child_.gcFlag = _.gcFlag;
@@ -576,7 +579,6 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     }
     // on mount
     _.prevNode = node;
-    _.prevBaseProps = inheritedBaseProps;
     _.prevIndexedChildCount = _indexedChildCount;
     _.prevState = __assign({}, _.state);
     _.prevComponent = component;
@@ -613,6 +615,69 @@ function unloadRoot(root_) {
 var fragment = makeComponent(function fragment(_props) {
     if (_props === void 0) { _props = {}; }
 }, { name: '' });
+var ul = makeComponent(function ul(_props) {
+    if (_props === void 0) { _props = {}; }
+    this.useNode(document.createElement("ul"));
+});
+var ol = makeComponent(function ol(_props) {
+    if (_props === void 0) { _props = {}; }
+    this.useNode(document.createElement("ol"));
+});
+var li = makeComponent(function li(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("li"));
+    e.innerText = text;
+});
+var h1 = makeComponent(function h1(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("h1"));
+    e.innerText = text;
+});
+var h2 = makeComponent(function h2(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("h2"));
+    e.innerText = text;
+});
+var h3 = makeComponent(function h3(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("h3"));
+    e.innerText = text;
+});
+var h4 = makeComponent(function h4(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("h4"));
+    e.innerText = text;
+});
+var h5 = makeComponent(function h5(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("h5"));
+    e.innerText = text;
+});
+var h6 = makeComponent(function h6(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("h6"));
+    e.innerText = text;
+});
+var htmlButton = makeComponent(function htmlButton(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("button"));
+    e.innerText = text;
+}, { name: "button" });
+var htmlInput = makeComponent(function htmlInput(_props) {
+    if (_props === void 0) { _props = {}; }
+    this.useNode(document.createElement("input"));
+}, { name: "input" });
+var svg = makeComponent(function svg(svgText, _props) {
+    var _a;
+    if (_props === void 0) { _props = {}; }
+    var defaultNode = this._.prevNode;
+    if (defaultNode == null) {
+        var tmp = document.createElement("span");
+        tmp.innerHTML = svgText;
+        defaultNode = ((_a = tmp.children[0]) !== null && _a !== void 0 ? _a : document.createElement("svg"));
+    }
+    this.useNode(defaultNode);
+});
 var div = makeComponent(function div(_props) {
     if (_props === void 0) { _props = {}; }
     this.useNode(document.createElement('div'));
@@ -1152,6 +1217,13 @@ TODO: documentation
 function getSizeLabel(size) {
     return size[0].toUpperCase() + size.slice(1);
 }
+var htmlSection = makeComponent(function htmlSection() {
+    var column = this.append(div({ className: "displayColumn", style: { gap: 4 } }));
+    column.append(span("span"));
+    column.append(svg("\n    <svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"50\" cy=\"50\" r=\"50\" />\n    </svg>", { style: { width: 24, height: 24 } }));
+    column.append(htmlInput());
+    column.append(htmlButton("Button"));
+});
 var spanSection = makeComponent(function spanSection() {
     for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {
         var href = _a[_i];
@@ -1261,6 +1333,11 @@ var mediaQuerySection = makeComponent(function mediaQuerySection() {
     column.append(span("xlOrBigger: ".concat(xlOrBigger)));
 });
 var BASIC_COMPONENT_SECTIONS = [
+    {
+        label: "HTML elements",
+        id: "html",
+        component: htmlSection,
+    },
     {
         label: "Span",
         id: "span",

@@ -1,4 +1,3 @@
-
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({ username: "" });
   // username
