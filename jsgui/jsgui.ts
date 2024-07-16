@@ -382,10 +382,10 @@ class RootComponentMetadata extends ComponentMetadata {
 }
 
 // render
-function renderRoot(rootComponent: Component, parentNode = null) {
+function renderRoot(rootComponent: Component, parentNode: NodeType | null = null): RootComponentMetadata {
   const root_ = new RootComponentMetadata(rootComponent, parentNode as any);
   rootComponent._ = root_;
-  window.onload = () => {
+  const render = () => {
     root_.parentNode = root_.parentNode ?? document.body;
     if (SCROLLBAR_WIDTH === 0) _computeScrollbarWidth();
     _render(rootComponent, root_.parentNode);
@@ -393,6 +393,12 @@ function renderRoot(rootComponent: Component, parentNode = null) {
       _scrollToLocationHash();
     });
   }
+  if (root_.parentNode ?? document.body) {
+    render();
+  } else {
+    window.addEventListener("load", render);
+  }
+  return root_;
 }
 type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};
 const _START_BASE_PROPS: InheritedBaseProps = {
@@ -525,6 +531,13 @@ function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) 
     }
     _unloadUnusedComponents(child, rootGcFlag);
   }
+}
+function moveRoot(root_: RootComponentMetadata, parentNode: NodeType) {
+  root_.parentNode = parentNode;
+  if (root_.prevNode) parentNode.append(root_.prevNode);
+}
+function unloadRoot(root_: RootComponentMetadata) {
+  _unloadUnusedComponents(root_.component, !root_.gcFlag);
 }
 
 // basic components
@@ -1137,6 +1150,7 @@ const router = makeComponent(function router(props: RouterProps) {
 });
 /*
 TODO: documentation
+  renderRoot(), moveRoot(), unloadRoot()
   css utils
   router()
   validation api

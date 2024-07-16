@@ -424,10 +424,11 @@ var RootComponentMetadata = /** @class */ (function (_super) {
 }(ComponentMetadata));
 // render
 function renderRoot(rootComponent, parentNode) {
+    var _a;
     if (parentNode === void 0) { parentNode = null; }
     var root_ = new RootComponentMetadata(rootComponent, parentNode);
     rootComponent._ = root_;
-    window.onload = function () {
+    var render = function () {
         var _a;
         root_.parentNode = (_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body;
         if (SCROLLBAR_WIDTH === 0)
@@ -437,6 +438,13 @@ function renderRoot(rootComponent, parentNode) {
             _scrollToLocationHash();
         });
     };
+    if ((_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body) {
+        render();
+    }
+    else {
+        window.addEventListener("load", render);
+    }
+    return root_;
 }
 var _START_BASE_PROPS = {
     attribute: {},
@@ -592,6 +600,14 @@ function _unloadUnusedComponents(prevComponent, rootGcFlag) {
         }
         _unloadUnusedComponents(child, rootGcFlag);
     }
+}
+function moveRoot(root_, parentNode) {
+    root_.parentNode = parentNode;
+    if (root_.prevNode)
+        parentNode.append(root_.prevNode);
+}
+function unloadRoot(root_) {
+    _unloadUnusedComponents(root_.component, !root_.gcFlag);
 }
 // basic components
 var fragment = makeComponent(function fragment(_props) {
@@ -1114,6 +1130,7 @@ var router = makeComponent(function router(props) {
 });
 /*
 TODO: documentation
+  renderRoot(), moveRoot(), unloadRoot()
   css utils
   router()
   validation api
