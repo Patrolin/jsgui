@@ -658,6 +658,11 @@ var h6 = makeComponent(function h6(text, _props) {
     var e = this.useNode(document.createElement("h6"));
     e.innerText = text;
 });
+var p = makeComponent(function p(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    var e = this.useNode(document.createElement("p"));
+    e.innerText = text;
+});
 var htmlButton = makeComponent(function htmlButton(text, _props) {
     if (_props === void 0) { _props = {}; }
     var e = this.useNode(document.createElement("button"));

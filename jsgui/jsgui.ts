@@ -578,6 +578,10 @@ const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
     const e = this.useNode(document.createElement("h6"));
     e.innerText = text;
 });
+const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
+    const e = this.useNode(document.createElement("p"));
+    e.innerText = text;
+});
 const htmlButton = makeComponent(function htmlButton(text: string, _props: BaseProps = {}) {
     const e = this.useNode(document.createElement("button"));
     e.innerText = text;
