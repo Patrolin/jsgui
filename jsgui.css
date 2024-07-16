@@ -191,6 +191,7 @@ dialog::backdrop {
   user-select: none;
 }
 /* inputs */
+/* TODO: use .jsguiButton instead */
 button {
   border: none;
   border-radius: 4px;
