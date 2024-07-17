@@ -5,8 +5,8 @@ const htmlSection = makeComponent(function htmlSection() {
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: 24, height: 24}}));
-  column.append(htmlInput());
-  column.append(htmlButton("Button"));
+  column.append(input());
+  column.append(button("Button"));
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined, "https://www.google.com"]) {
@@ -26,11 +26,11 @@ const spanSection = makeComponent(function spanSection() {
 });
 const buttonSection = makeComponent(function buttonSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(button(getSizeLabel(size), {size}));
+  for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {size}));
   row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  for (let size of SIZES) row.append(button(getSizeLabel(size), {color: "secondary", size}));
+  for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
   row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  for (let size of SIZES) row.append(button("Disabled", {disabled: true, size}));
+  for (let size of SIZES) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
 const iconSection = makeComponent(function spanSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
@@ -39,7 +39,7 @@ const iconSection = makeComponent(function spanSection() {
   for (let size of SIZES) row.append(loadingSpinner({size}));
   row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) {
-    const buttonWrapper = row.append(button("", {size, color: "secondary"}));
+    const buttonWrapper = row.append(coloredButton("", {size, color: "secondary"}));
     buttonWrapper.append(icon("link", {size}));
     buttonWrapper.append(span(getSizeLabel(size)));
   }
@@ -56,7 +56,7 @@ const dialogSection = makeComponent(function dialogSection() {
     state.dialogOpen = false;
     this.rerender();
   };
-  row.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
+  row.append(coloredButton("Open dialog", { color: "secondary", onClick: openDialog }));
   const dialogWrapper = row.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
   dialogWrapper.append(span("Hello world"));
 });
@@ -82,7 +82,7 @@ const popupSection = makeComponent(function popupSection() {
     direction: "down",
     open: state.buttonPopupOpen,
   }));
-  popup.append(button(`Toggle popup`, {
+  popup.append(coloredButton(`Toggle popup`, {
     onClick: () => {
       state.buttonPopupOpen = !state.buttonPopupOpen;
       this.rerender();

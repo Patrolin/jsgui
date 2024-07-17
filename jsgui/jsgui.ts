@@ -545,58 +545,58 @@ function unloadRoot(root_: RootComponentMetadata) {
 // basic components
 const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
 const ul = makeComponent(function ul(_props: BaseProps = {}) {
-    this.useNode(document.createElement("ul"));
+  this.useNode(document.createElement("ul"));
 });
 const ol = makeComponent(function ol(_props: BaseProps = {}) {
-    this.useNode(document.createElement("ol"));
+  this.useNode(document.createElement("ol"));
 });
 const li = makeComponent(function li(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("li"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("li"));
+  e.innerText = text;
 });
 const h1 = makeComponent(function h1(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("h1"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("h1"));
+  e.innerText = text;
 });
 const h2 = makeComponent(function h2(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("h2"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("h2"));
+  e.innerText = text;
 });
 const h3 = makeComponent(function h3(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("h3"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("h3"));
+  e.innerText = text;
 });
 const h4 = makeComponent(function h4(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("h4"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("h4"));
+  e.innerText = text;
 });
 const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("h5"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("h5"));
+  e.innerText = text;
 });
 const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("h6"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("h6"));
+  e.innerText = text;
 });
 const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("p"));
-    e.innerText = text;
+  const e = this.useNode(document.createElement("p"));
+  e.innerText = text;
 });
-const htmlButton = makeComponent(function htmlButton(text: string, _props: BaseProps = {}) {
-    const e = this.useNode(document.createElement("button"));
-    e.innerText = text;
-}, {name: "button"});
-const htmlInput = makeComponent(function htmlInput(_props: BaseProps = {}) {
-    this.useNode(document.createElement("input"));
-}, {name: "input"});
+const button = makeComponent(function button(text: string, _props: BaseProps = {}) {
+  const e = this.useNode(document.createElement("button"));
+  e.innerText = text;
+});
+const input = makeComponent(function input(_props: BaseProps = {}) {
+  this.useNode(document.createElement("input"));
+});
 const svg = makeComponent(function svg(svgText: string, _props: BaseProps = {}) {
-    let defaultNode = this._.prevNode;
-    if (defaultNode == null) {
-        const tmp = document.createElement("span");
-        tmp.innerHTML = svgText;
-        defaultNode = (tmp.children[0] ?? document.createElement("svg")) as NodeType;
-    }
-    this.useNode(defaultNode);
+  let defaultNode = this._.prevNode;
+  if (defaultNode == null) {
+    const tmp = document.createElement("span");
+    tmp.innerHTML = svgText;
+    defaultNode = (tmp.children[0] ?? document.createElement("svg")) as NodeType;
+  }
+  this.useNode(defaultNode);
 });
 const div = makeComponent(function div(_props: BaseProps = {}) {
   this.useNode(document.createElement('div'));
@@ -666,12 +666,10 @@ const icon = makeComponent(function icon(iconName: string, props: IconProps = {}
 const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
   this.append(icon("progress_activity", props));
 });
-const htmlLegend = makeComponent(function htmlLegend(text: string, _props: BaseProps = {}) {
+const legend = makeComponent(function legend(text: string, _props: BaseProps = {}) {
   const node = this.useNode(document.createElement("legend"));
   node.innerText = text;
   this.baseProps.className.push("ellipsis");
-}, {
-  name: "legend",
 });
 type DialogProps = BaseProps & ({
   open: boolean;
@@ -882,7 +880,7 @@ type ButtonProps = {
   disabled?: boolean;
 }
 // inputs
-const button = makeComponent(function button(text: string, props: ButtonProps = {}) {
+const coloredButton = makeComponent(function coloredButton(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
   if (text) this.append(span(text));
@@ -909,7 +907,7 @@ type InputProps = {
   allowChar?: (char: string) => boolean;
   allowString?: (value: string, prevAllowedValue: string) => string;
 } & BaseProps;
-const input = makeComponent(function input(props: InputProps) {
+const controlledInput = makeComponent(function controlledInput(props: InputProps) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
   const state = this.useState({ prevAllowedValue: String(value ?? '') });
   const e = this.useNode(document.createElement('input'));
@@ -968,7 +966,7 @@ const labeledInput = makeComponent(function labeledInput(props: LabeledInputProp
       prevNode.focus();
     }
   };
-  this.append(htmlLegend(label))
+  this.append(legend(label))
   if (leftComponent) this.append(leftComponent);
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent);
@@ -985,7 +983,7 @@ const textInput = makeComponent(function textInput(props: TextInputProps) {
   this.append(labeledInput({
     label,
     leftComponent,
-    inputComponent: input(extraProps),
+    inputComponent: controlledInput(extraProps),
     rightComponent,
   }));
   if (error) this.append(errorMessage(error));
@@ -1031,7 +1029,7 @@ const numberInput = makeComponent(function numberInput(props: NumberInputProps) 
     if (onInput) onInput(newValue, undefined);
     if (onChange) onChange(newValue, undefined);
   };
-  const inputComponent = input({
+  const inputComponent = controlledInput({
     value,
     onKeyDown: (event: KeyboardEvent) => {
       switch (event.key) {

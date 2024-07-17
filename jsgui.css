@@ -111,9 +111,11 @@ body, [data-size="normal"] {
 /* basic components */
 span, a, button {
   display: inline-block; /* fix ellipsis */
+  vertical-align: top; /* fix inline-block */
+}
+span, a, .coloredButton {
   font-size: var(--fontSize-x);
   line-height: var(--size-x);
-  vertical-align: top; /* fix inline-block */
 }
 a {
   color: var(--secondary);
@@ -192,7 +194,7 @@ dialog::backdrop {
 }
 /* inputs */
 /* TODO: use .jsguiButton instead */
-button {
+.coloredButton {
   border: none;
   border-radius: 4px;
   padding: 0px 10px;
@@ -211,37 +213,37 @@ button {
   --buttonColorActive: var(--gray-2);
   --buttonFontColor: var(--gray);
 }
-button[data-color="secondary"] {
+.coloredButton[data-color="secondary"] {
   --buttonColor: var(--secondary);
   --buttonColorHover: var(--secondary-067);
   --buttonColorActive: var(--secondary-1);
   --buttonFontColor: white;
 }
-button:hover:not([disabled]) {
+.coloredButton:hover:not([disabled]) {
   background: var(--buttonColorHover);
   box-shadow: none;
 }
-button:active:not([disabled]) {
+.coloredButton:active:not([disabled]) {
   background: var(--buttonColorActive);
   margin-top: 1px;
   height: calc(var(--size-x) + 1px);
   border-bottom: none;
 }
-button:not([disabled]) {
+.coloredButton:not([disabled]) {
   cursor: pointer;
 }
-button[disabled] {
+.coloredButton[disabled] {
   background-color: var(--gray-3);
   opacity: 0.5; /* TODO */
   --buttonFontColor: var(--gray);
 }
-button > span:not(.icon) {
+.coloredButton > span:not(.icon) {
   align-self: flex-start;
 }
-button .icon {
+.coloredButton .icon {
   color: var(--buttonFontColor); /* TODO: invert grays? */
 }
-button > .icon {
+.coloredButton > .icon {
   padding-inline: 0;
 }
 .labeledInput {

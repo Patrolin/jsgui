@@ -663,15 +663,15 @@ var p = makeComponent(function p(text, _props) {
     var e = this.useNode(document.createElement("p"));
     e.innerText = text;
 });
-var htmlButton = makeComponent(function htmlButton(text, _props) {
+var button = makeComponent(function button(text, _props) {
     if (_props === void 0) { _props = {}; }
     var e = this.useNode(document.createElement("button"));
     e.innerText = text;
-}, { name: "button" });
-var htmlInput = makeComponent(function htmlInput(_props) {
+});
+var input = makeComponent(function input(_props) {
     if (_props === void 0) { _props = {}; }
     this.useNode(document.createElement("input"));
-}, { name: "input" });
+});
 var svg = makeComponent(function svg(svgText, _props) {
     var _a;
     if (_props === void 0) { _props = {}; }
@@ -747,13 +747,11 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
     if (props === void 0) { props = {}; }
     this.append(icon("progress_activity", props));
 });
-var htmlLegend = makeComponent(function htmlLegend(text, _props) {
+var legend = makeComponent(function legend(text, _props) {
     if (_props === void 0) { _props = {}; }
     var node = this.useNode(document.createElement("legend"));
     node.innerText = text;
     this.baseProps.className.push("ellipsis");
-}, {
-    name: "legend",
 });
 var dialog = makeComponent(function dialog(props) {
     var open = props.open, onClose = props.onClose, closeOnClickBackdrop = props.closeOnClickBackdrop;
@@ -941,7 +939,7 @@ var popupWrapper = makeComponent(function popupWrapper(props) {
     };
 });
 // inputs
-var button = makeComponent(function button(text, props) {
+var coloredButton = makeComponent(function coloredButton(text, props) {
     if (props === void 0) { props = {}; }
     var size = props.size, color = props.color, onClick = props.onClick, disabled = props.disabled;
     var e = this.useNode(document.createElement("button"));
@@ -960,7 +958,7 @@ var button = makeComponent(function button(text, props) {
         };
     }
 });
-var input = makeComponent(function input(props) {
+var controlledInput = makeComponent(function controlledInput(props) {
     var _a = props.type, type = _a === void 0 ? "text" : _a, placeholder = props.placeholder, value = props.value, autoFocus = props.autoFocus, onFocus = props.onFocus, onBlur = props.onBlur, onKeyDown = props.onKeyDown, onInput = props.onInput, onChange = props.onChange, allowChar = props.allowChar, _b = props.allowString, allowString = _b === void 0 ? function (value, _prevAllowedValue) { return value; } : _b;
     var state = this.useState({ prevAllowedValue: String(value !== null && value !== void 0 ? value : '') });
     var e = this.useNode(document.createElement('input'));
@@ -1019,7 +1017,7 @@ var labeledInput = makeComponent(function labeledInput(props) {
             prevNode.focus();
         }
     };
-    this.append(htmlLegend(label));
+    this.append(legend(label));
     if (leftComponent)
         this.append(leftComponent);
     this.append(inputComponent);
@@ -1035,7 +1033,7 @@ var textInput = makeComponent(function textInput(props) {
     this.append(labeledInput({
         label: label,
         leftComponent: leftComponent,
-        inputComponent: input(extraProps),
+        inputComponent: controlledInput(extraProps),
         rightComponent: rightComponent,
     }));
     if (error)
@@ -1071,7 +1069,7 @@ var numberInput = makeComponent(function numberInput(props) {
         if (onChange)
             onChange(newValue, undefined);
     };
-    var inputComponent = input(__assign(__assign({ value: value, onKeyDown: function (event) {
+    var inputComponent = controlledInput(__assign(__assign({ value: value, onKeyDown: function (event) {
             switch (event.key) {
                 case "ArrowUp":
                     incrementValue(step !== null && step !== void 0 ? step : 1);
@@ -1226,8 +1224,8 @@ var htmlSection = makeComponent(function htmlSection() {
     var column = this.append(div({ className: "displayColumn", style: { gap: 4 } }));
     column.append(span("span"));
     column.append(svg("\n    <svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"50\" cy=\"50\" r=\"50\" />\n    </svg>", { style: { width: 24, height: 24 } }));
-    column.append(htmlInput());
-    column.append(htmlButton("Button"));
+    column.append(input());
+    column.append(button("Button"));
 });
 var spanSection = makeComponent(function spanSection() {
     for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {
@@ -1252,17 +1250,17 @@ var buttonSection = makeComponent(function buttonSection() {
     var row = this.append(div({ className: "displayRow", style: { marginTop: -4 } }));
     for (var _i = 0, SIZES_1 = SIZES; _i < SIZES_1.length; _i++) {
         var size = SIZES_1[_i];
-        row.append(button(getSizeLabel(size), { size: size }));
+        row.append(coloredButton(getSizeLabel(size), { size: size }));
     }
     row = this.append(div({ className: "displayRow", style: { marginTop: 4 } }));
     for (var _a = 0, SIZES_2 = SIZES; _a < SIZES_2.length; _a++) {
         var size = SIZES_2[_a];
-        row.append(button(getSizeLabel(size), { color: "secondary", size: size }));
+        row.append(coloredButton(getSizeLabel(size), { color: "secondary", size: size }));
     }
     row = this.append(div({ className: "displayRow", style: { marginTop: 4 } }));
     for (var _b = 0, SIZES_3 = SIZES; _b < SIZES_3.length; _b++) {
         var size = SIZES_3[_b];
-        row.append(button("Disabled", { disabled: true, size: size }));
+        row.append(coloredButton("Disabled", { disabled: true, size: size }));
     }
 });
 var iconSection = makeComponent(function spanSection() {
@@ -1279,7 +1277,7 @@ var iconSection = makeComponent(function spanSection() {
     row = this.append(div({ className: "displayRow", style: { marginTop: -4 } }));
     for (var _b = 0, SIZES_6 = SIZES; _b < SIZES_6.length; _b++) {
         var size = SIZES_6[_b];
-        var buttonWrapper = row.append(button("", { size: size, color: "secondary" }));
+        var buttonWrapper = row.append(coloredButton("", { size: size, color: "secondary" }));
         buttonWrapper.append(icon("link", { size: size }));
         buttonWrapper.append(span(getSizeLabel(size)));
     }
@@ -1297,7 +1295,7 @@ var dialogSection = makeComponent(function dialogSection() {
         state.dialogOpen = false;
         _this.rerender();
     };
-    row.append(button("Open dialog", { color: "secondary", onClick: openDialog }));
+    row.append(coloredButton("Open dialog", { color: "secondary", onClick: openDialog }));
     var dialogWrapper = row.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
     dialogWrapper.append(span("Hello world"));
 });
@@ -1319,7 +1317,7 @@ var popupSection = makeComponent(function popupSection() {
         direction: "down",
         open: state.buttonPopupOpen,
     }));
-    popup.append(button("Toggle popup", {
+    popup.append(coloredButton("Toggle popup", {
         onClick: function () {
             state.buttonPopupOpen = !state.buttonPopupOpen;
             _this.rerender();
