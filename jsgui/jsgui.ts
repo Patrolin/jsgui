@@ -27,7 +27,7 @@ function clamp(value: number, min: number, max: number): number {
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
-type NodeType = HTMLElement;
+type NodeType = HTMLElement | SVGSVGElement;
 type _EventListener<T = Event> = ((event: T) => void);
 type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
   & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
@@ -826,12 +826,12 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   }
   const openPopup = () => {
     state.open = true;
-    popup._.prevNode?.showPopover();
+    (popup._.prevNode as HTMLDivElement | null)?.showPopover();
     movePopup();
   }
   const closePopup = () => {
     state.open = false;
-    popup._.prevNode?.hidePopover();
+    (popup._.prevNode as HTMLDivElement | null)?.hidePopover();
   };
   if (open == null) {
     wrapper.onmouseenter = openPopup;
