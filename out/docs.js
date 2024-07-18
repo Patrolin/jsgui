@@ -1237,7 +1237,7 @@ var htmlSection = makeComponent(function htmlSection() {
     var column = this.append(div({ className: "displayColumn", style: { gap: 4 } }));
     column.append(span("span"));
     column.append(input());
-    var someButton = column.append(button("Button"));
+    var someButton = column.append(button("Button", { style: { fontSize: "14px" } }));
     someButton.append(svg("\n    <svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"50\" cy=\"50\" r=\"50\" />\n    </svg>", { style: { width: "1em", height: "1em" } }));
 });
 var spanSection = makeComponent(function spanSection() {

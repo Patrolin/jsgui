@@ -2,7 +2,7 @@ const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
   column.append(span("span"));
   column.append(input());
-  const someButton = column.append(button("Button"));
+  const someButton = column.append(button("Button", {style: {fontSize: "14px"}}));
   someButton.append(svg(`
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
