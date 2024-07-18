@@ -149,9 +149,15 @@ function getDiffArray(oldValues, newValues) {
 }
 // component
 function _setChildKey(component, child) {
+    var name = child.name;
     var key = child.baseProps.key;
     if (key == null) {
-        key = "".concat(child.name, "-").concat(component.indexedChildCount++);
+        if (name === "text") {
+            key = "text-".concat(component.indexedTextCount++);
+        }
+        else {
+            key = "".concat(name, "-").concat(component.indexedChildCount++);
+        }
     }
     child.key = key;
 }
@@ -173,17 +179,14 @@ var Component = /** @class */ (function () {
         // hooks
         this.node = null;
         this.indexedChildCount = 0;
+        this.indexedTextCount = 0;
     }
     Component.prototype.useNode = function (defaultNode) {
         var _a, _b;
         return (this.node = ((_b = (_a = this._) === null || _a === void 0 ? void 0 : _a.prevNode) !== null && _b !== void 0 ? _b : defaultNode));
     };
-    Component.prototype.prepend = function (child) {
-        this.children = __spreadArray([child], this.children, true);
-        _setChildKey(this, child);
-        return child;
-    };
-    Component.prototype.append = function (child) {
+    Component.prototype.append = function (childOrString) {
+        var child = (childOrString instanceof Component) ? childOrString : text(childOrString);
         this.children.push(child);
         _setChildKey(this, child);
         return child;
@@ -457,13 +460,13 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
-    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, _indexedChildCount = component.indexedChildCount;
+    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, indexedChildCount = component.indexedChildCount;
     var _f = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _f.onMount, onUnmount = _f.onUnmount;
     var node = component.node;
     // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
-    if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
-        console.warn("Varying children should have a \"key\" prop. (".concat(prevIndexedChildCount, " -> ").concat(_indexedChildCount, ")"), _.prevComponent, component);
+    if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
+        console.warn("Varying children should have a \"key\" prop. (".concat(prevIndexedChildCount, " -> ").concat(indexedChildCount, ")"), _.prevComponent, component);
     }
     // inherit
     var inheritedBaseProps = {
@@ -472,9 +475,9 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         cssVars: __assign(__assign({}, _inheritedBaseProps.cssVars), baseProps.cssVars),
         style: __assign(__assign({}, _inheritedBaseProps.style), baseProps.style),
     };
-    // append
     var prevNode = _.prevNode;
     if (node) {
+        // append
         if (prevNode) {
             var prevName = (_b = _.prevComponent) === null || _b === void 0 ? void 0 : _b.name;
             if (name !== prevName) {
@@ -486,73 +489,75 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         else {
             parentNode.append(node);
         }
-        // style
-        var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
-        for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
-            var _g = styleDiff_1[_i], key = _g.key, newValue = _g.newValue;
-            if (newValue != null) {
-                node.style[key] = addPx(newValue);
+        if (!(node instanceof Text)) {
+            // style
+            var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
+            for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
+                var _g = styleDiff_1[_i], key = _g.key, newValue = _g.newValue;
+                if (newValue != null) {
+                    node.style[key] = addPx(newValue);
+                }
+                else {
+                    node.style.removeProperty(key);
+                }
             }
-            else {
-                node.style.removeProperty(key);
+            // cssVars
+            var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
+            for (var _h = 0, cssVarsDiff_1 = cssVarsDiff; _h < cssVarsDiff_1.length; _h++) {
+                var _j = cssVarsDiff_1[_h], key = _j.key, newValue = _j.newValue;
+                if (newValue != null) {
+                    node.style.setProperty("--".concat(key), addPx(newValue));
+                }
+                else {
+                    node.style.removeProperty("--".concat(key));
+                }
             }
+            // class
+            if (name !== node.tagName.toLowerCase()) {
+                inheritedBaseProps.className.push(name);
+            }
+            ;
+            var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
+            for (var _k = 0, classNameDiff_1 = classNameDiff; _k < classNameDiff_1.length; _k++) {
+                var _l = classNameDiff_1[_k], key = _l.key, newValue = _l.newValue;
+                if (newValue != null) {
+                    if (key === "")
+                        console.warn("className cannot be empty,", name, inheritedBaseProps.className);
+                    if (key.includes(" "))
+                        console.warn("className cannot contain whitespace,", name, inheritedBaseProps.className);
+                    node.classList.add(key);
+                }
+                else {
+                    node.classList.remove(key);
+                }
+            }
+            // attribute
+            var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
+            for (var _m = 0, attributeDiff_1 = attributeDiff; _m < attributeDiff_1.length; _m++) {
+                var _o = attributeDiff_1[_m], key = _o.key, newValue = _o.newValue;
+                if (newValue != null) {
+                    node.setAttribute(camelCaseToKebabCase(key), String(newValue));
+                }
+                else {
+                    node.removeAttribute(camelCaseToKebabCase(key));
+                }
+            }
+            // events
+            var eventsDiff = getDiff(_.prevEvents, (_c = baseProps.events) !== null && _c !== void 0 ? _c : {});
+            for (var _p = 0, eventsDiff_1 = eventsDiff; _p < eventsDiff_1.length; _p++) {
+                var _q = eventsDiff_1[_p], key = _q.key, oldValue = _q.oldValue, newValue = _q.newValue;
+                node.removeEventListener(key, oldValue);
+                if (newValue) {
+                    var passive = key === "scroll" || key === "wheel";
+                    node.addEventListener(key, newValue, { passive: passive });
+                }
+            }
+            _.prevBaseProps = inheritedBaseProps;
+            _.prevEvents = (_d = baseProps.events) !== null && _d !== void 0 ? _d : {};
+            parentNode = node;
+            inheritedBaseProps = _START_BASE_PROPS;
+            isTopNode = false;
         }
-        // cssVars
-        var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
-        for (var _h = 0, cssVarsDiff_1 = cssVarsDiff; _h < cssVarsDiff_1.length; _h++) {
-            var _j = cssVarsDiff_1[_h], key = _j.key, newValue = _j.newValue;
-            if (newValue != null) {
-                node.style.setProperty("--".concat(key), addPx(newValue));
-            }
-            else {
-                node.style.removeProperty("--".concat(key));
-            }
-        }
-        // class
-        if (name !== node.tagName.toLowerCase()) {
-            inheritedBaseProps.className.push(name);
-        }
-        ;
-        var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
-        for (var _k = 0, classNameDiff_1 = classNameDiff; _k < classNameDiff_1.length; _k++) {
-            var _l = classNameDiff_1[_k], key = _l.key, newValue = _l.newValue;
-            if (newValue != null) {
-                if (key === "")
-                    console.warn("className cannot be empty,", name, inheritedBaseProps.className);
-                if (key.includes(" "))
-                    console.warn("className cannot contain whitespace,", name, inheritedBaseProps.className);
-                node.classList.add(key);
-            }
-            else {
-                node.classList.remove(key);
-            }
-        }
-        // attribute
-        var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
-        for (var _m = 0, attributeDiff_1 = attributeDiff; _m < attributeDiff_1.length; _m++) {
-            var _o = attributeDiff_1[_m], key = _o.key, newValue = _o.newValue;
-            if (newValue != null) {
-                node.setAttribute(camelCaseToKebabCase(key), String(newValue));
-            }
-            else {
-                node.removeAttribute(camelCaseToKebabCase(key));
-            }
-        }
-        // events
-        var eventsDiff = getDiff(_.prevEvents, (_c = baseProps.events) !== null && _c !== void 0 ? _c : {});
-        for (var _p = 0, eventsDiff_1 = eventsDiff; _p < eventsDiff_1.length; _p++) {
-            var _q = eventsDiff_1[_p], key = _q.key, oldValue = _q.oldValue, newValue = _q.newValue;
-            node.removeEventListener(key, oldValue);
-            if (newValue) {
-                var passive = key === "scroll" || key === "wheel";
-                node.addEventListener(key, newValue, { passive: passive });
-            }
-        }
-        _.prevBaseProps = inheritedBaseProps;
-        _.prevEvents = (_d = baseProps.events) !== null && _d !== void 0 ? _d : {};
-        parentNode = node;
-        inheritedBaseProps = _START_BASE_PROPS;
-        isTopNode = false;
     }
     else {
         if (prevNode) {
@@ -579,7 +584,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     }
     // on mount
     _.prevNode = node;
-    _.prevIndexedChildCount = _indexedChildCount;
+    _.prevIndexedChildCount = indexedChildCount;
     _.prevState = __assign({}, _.state);
     _.prevComponent = component;
     if (onMount)
@@ -615,6 +620,14 @@ function unloadRoot(root_) {
 var fragment = makeComponent(function fragment(_props) {
     if (_props === void 0) { _props = {}; }
 }, { name: '' });
+var text = makeComponent(function text(str, _props) {
+    if (_props === void 0) { _props = {}; }
+    var state = this.useState({ prevStr: "" });
+    var e = this.useNode(new Text(""));
+    if (str !== state.prevStr) {
+        e.textContent = str;
+    }
+});
 var ul = makeComponent(function ul(_props) {
     if (_props === void 0) { _props = {}; }
     this.useNode(document.createElement("ul"));
@@ -625,48 +638,48 @@ var ol = makeComponent(function ol(_props) {
 });
 var li = makeComponent(function li(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("li"));
-    e.innerText = text;
+    this.useNode(document.createElement("li"));
+    this.append(text);
 });
 var h1 = makeComponent(function h1(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("h1"));
-    e.innerText = text;
+    this.useNode(document.createElement("h1"));
+    this.append(text);
 });
 var h2 = makeComponent(function h2(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("h2"));
-    e.innerText = text;
+    this.useNode(document.createElement("h2"));
+    this.append(text);
 });
 var h3 = makeComponent(function h3(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("h3"));
-    e.innerText = text;
+    this.useNode(document.createElement("h3"));
+    this.append(text);
 });
 var h4 = makeComponent(function h4(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("h4"));
-    e.innerText = text;
+    this.useNode(document.createElement("h4"));
+    this.append(text);
 });
 var h5 = makeComponent(function h5(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("h5"));
-    e.innerText = text;
+    this.useNode(document.createElement("h5"));
+    this.append(text);
 });
 var h6 = makeComponent(function h6(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("h6"));
-    e.innerText = text;
+    this.useNode(document.createElement("h6"));
+    this.append(text);
 });
 var p = makeComponent(function p(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("p"));
-    e.innerText = text;
+    this.useNode(document.createElement("p"));
+    this.append(text);
 });
 var button = makeComponent(function button(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var e = this.useNode(document.createElement("button"));
-    e.innerText = text;
+    this.useNode(document.createElement("button"));
+    this.append(text);
 });
 var input = makeComponent(function input(_props) {
     if (_props === void 0) { _props = {}; }
@@ -735,7 +748,7 @@ var span = makeComponent(function _span(text, props) {
             }
         };
     }
-    e.innerText = iconName || (text == null ? "" : String(text)); // TODO: don't change innerText if equal?
+    this.append(iconName || (text == null ? "" : String(text)));
 }, { name: "span" });
 var icon = makeComponent(function icon(iconName, props) {
     if (props === void 0) { props = {}; }
@@ -749,8 +762,8 @@ var loadingSpinner = makeComponent(function loadingSpinner(props) {
 });
 var legend = makeComponent(function legend(text, _props) {
     if (_props === void 0) { _props = {}; }
-    var node = this.useNode(document.createElement("legend"));
-    node.innerText = text;
+    this.useNode(document.createElement("legend"));
+    this.append(text);
     this.baseProps.className.push("ellipsis");
 });
 var dialog = makeComponent(function dialog(props) {
@@ -1223,9 +1236,9 @@ function getSizeLabel(size) {
 var htmlSection = makeComponent(function htmlSection() {
     var column = this.append(div({ className: "displayColumn", style: { gap: 4 } }));
     column.append(span("span"));
-    column.append(svg("\n    <svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"50\" cy=\"50\" r=\"50\" />\n    </svg>", { style: { width: 24, height: 24 } }));
     column.append(input());
-    column.append(button("Button"));
+    var someButton = column.append(button("Button"));
+    someButton.append(svg("\n    <svg viewBox=\"0 0 100 100\" xmlns=\"http://www.w3.org/2000/svg\">\n      <circle cx=\"50\" cy=\"50\" r=\"50\" />\n    </svg>", { style: { width: "1em", height: "1em" } }));
 });
 var spanSection = makeComponent(function spanSection() {
     for (var _i = 0, _a = [undefined, "https://www.google.com"]; _i < _a.length; _i++) {

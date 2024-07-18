@@ -27,7 +27,8 @@ function clamp(value: number, min: number, max: number): number {
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
-type NodeType = HTMLElement | SVGSVGElement;
+type ParentNodeType = HTMLElement | SVGSVGElement;
+type NodeType = ParentNodeType | Text;
 type _EventListener<T = Event> = ((event: T) => void);
 type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
   & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
@@ -106,9 +107,14 @@ type UseNavigate = {
 }
 // component
 function _setChildKey(component: Component, child: Component) {
+  const name = child.name;
   let key = child.baseProps.key;
   if (key == null) {
-    key = `${child.name}-${component.indexedChildCount++}`;
+    if (name === "text") {
+      key = `text-${component.indexedTextCount++}`;
+    } else {
+      key = `${name}-${component.indexedChildCount++}`;
+    }
   }
   child.key = key;
 }
@@ -127,6 +133,7 @@ class Component {
   // hooks
   node: NodeType | null;
   indexedChildCount: number;
+  indexedTextCount: number;
   constructor(onRender: RenderFunction<any[]>, args: any[], baseProps: RenderedBaseProps, props: StringMap, options: ComponentOptions) {
     this.name = options.name ?? onRender.name;
     if (!this.name && (options.name !== "")) throw `Function name cannot be empty: ${onRender}`;
@@ -142,16 +149,13 @@ class Component {
     // hooks
     this.node = null;
     this.indexedChildCount = 0;
+    this.indexedTextCount = 0;
   }
   useNode<T extends NodeType>(defaultNode: T): T {
     return (this.node = (this._?.prevNode ?? defaultNode)) as T;
   }
-  prepend(child: Component) {
-    this.children = [child, ...this.children];
-    _setChildKey(this, child);
-    return child;
-  }
-  append(child: Component) {
+  append(childOrString: string | Component): Component {
+    const child = (childOrString instanceof Component) ? childOrString : text(childOrString);
     this.children.push(child);
     _setChildKey(this, child);
     return child;
@@ -371,9 +375,9 @@ class ComponentMetadata {
 }
 class RootComponentMetadata extends ComponentMetadata {
   component: Component;
-  parentNode: NodeType;
+  parentNode: ParentNodeType;
   willRerenderNextFrame: boolean = false;
-  constructor(component: Component, parentNode: NodeType) {
+  constructor(component: Component, parentNode: ParentNodeType) {
     super(null);
     this.root = this;
     this.component = component;
@@ -382,7 +386,7 @@ class RootComponentMetadata extends ComponentMetadata {
 }
 
 // render
-function renderRoot(rootComponent: Component, parentNode: NodeType | null = null): RootComponentMetadata {
+function renderRoot(rootComponent: Component, parentNode: ParentNodeType | null = null): RootComponentMetadata {
   const root_ = new RootComponentMetadata(rootComponent, parentNode as any);
   rootComponent._ = root_;
   const render = () => {
@@ -407,15 +411,15 @@ const _START_BASE_PROPS: InheritedBaseProps = {
   cssVars: {},
   style: {},
 };
-function _render(component: Component, parentNode: NodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
+function _render(component: Component, parentNode: ParentNodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, indexedChildCount: _indexedChildCount} = component;
+  const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
   const node = component.node;
   // warn if missing keys
   const prevIndexedChildCount = _.prevIndexedChildCount;
-  if (prevIndexedChildCount !== null && (_indexedChildCount !== prevIndexedChildCount)) {
-    console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${_indexedChildCount})`, _.prevComponent, component);
+  if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
+    console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, _.prevComponent, component);
   }
   // inherit
   let inheritedBaseProps = {
@@ -424,9 +428,9 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     cssVars: {..._inheritedBaseProps.cssVars, ...baseProps.cssVars},
     style: {..._inheritedBaseProps.style, ...baseProps.style},
   };
-  // append
   const prevNode = _.prevNode;
   if (node) {
+    // append
     if (prevNode) {
       const prevName = _.prevComponent?.name;
       if (name !== prevName) {
@@ -437,61 +441,63 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
     } else {
       parentNode.append(node);
     }
-    // style
-    const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
-    for (let {key, newValue} of styleDiff) {
-      if (newValue != null) {
-        node.style[key as any] = addPx(newValue);
-      } else {
-        node.style.removeProperty(key);
+    if (!(node instanceof Text)) {
+      // style
+      const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
+      for (let {key, newValue} of styleDiff) {
+        if (newValue != null) {
+          node.style[key as any] = addPx(newValue);
+        } else {
+          node.style.removeProperty(key);
+        }
       }
-    }
-    // cssVars
-    const cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
-    for (let {key, newValue} of cssVarsDiff) {
-      if (newValue != null) {
-        node.style.setProperty(`--${key}`, addPx(newValue));
-      } else {
-        node.style.removeProperty(`--${key}`);
+      // cssVars
+      const cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
+      for (let {key, newValue} of cssVarsDiff) {
+        if (newValue != null) {
+          node.style.setProperty(`--${key}`, addPx(newValue));
+        } else {
+          node.style.removeProperty(`--${key}`);
+        }
       }
-    }
-    // class
-    if (name !== node.tagName.toLowerCase()) {
-      inheritedBaseProps.className.push(name);
-    };
-    const classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
-    for (let {key, newValue} of classNameDiff) {
-      if (newValue != null) {
-        if (key === "") console.warn("className cannot be empty,", name, inheritedBaseProps.className);
-        if (key.includes(" ")) console.warn("className cannot contain whitespace,", name, inheritedBaseProps.className);
-        node.classList.add(key);
-      } else {
-        node.classList.remove(key);
+      // class
+      if (name !== node.tagName.toLowerCase()) {
+        inheritedBaseProps.className.push(name);
+      };
+      const classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
+      for (let {key, newValue} of classNameDiff) {
+        if (newValue != null) {
+          if (key === "") console.warn("className cannot be empty,", name, inheritedBaseProps.className);
+          if (key.includes(" ")) console.warn("className cannot contain whitespace,", name, inheritedBaseProps.className);
+          node.classList.add(key);
+        } else {
+          node.classList.remove(key);
+        }
       }
-    }
-    // attribute
-    const attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
-    for (let {key, newValue} of attributeDiff) {
-      if (newValue != null) {
-        node.setAttribute(camelCaseToKebabCase(key), String(newValue));
-      } else {
-        node.removeAttribute(camelCaseToKebabCase(key));
+      // attribute
+      const attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
+      for (let {key, newValue} of attributeDiff) {
+        if (newValue != null) {
+          node.setAttribute(camelCaseToKebabCase(key), String(newValue));
+        } else {
+          node.removeAttribute(camelCaseToKebabCase(key));
+        }
       }
-    }
-    // events
-    const eventsDiff = getDiff(_.prevEvents, baseProps.events ?? {});
-    for (let {key, oldValue, newValue} of eventsDiff) {
-      node.removeEventListener(key, oldValue as _EventListener);
-      if (newValue) {
-        const passive = key === "scroll" || key === "wheel";
-        node.addEventListener(key, newValue as _EventListener, {passive});
+      // events
+      const eventsDiff = getDiff(_.prevEvents, baseProps.events ?? {});
+      for (let {key, oldValue, newValue} of eventsDiff) {
+        node.removeEventListener(key, oldValue as _EventListener);
+        if (newValue) {
+          const passive = key === "scroll" || key === "wheel";
+          node.addEventListener(key, newValue as _EventListener, {passive});
+        }
       }
+      _.prevBaseProps = inheritedBaseProps;
+      _.prevEvents = baseProps.events ?? {};
+      parentNode = node;
+      inheritedBaseProps = _START_BASE_PROPS;
+      isTopNode = false;
     }
-    _.prevBaseProps = inheritedBaseProps;
-    _.prevEvents = baseProps.events ?? {};
-    parentNode = node;
-    inheritedBaseProps = _START_BASE_PROPS;
-    isTopNode = false;
   } else {
     if (prevNode) {
       prevNode.remove(); // NOTE: removing components is handled by _unloadUnusedComponents()
@@ -514,7 +520,7 @@ function _render(component: Component, parentNode: NodeType, _inheritedBaseProps
   }
   // on mount
   _.prevNode = node;
-  _.prevIndexedChildCount = _indexedChildCount;
+  _.prevIndexedChildCount = indexedChildCount;
   _.prevState = {..._.state};
   _.prevComponent = component;
   if (onMount) onMount();
@@ -534,7 +540,7 @@ function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) 
     _unloadUnusedComponents(child, rootGcFlag);
   }
 }
-function moveRoot(root_: RootComponentMetadata, parentNode: NodeType) {
+function moveRoot(root_: RootComponentMetadata, parentNode: ParentNodeType) {
   root_.parentNode = parentNode;
   if (root_.prevNode) parentNode.append(root_.prevNode);
 }
@@ -544,6 +550,13 @@ function unloadRoot(root_: RootComponentMetadata) {
 
 // basic components
 const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
+const text = makeComponent(function text(str: string, _props: {} = {}) {
+  const state = this.useState({prevStr: ""});
+  const e = this.useNode(new Text(""));
+  if (str !== state.prevStr) {
+    (e as Text).textContent = str;
+  }
+})
 const ul = makeComponent(function ul(_props: BaseProps = {}) {
   this.useNode(document.createElement("ul"));
 });
@@ -551,40 +564,40 @@ const ol = makeComponent(function ol(_props: BaseProps = {}) {
   this.useNode(document.createElement("ol"));
 });
 const li = makeComponent(function li(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("li"));
-  e.innerText = text;
+  this.useNode(document.createElement("li"));
+  this.append(text);
 });
 const h1 = makeComponent(function h1(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("h1"));
-  e.innerText = text;
+  this.useNode(document.createElement("h1"));
+  this.append(text);
 });
 const h2 = makeComponent(function h2(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("h2"));
-  e.innerText = text;
+  this.useNode(document.createElement("h2"));
+  this.append(text);
 });
 const h3 = makeComponent(function h3(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("h3"));
-  e.innerText = text;
+  this.useNode(document.createElement("h3"));
+  this.append(text);
 });
 const h4 = makeComponent(function h4(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("h4"));
-  e.innerText = text;
+  this.useNode(document.createElement("h4"));
+  this.append(text);
 });
 const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("h5"));
-  e.innerText = text;
+  this.useNode(document.createElement("h5"));
+  this.append(text);
 });
 const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("h6"));
-  e.innerText = text;
+  this.useNode(document.createElement("h6"));
+  this.append(text);
 });
 const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("p"));
-  e.innerText = text;
+  this.useNode(document.createElement("p"));
+  this.append(text);
 });
 const button = makeComponent(function button(text: string, _props: BaseProps = {}) {
-  const e = this.useNode(document.createElement("button"));
-  e.innerText = text;
+  this.useNode(document.createElement("button"));
+  this.append(text);
 });
 const input = makeComponent(function input(_props: BaseProps = {}) {
   this.useNode(document.createElement("input"));
@@ -654,7 +667,7 @@ const span = makeComponent(function _span(text: string | number | null | undefin
       }
     }
   }
-  e.innerText = iconName || (text == null ? "" : String(text)); // TODO: don't change innerText if equal?
+  this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });
 // https://fonts.google.com/icons
 type IconProps = SpanProps;
@@ -667,8 +680,8 @@ const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = 
   this.append(icon("progress_activity", props));
 });
 const legend = makeComponent(function legend(text: string, _props: BaseProps = {}) {
-  const node = this.useNode(document.createElement("legend"));
-  node.innerText = text;
+  this.useNode(document.createElement("legend"));
+  this.append(text);
   this.baseProps.className.push("ellipsis");
 });
 type DialogProps = BaseProps & ({
@@ -851,7 +864,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   popupContentWrapper.append(content);
   return {
     onMount: () => {
-      for (let acc: ParentNode | null = this._.prevNode; acc != null; acc = acc.parentNode) {
+      for (let acc = (this._.prevNode as ParentNode | null); acc != null; acc = acc.parentNode) {
         acc.removeEventListener("scroll", state.prevOnScroll);
         acc.addEventListener("scroll", movePopup, {passive: true});
       }
@@ -866,7 +879,7 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
       }
     },
     onUnmount: () => {
-      for (let acc: ParentNode | null = this._.prevNode; acc != null; acc = acc.parentNode) {
+      for (let acc = (this._.prevNode as ParentNode | null); acc != null; acc = acc.parentNode) {
         acc.removeEventListener("scroll", state.prevOnScroll);
       }
     },
@@ -961,7 +974,7 @@ const labeledInput = makeComponent(function labeledInput(props: LabeledInputProp
   }
   fieldset.onclick = (_event: any) => {
     const event = _event as MouseEvent;
-    const prevNode = inputComponent._.prevNode;
+    const prevNode = inputComponent._.prevNode as ParentNodeType;
     if (prevNode && (event.target !== prevNode)) {
       prevNode.focus();
     }

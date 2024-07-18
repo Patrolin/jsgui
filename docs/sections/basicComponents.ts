@@ -1,12 +1,12 @@
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
   column.append(span("span"));
-  column.append(svg(`
+  column.append(input());
+  const someButton = column.append(button("Button"));
+  someButton.append(svg(`
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
-    </svg>`, {style: {width: 24, height: 24}}));
-  column.append(input());
-  column.append(button("Button"));
+    </svg>`, {style: {width: "1em", height: "1em"}}));
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined, "https://www.google.com"]) {
