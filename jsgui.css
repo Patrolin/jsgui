@@ -139,6 +139,9 @@ a.icon {
 .selfLink > .icon:hover {
   color: var(--secondary);
 }
+code {
+  white-space: pre-wrap;
+}
 .icon {
   box-sizing: content-box;
   font-size: var(--iconSize-x);

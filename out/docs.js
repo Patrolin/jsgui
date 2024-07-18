@@ -625,6 +625,7 @@ var text = makeComponent(function text(str, _props) {
     var state = this.useState({ prevStr: "" });
     var e = this.useNode(new Text(""));
     if (str !== state.prevStr) {
+        state.prevStr = str;
         e.textContent = str;
     }
 });
@@ -674,6 +675,21 @@ var h6 = makeComponent(function h6(text, _props) {
 var p = makeComponent(function p(text, _props) {
     if (_props === void 0) { _props = {}; }
     this.useNode(document.createElement("p"));
+    this.append(text);
+});
+var b = makeComponent(function b(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    this.useNode(document.createElement("b"));
+    this.append(text);
+});
+var em = makeComponent(function em(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    this.useNode(document.createElement("em"));
+    this.append(text);
+});
+var code = makeComponent(function code(text, _props) {
+    if (_props === void 0) { _props = {}; }
+    this.useNode(document.createElement("code"));
     this.append(text);
 });
 var button = makeComponent(function button(text, _props) {
@@ -1471,8 +1487,17 @@ var mainPage = makeComponent(function mainPage() {
     for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
         var section = MAIN_PAGE_SECTIONS_1[_i];
         wrapper.append(span(section.label, { size: "big", selfLink: section.id }));
-        wrapper.append(section.component());
-        // TODO!: show the code
+        var component = section.component();
+        wrapper.append(component);
+        var row = wrapper.append(div({ className: "displayRow" }));
+        var onRender = component.onRender;
+        var codeString = "const ".concat(onRender.name, " = makeComponent(").concat(onRender, ");");
+        row.append(code(codeString, { style: {
+                margin: "8px 0",
+                padding: "3px 6px 4px 6px",
+                background: "rgba(0, 0, 0, 0.1)",
+                borderRadius: 4,
+            } }));
     }
 });
 var notFoundPage = makeComponent(function notFoundPage() {

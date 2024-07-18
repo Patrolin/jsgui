@@ -554,6 +554,7 @@ const text = makeComponent(function text(str: string, _props: {} = {}) {
   const state = this.useState({prevStr: ""});
   const e = this.useNode(new Text(""));
   if (str !== state.prevStr) {
+    state.prevStr = str;
     (e as Text).textContent = str;
   }
 })
@@ -593,6 +594,18 @@ const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
 });
 const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("p"));
+  this.append(text);
+});
+const b = makeComponent(function b(text: string, _props: BaseProps = {}) {
+  this.useNode(document.createElement("b"));
+  this.append(text);
+});
+const em = makeComponent(function em(text: string, _props: BaseProps = {}) {
+  this.useNode(document.createElement("em"));
+  this.append(text);
+});
+const code = makeComponent(function code(text: string, _props: BaseProps = {}) {
+  this.useNode(document.createElement("code"));
   this.append(text);
 });
 const button = makeComponent(function button(text: string, _props: BaseProps = {}) {
