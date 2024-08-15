@@ -16,6 +16,7 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
   }));
   this.append(numberInput({
     value: state.count,
+    min: 0,
     onChange: (newValue) => {
       state.count = +newValue;
       this.rerender();

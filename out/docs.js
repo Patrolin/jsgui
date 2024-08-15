@@ -1611,6 +1611,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
     }));
     this.append(numberInput({
         value: state.count,
+        min: 0,
         onChange: function (newValue) {
             state.count = +newValue;
             _this.rerender();
