@@ -86,7 +86,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 // TODO: make a typescript compiler to compile packages like odin
 // utils
-var JSGUI_VERSION = "v0.6-dev";
+var JSGUI_VERSION = "v0.7";
 function parseJsonOrNull(jsonString) {
     try {
         return JSON.parse(jsonString);
@@ -273,7 +273,7 @@ var Component = /** @class */ (function () {
                 newRootComponent._ = root_;
                 root_.gcFlag = newGcFlag;
                 root_.component = newRootComponent;
-                _render(newRootComponent, root_.parentNode);
+                _render(newRootComponent, null, root_.parentNode);
                 _unloadUnusedComponents(rootComponent, newGcFlag);
                 root_.willRerenderNextFrame = false;
             });
@@ -415,6 +415,7 @@ var ComponentMetadata = /** @class */ (function () {
         this.prevEvents = {};
         this.gcFlag = false;
         // navigation
+        this.prevBeforeNode = null;
         this.prevComponent = null;
         this.keyToChild = {};
         this.prevIndexedChildCount = null;
@@ -446,7 +447,7 @@ function renderRoot(rootComponent, parentNode) {
         root_.parentNode = (_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body;
         if (SCROLLBAR_WIDTH === 0)
             _computeScrollbarWidth();
-        _render(rootComponent, root_.parentNode);
+        _render(rootComponent, null, root_.parentNode);
         requestAnimationFrame(function () {
             _scrollToLocationHash();
         });
@@ -465,13 +466,13 @@ var _START_BASE_PROPS = {
     cssVars: {},
     style: {},
 };
-function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
-    var _a, _b, _c, _d, _e;
+function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNode) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
-    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, indexedChildCount = component.indexedChildCount;
-    var _f = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _f.onMount, onUnmount = _f.onUnmount;
+    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, indexedChildCount = component.indexedChildCount, children = component.children;
+    var _j = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _j.onMount, onUnmount = _j.onUnmount;
     var node = component.node;
     // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
@@ -497,13 +498,19 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             }
         }
         else {
-            parentNode.append(node);
+            if (beforeNode && (beforeNode !== _.prevBeforeNode)) {
+                beforeNode.after(node);
+            }
+            else {
+                parentNode.append(node);
+            }
+            _.prevBeforeNode = beforeNode;
         }
         if (!(node instanceof Text)) {
             // style
             var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
             for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
-                var _g = styleDiff_1[_i], key = _g.key, newValue = _g.newValue;
+                var _k = styleDiff_1[_i], key = _k.key, newValue = _k.newValue;
                 if (newValue != null) {
                     node.style[key] = addPx(newValue);
                 }
@@ -513,8 +520,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             }
             // cssVars
             var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
-            for (var _h = 0, cssVarsDiff_1 = cssVarsDiff; _h < cssVarsDiff_1.length; _h++) {
-                var _j = cssVarsDiff_1[_h], key = _j.key, newValue = _j.newValue;
+            for (var _l = 0, cssVarsDiff_1 = cssVarsDiff; _l < cssVarsDiff_1.length; _l++) {
+                var _m = cssVarsDiff_1[_l], key = _m.key, newValue = _m.newValue;
                 if (newValue != null) {
                     node.style.setProperty("--".concat(key), addPx(newValue));
                 }
@@ -528,8 +535,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             }
             ;
             var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
-            for (var _k = 0, classNameDiff_1 = classNameDiff; _k < classNameDiff_1.length; _k++) {
-                var _l = classNameDiff_1[_k], key = _l.key, newValue = _l.newValue;
+            for (var _o = 0, classNameDiff_1 = classNameDiff; _o < classNameDiff_1.length; _o++) {
+                var _p = classNameDiff_1[_o], key = _p.key, newValue = _p.newValue;
                 if (newValue != null) {
                     if (key === "")
                         console.warn("className cannot be empty,", name, inheritedBaseProps.className);
@@ -543,8 +550,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             }
             // attribute
             var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
-            for (var _m = 0, attributeDiff_1 = attributeDiff; _m < attributeDiff_1.length; _m++) {
-                var _o = attributeDiff_1[_m], key = _o.key, newValue = _o.newValue;
+            for (var _q = 0, attributeDiff_1 = attributeDiff; _q < attributeDiff_1.length; _q++) {
+                var _r = attributeDiff_1[_q], key = _r.key, newValue = _r.newValue;
                 if (newValue != null) {
                     node.setAttribute(camelCaseToKebabCase(key), String(newValue));
                 }
@@ -554,8 +561,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             }
             // events
             var eventsDiff = getDiff(_.prevEvents, (_c = baseProps.events) !== null && _c !== void 0 ? _c : {});
-            for (var _p = 0, eventsDiff_1 = eventsDiff; _p < eventsDiff_1.length; _p++) {
-                var _q = eventsDiff_1[_p], key = _q.key, oldValue = _q.oldValue, newValue = _q.newValue;
+            for (var _s = 0, eventsDiff_1 = eventsDiff; _s < eventsDiff_1.length; _s++) {
+                var _t = eventsDiff_1[_s], key = _t.key, oldValue = _t.oldValue, newValue = _t.newValue;
                 node.removeEventListener(key, oldValue);
                 if (newValue) {
                     var passive = key === "scroll" || key === "wheel";
@@ -580,8 +587,8 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
     }
     // children
     var usedKeys = new Set();
-    for (var _r = 0, _s = component.children; _r < _s.length; _r++) {
-        var child = _s[_r];
+    for (var i = 0; i < children.length; i++) {
+        var child = children[i];
         var key = child.key;
         if (usedKeys.has(key))
             console.warn("Duplicate key: '".concat(key, "'"), component);
@@ -590,7 +597,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
         _.keyToChild[key] = child_;
         child._ = child_;
         child_.gcFlag = _.gcFlag;
-        _render(child, parentNode, inheritedBaseProps, isTopNode);
+        _render(child, (_h = (_g = (_f = children[i - 1]) === null || _f === void 0 ? void 0 : _f._) === null || _g === void 0 ? void 0 : _g.prevNode) !== null && _h !== void 0 ? _h : null, parentNode, inheritedBaseProps, isTopNode);
     }
     // on mount
     _.prevNode = node;
@@ -1651,7 +1658,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
         },
     }));
 });
-var colorPalette = makeComponent(function colorPallete(props) {
+var colorPalette = makeComponent(function colorPalette(props) {
     var _this = this;
     var color = props.color, count = props.count, name = props.name, alphaFunction = props.alphaFunction;
     this.append(span(name, { style: { marginTop: 4 } }));

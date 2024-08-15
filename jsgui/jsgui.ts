@@ -237,7 +237,7 @@ class Component {
         newRootComponent._ = root_;
         root_.gcFlag = newGcFlag;
         root_.component = newRootComponent;
-        _render(newRootComponent, root_.parentNode);
+        _render(newRootComponent, null, root_.parentNode);
         _unloadUnusedComponents(rootComponent, newGcFlag);
         root_.willRerenderNextFrame = false;
       });
@@ -373,6 +373,7 @@ class ComponentMetadata {
   gcFlag: boolean = false;
   onUnmount?: () => void;
   // navigation
+  prevBeforeNode: NodeType | null = null;
   prevComponent: Component | null = null;
   keyToChild: StringMap<ComponentMetadata> = {};
   prevIndexedChildCount: number | null = null;
@@ -402,7 +403,7 @@ function renderRoot(rootComponent: Component, parentNode: ParentNodeType | null 
   const render = () => {
     root_.parentNode = root_.parentNode ?? document.body;
     if (SCROLLBAR_WIDTH === 0) _computeScrollbarWidth();
-    _render(rootComponent, root_.parentNode);
+    _render(rootComponent, null, root_.parentNode);
     requestAnimationFrame(() => {
       _scrollToLocationHash();
     });
@@ -421,9 +422,9 @@ const _START_BASE_PROPS: InheritedBaseProps = {
   cssVars: {},
   style: {},
 };
-function _render(component: Component, parentNode: ParentNodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
+function _render(component: Component, beforeNode: NodeType | null, parentNode: ParentNodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
+  const {_, name, args, baseProps, props, onRender, indexedChildCount, children} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
   const node = component.node;
   // warn if missing keys
@@ -449,7 +450,12 @@ function _render(component: Component, parentNode: ParentNodeType, _inheritedBas
         _.prevEvents = {} as EventsMap;
       }
     } else {
-      parentNode.append(node);
+      if (beforeNode && (beforeNode !== _.prevBeforeNode)) {
+        beforeNode.after(node);
+      } else {
+        parentNode.append(node);
+      }
+      _.prevBeforeNode = beforeNode;
     }
     if (!(node instanceof Text)) {
       // style
@@ -518,7 +524,8 @@ function _render(component: Component, parentNode: ParentNodeType, _inheritedBas
   }
   // children
   const usedKeys = new Set();
-  for (let child of component.children) {
+  for (let i = 0; i < children.length; i++) {
+    const child = children[i];
     const key = child.key;
     if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
     usedKeys.add(key);
@@ -526,7 +533,7 @@ function _render(component: Component, parentNode: ParentNodeType, _inheritedBas
     _.keyToChild[key] = child_;
     child._ = child_;
     child_.gcFlag = _.gcFlag;
-    _render(child, parentNode, inheritedBaseProps, isTopNode);
+    _render(child, children[i-1]?._?.prevNode ?? null, parentNode, inheritedBaseProps, isTopNode);
   }
   // on mount
   _.prevNode = node;
