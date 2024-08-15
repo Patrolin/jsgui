@@ -87,7 +87,7 @@ type ComponentOptions = {
   name?: string;
 };
 type BaseProps = {
-  key?: string;
+  key?: string | number;
   attribute?: StringMap<string | number | boolean>;
   cssVars?: StringMap<string | number | undefined>;
   className?: string | string[];
