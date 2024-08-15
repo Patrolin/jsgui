@@ -109,6 +109,9 @@ function addPx(value) {
     var _a;
     return (((_a = value === null || value === void 0 ? void 0 : value.constructor) === null || _a === void 0 ? void 0 : _a.name) === "Number") ? "".concat(value, "px") : value;
 }
+function lerp(value, x, y) {
+    return (1 - value) * x + value * y;
+}
 /** clamp value between min and max (defaulting to min) */
 function clamp(value, min, max) {
     return Math.max(min, Math.min(value, max));
@@ -1605,12 +1608,56 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
         },
         label: 'Count',
     }));
+    this.append(colorPallete({
+        color: state.color,
+        count: state.count,
+        name: "Exponential",
+        alphaFunction: function (i, N) {
+            return 2 - Math.pow(2, (i / N));
+        },
+    }));
+    this.append(colorPallete({
+        color: state.color,
+        count: state.count,
+        name: "Chebyshev roots",
+        alphaFunction: function (i, N) { return (Math.cos(Math.PI * i / N) + 1) / 2; },
+    }));
+    this.append(colorPallete({
+        color: state.color,
+        count: state.count,
+        name: "lerp(Chebyshev, linear)",
+        alphaFunction: function (i, N) {
+            var v = (Math.cos(Math.PI * i / N) + 1) / 2;
+            return lerp(i / (N - 1), v, (N - i) / N);
+        },
+    }));
+    this.append(colorPallete({
+        color: state.color,
+        count: state.count,
+        name: "linear",
+        alphaFunction: function (i, N) {
+            return (N - i) / N;
+        },
+    }));
+    this.append(colorPallete({
+        color: state.color,
+        count: state.count,
+        name: "Sigmoid",
+        alphaFunction: function (i, N) {
+            var v = (i / (0.59 * N));
+            return Math.exp(-v * v);
+        },
+    }));
+});
+var colorPallete = makeComponent(function colorPallete(props) {
+    var color = props.color, count = props.count, name = props.name, alphaFunction = props.alphaFunction;
+    this.append(span(name, { style: { marginTop: name === "Chebyshev roots" ? 2 : 4 } }));
     var colorBoxRow = this.append(div({
         style: { display: "flex" },
     }));
-    for (var i = 0; i < state.count; i++) {
-        var colorRgb = rgbFromHexString(state.color);
-        var alpha = (Math.cos(Math.PI * i / state.count) + 1) / 2;
+    for (var i = 0; i < count; i++) {
+        var colorRgb = rgbFromHexString(color);
+        var alpha = alphaFunction(i, count);
         colorBoxRow.append(div({
             style: {
                 width: 30,
@@ -1622,9 +1669,9 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
     var colorTextRow = this.append(div({
         style: { display: "flex" },
     }));
-    for (var i = 0; i < state.count; i++) {
-        var colorRgb = rgbFromHexString(state.color);
-        var alpha = (Math.cos(Math.PI * i / state.count) + 1) / 2;
+    for (var i = 0; i < count; i++) {
+        var colorRgb = rgbFromHexString(color);
+        var alpha = alphaFunction(i, count);
         colorTextRow.append(span("text", {
             style: {
                 width: 30,

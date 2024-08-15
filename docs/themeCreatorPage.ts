@@ -23,12 +23,62 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
     },
     label: 'Count',
   }));
+  this.append(colorPallete({
+    color: state.color,
+    count: state.count,
+    name: "Exponential",
+    alphaFunction: (i, N) => {
+      return 2 - 2**(i/N);
+    },
+  }));
+  this.append(colorPallete({
+    color: state.color,
+    count: state.count,
+    name: "Chebyshev roots",
+    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
+  }));
+  this.append(colorPallete({
+    color: state.color,
+    count: state.count,
+    name: "lerp(Chebyshev, linear)",
+    alphaFunction: (i, N) => {
+      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
+      return lerp(i/(N-1), v, (N-i)/N)
+    },
+  }));
+  this.append(colorPallete({
+    color: state.color,
+    count: state.count,
+    name: "linear",
+    alphaFunction: (i, N) => {
+      return (N-i)/N;
+    },
+  }));
+  this.append(colorPallete({
+    color: state.color,
+    count: state.count,
+    name: "Sigmoid",
+    alphaFunction: (i, N) => {
+      const v = (i / (0.59*N));
+      return Math.exp(-v*v);
+    },
+  }));
+});
+type ColorPalleteProps = BaseProps & {
+  color: string;
+  count: number;
+  name: string;
+  alphaFunction: (i: number, count: number) => number;
+};
+const colorPallete = makeComponent(function colorPallete(props: ColorPalleteProps) {
+  const {color, count, name, alphaFunction} = props;
+  this.append(span(name, {style: {marginTop: name === "Chebyshev roots" ? 2 : 4}}))
   const colorBoxRow = this.append(div({
     style: {display: "flex"},
   }));
-  for (let i = 0; i < state.count; i++) {
-    const colorRgb = rgbFromHexString(state.color);
-    const alpha = (Math.cos(Math.PI*i / state.count) + 1) / 2;
+  for (let i = 0; i < count; i++) {
+    const colorRgb = rgbFromHexString(color);
+    const alpha = alphaFunction(i, count);
     colorBoxRow.append(div({
       style: {
         width: 30,
@@ -40,9 +90,9 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const colorTextRow = this.append(div({
     style: {display: "flex"},
   }));
-  for (let i = 0; i < state.count; i++) {
-    const colorRgb = rgbFromHexString(state.color);
-    const alpha = (Math.cos(Math.PI*i / state.count) + 1) / 2;
+  for (let i = 0; i < count; i++) {
+    const colorRgb = rgbFromHexString(color);
+    const alpha = alphaFunction(i, count);
     colorTextRow.append(span("text", {
       style: {
         width: 30,

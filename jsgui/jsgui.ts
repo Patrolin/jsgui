@@ -20,6 +20,9 @@ function removeSuffix(value: string, prefix: string): string {
 function addPx(value: string | number) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
 }
+function lerp(value: number, x: number, y: number): number {
+  return (1-value)*x + value*y;
+}
 /** clamp value between min and max (defaulting to min) */
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
