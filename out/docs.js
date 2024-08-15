@@ -492,7 +492,7 @@ function _render(component, parentNode, _inheritedBaseProps, isTopNode) {
             var prevName = (_b = _.prevComponent) === null || _b === void 0 ? void 0 : _b.name;
             if (name !== prevName) {
                 prevNode.replaceWith(node);
-                _.prevBaseProps = {};
+                _.prevBaseProps = _START_BASE_PROPS;
                 _.prevEvents = {};
             }
         }
@@ -1652,37 +1652,40 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
     }));
 });
 var colorPalette = makeComponent(function colorPallete(props) {
+    var _this = this;
     var color = props.color, count = props.count, name = props.name, alphaFunction = props.alphaFunction;
     this.append(span(name, { style: { marginTop: name === "Chebyshev roots" ? 2 : 4 } }));
-    var colorBoxRow = this.append(div({
-        style: { display: "flex" },
-    }));
-    for (var i = 0; i < count; i++) {
-        var colorRgb = rgbFromHexString(color);
-        var alpha = alphaFunction(i, count);
-        colorBoxRow.append(div({
-            key: i,
-            style: {
-                width: 30,
-                height: 24,
-                background: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
-            },
+    // color
+    var appendColorRow = function (color) {
+        var colorRow = _this.append(div({
+            style: { display: "flex" },
         }));
-    }
-    var colorTextRow = this.append(div({
-        style: { display: "flex" },
-    }));
-    for (var i = 0; i < count; i++) {
-        var colorRgb = rgbFromHexString(color);
-        var alpha = alphaFunction(i, count);
-        colorTextRow.append(span("text", {
-            key: i,
-            style: {
-                width: 30,
-                textAlign: "center",
-                color: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
-            },
-        }));
-    }
+        for (var i = 0; i < count; i++) {
+            var colorRgb = rgbFromHexString(color);
+            var alpha = alphaFunction(i, count);
+            colorRow.append(div({
+                key: "box-".concat(i),
+                style: {
+                    width: 30,
+                    height: 24,
+                    background: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
+                },
+            }));
+        }
+        for (var i = 0; i < count; i++) {
+            var colorRgb = rgbFromHexString(color);
+            var alpha = alphaFunction(i, count);
+            colorRow.append(span("text", {
+                key: "box-".concat(i),
+                style: {
+                    width: 30,
+                    textAlign: "right",
+                    color: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
+                },
+            }));
+        }
+    };
+    appendColorRow(color);
+    appendColorRow("#000000");
 });
 //# sourceMappingURL=docs.js.map

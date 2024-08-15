@@ -72,34 +72,36 @@ type ColorPaletteProps = BaseProps & {
 const colorPalette = makeComponent(function colorPallete(props: ColorPaletteProps) {
   const {color, count, name, alphaFunction} = props;
   this.append(span(name, {style: {marginTop: name === "Chebyshev roots" ? 2 : 4}}))
-  const colorBoxRow = this.append(div({
-    style: {display: "flex"},
-  }));
-  for (let i = 0; i < count; i++) {
-    const colorRgb = rgbFromHexString(color);
-    const alpha = alphaFunction(i, count);
-    colorBoxRow.append(div({
-      key: i,
-      style: {
-        width: 30,
-        height: 24,
-        background: `rgba(${colorRgb}, ${alpha})`,
-      },
+  // color
+  const appendColorRow = (color: string) => {
+    const colorRow = this.append(div({
+      style: {display: "flex"},
     }));
+    for (let i = 0; i < count; i++) {
+      const colorRgb = rgbFromHexString(color);
+      const alpha = alphaFunction(i, count);
+      colorRow.append(div({
+        key: `box-${i}`,
+        style: {
+          width: 30,
+          height: 24,
+          background: `rgba(${colorRgb}, ${alpha})`,
+        },
+      }));
+    }
+    for (let i = 0; i < count; i++) {
+      const colorRgb = rgbFromHexString(color);
+      const alpha = alphaFunction(i, count);
+      colorRow.append(span("text", {
+        key: `box-${i}`,
+        style: {
+          width: 30,
+          textAlign: "right",
+          color: `rgba(${colorRgb}, ${alpha})`,
+        },
+      }));
+    }
   }
-  const colorTextRow = this.append(div({
-    style: {display: "flex"},
-  }));
-  for (let i = 0; i < count; i++) {
-    const colorRgb = rgbFromHexString(color);
-    const alpha = alphaFunction(i, count);
-    colorTextRow.append(span("text", {
-      key: i,
-      style: {
-        width: 30,
-        textAlign: "center",
-        color: `rgba(${colorRgb}, ${alpha})`,
-      },
-    }));
-  }
+  appendColorRow(color);
+  appendColorRow("#000000");
 });

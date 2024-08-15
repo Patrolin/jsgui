@@ -445,7 +445,7 @@ function _render(component: Component, parentNode: ParentNodeType, _inheritedBas
       const prevName = _.prevComponent?.name;
       if (name !== prevName) {
         prevNode.replaceWith(node);
-        _.prevBaseProps = {} as InheritedBaseProps;
+        _.prevBaseProps = _START_BASE_PROPS;
         _.prevEvents = {} as EventsMap;
       }
     } else {
