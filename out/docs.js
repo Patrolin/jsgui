@@ -1654,7 +1654,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
 var colorPalette = makeComponent(function colorPallete(props) {
     var _this = this;
     var color = props.color, count = props.count, name = props.name, alphaFunction = props.alphaFunction;
-    this.append(span(name, { style: { marginTop: name === "Chebyshev roots" ? 2 : 4 } }));
+    this.append(span(name, { style: { marginTop: 4 } }));
     // color
     var appendColorRow = function (color) {
         var colorRow = _this.append(div({

@@ -71,7 +71,7 @@ type ColorPaletteProps = BaseProps & {
 };
 const colorPalette = makeComponent(function colorPallete(props: ColorPaletteProps) {
   const {color, count, name, alphaFunction} = props;
-  this.append(span(name, {style: {marginTop: name === "Chebyshev roots" ? 2 : 4}}))
+  this.append(span(name, {style: {marginTop: 4}}))
   // color
   const appendColorRow = (color: string) => {
     const colorRow = this.append(div({
