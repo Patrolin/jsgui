@@ -293,7 +293,10 @@ function makeComponent(onRender, options) {
             argsOrProps[_i] = arguments[_i];
         }
         var argCount = Math.max(0, onRender.length - 1);
-        var args = argsOrProps.slice(0, argCount);
+        var args = new Array(argCount); // NOTE: allow default props
+        for (var i = 0; i < argsOrProps.length; i++) {
+            args[i] = argsOrProps[i];
+        }
         var propsAndBaseProps = ((_a = argsOrProps[argCount]) !== null && _a !== void 0 ? _a : {});
         var key = propsAndBaseProps.key, _b = propsAndBaseProps.style, style = _b === void 0 ? {} : _b, _c = propsAndBaseProps.attribute, attribute = _c === void 0 ? {} : _c, className = propsAndBaseProps.className, _d = propsAndBaseProps.cssVars, cssVars = _d === void 0 ? {} : _d, _e = propsAndBaseProps.events, events = _e === void 0 ? {} : _e, props = __rest(propsAndBaseProps, ["key", "style", "attribute", "className", "cssVars", "events"]);
         var baseProps = {
@@ -671,6 +674,13 @@ var h6 = makeComponent(function h6(text, _props) {
     if (_props === void 0) { _props = {}; }
     this.useNode(document.createElement("h6"));
     this.append(text);
+});
+var divider = makeComponent(function divider(vertical, _props) {
+    if (vertical === void 0) { vertical = false; }
+    if (_props === void 0) { _props = {}; }
+    this.append(div({
+        attribute: { dataVertical: vertical },
+    }));
 });
 var p = makeComponent(function p(text, _props) {
     if (_props === void 0) { _props = {}; }
@@ -1503,27 +1513,35 @@ var mainPage = makeComponent(function mainPage() {
 var notFoundPage = makeComponent(function notFoundPage() {
     this.append(span("Page not found"));
 });
+var GITHUB_PAGES_PREFIX = "(/jsgui)?";
+var ROUTES = [
+    {
+        path: "".concat(GITHUB_PAGES_PREFIX, "/"),
+        defaultPath: "/",
+        component: function () { return mainPage(); },
+        wrapper: true,
+        showInNavigation: true,
+        label: "Docs",
+    },
+    {
+        path: "".concat(GITHUB_PAGES_PREFIX, "/themeCreator"),
+        defaultPath: "/themeCreator",
+        component: function () { return themeCreatorPage(); },
+        wrapper: true,
+        showInNavigation: true,
+        label: "Theme creator",
+    },
+];
 var root = makeComponent(function root() {
-    var GITHUB_PAGES_PREFIX = "(/jsgui)?";
     this.append(router({
         pageWrapperComponent: pageWrapper,
-        routes: [
-            {
-                path: "".concat(GITHUB_PAGES_PREFIX, "/"),
-                defaultPath: "/",
-                component: function () { return mainPage(); },
-                wrapper: true,
-                showInNavigation: true,
-                label: "jsgui",
-            },
-        ],
+        routes: ROUTES,
         notFoundRoute: {
             component: function () { return notFoundPage(); },
         },
     }));
 });
 var pageWrapper = makeComponent(function pageWrapper(props) {
-    var _a;
     var routes = props.routes, currentRoute = props.currentRoute, contentWrapperComponent = props.contentWrapperComponent;
     var wrapper = this.append(div({
         style: {
@@ -1536,19 +1554,29 @@ var pageWrapper = makeComponent(function pageWrapper(props) {
         className: "navMenu", // TODO: styles
         style: { display: "flex", flexDirection: "column" },
     }));
-    for (var _i = 0, routes_2 = routes; _i < routes_2.length; _i++) {
-        var route = routes_2[_i];
+    var appendRoute = function (route) {
+        var _a;
         if (route.showInNavigation) {
             navigation.append(span(route.label, { href: (_a = route.defaultPath) !== null && _a !== void 0 ? _a : route.path }));
         }
+    };
+    var docsRoute = ROUTES[0];
+    appendRoute(docsRoute);
+    navigation.append(divider());
+    for (var _i = 0, MAIN_PAGE_SECTIONS_2 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_2.length; _i++) {
+        var section = MAIN_PAGE_SECTIONS_2[_i];
+        navigation.append(span(section.label, { href: "/#".concat(section.id) }));
     }
-    // navigation.append() // TODO: divider()
-    for (var _b = 0, MAIN_PAGE_SECTIONS_2 = MAIN_PAGE_SECTIONS; _b < MAIN_PAGE_SECTIONS_2.length; _b++) {
-        var section = MAIN_PAGE_SECTIONS_2[_b];
-        navigation.append(span(section.label, { href: "#".concat(section.id) }));
+    navigation.append(divider());
+    for (var _a = 0, _b = routes.slice(1); _a < _b.length; _a++) {
+        var route = _b[_a];
+        appendRoute(route);
     }
     var contentWrapper = wrapper.append(contentWrapperComponent());
     contentWrapper.append(currentRoute.component());
 });
 renderRoot(root());
+var themeCreatorPage = makeComponent(function themeCreatorPage() {
+    this.append("theme creator");
+});
 //# sourceMappingURL=docs.js.map

@@ -109,6 +109,18 @@ body, [data-size="normal"] {
   }
 }
 /* basic components */
+.divider[data-vertical="false"] {
+  margin-inline: 8px;
+  width: 100%;
+  height: 1px;
+  background: var(--gray-1);
+}
+.divider[data-vertical="true"] {
+  margin-block: 8px;
+  width: 1px;
+  height: 100%;
+  background: var(--gray-1);
+}
 span, a, button {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */

@@ -1,3 +1,11 @@
+/* nav menu */
+.navMenu {
+  padding: 2px 4px;
+}
+.navMenu .divider {
+  margin-block: 2px;
+}
+/* docs */
 .displayRow {
   display: flex;
   align-items: center;

@@ -1,18 +1,27 @@
+const GITHUB_PAGES_PREFIX = "(/jsgui)?";
+const ROUTES = [
+  {
+    path: `${GITHUB_PAGES_PREFIX}/`,
+    defaultPath: "/",
+    component: () => mainPage(),
+    wrapper: true,
+    showInNavigation: true,
+    label: "Docs",
+  },
+  {
+    path: `${GITHUB_PAGES_PREFIX}/themeCreator`,
+    defaultPath: "/themeCreator",
+    component: () => themeCreatorPage(),
+    wrapper: true,
+    showInNavigation: true,
+    label: "Theme creator",
+  },
+];
 const root = makeComponent(function root() {
-  const GITHUB_PAGES_PREFIX = "(/jsgui)?";
   this.append(
     router({
       pageWrapperComponent: pageWrapper,
-      routes: [
-        {
-          path: `${GITHUB_PAGES_PREFIX}/`,
-          defaultPath: "/",
-          component: () => mainPage(),
-          wrapper: true,
-          showInNavigation: true,
-          label: "jsgui",
-        },
-      ],
+      routes: ROUTES,
       notFoundRoute: {
         component: () => notFoundPage(),
       },
@@ -32,14 +41,20 @@ const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) 
     className: "navMenu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
-  for (let route of routes) {
+  const appendRoute = (route: Route) => {
     if (route.showInNavigation) {
       navigation.append(span(route.label, { href: route.defaultPath ?? route.path }));
     }
   }
-  // navigation.append() // TODO: divider()
+  const docsRoute = ROUTES[0];
+  appendRoute(docsRoute);
+  navigation.append(divider());
   for (let section of MAIN_PAGE_SECTIONS) {
-    navigation.append(span(section.label, {href: `#${section.id}`}));
+    navigation.append(span(section.label, {href: `/#${section.id}`}));
+  }
+  navigation.append(divider());
+  for (let route of routes.slice(1)) {
+    appendRoute(route);
   }
   const contentWrapper = wrapper.append(contentWrapperComponent())
   contentWrapper.append(currentRoute.component());

@@ -248,7 +248,10 @@ class Component {
 function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {
   return (...argsOrProps: any[]) => {
     const argCount = Math.max(0, onRender.length - 1);
-    const args = argsOrProps.slice(0, argCount);
+    const args = new Array(argCount); // NOTE: allow default props
+    for (let i = 0; i < argsOrProps.length; i++) {
+      args[i] = argsOrProps[i];
+    }
     const propsAndBaseProps = (argsOrProps[argCount] ?? {}) as BaseProps & StringMap;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} as EventsMap, ...props} = propsAndBaseProps;
     const baseProps: RenderedBaseProps = {
@@ -591,6 +594,11 @@ const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
 const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h6"));
   this.append(text);
+});
+const divider = makeComponent(function divider(vertical: boolean = false, _props: BaseProps = {}) {
+  this.append(div({
+    attribute: {dataVertical: vertical},
+  }));
 });
 const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("p"));
