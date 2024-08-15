@@ -113,6 +113,10 @@ function addPx(value) {
 function clamp(value, min, max) {
     return Math.max(min, Math.min(value, max));
 }
+function rgbFromHexString(hexString) {
+    var hexString2 = removePrefix(hexString.trim(), '#');
+    return "".concat(parseInt(hexString2.slice(0, 2), 16), ", ").concat(parseInt(hexString2.slice(2, 4), 16), ", ").concat(parseInt(hexString2.slice(4, 6), 16));
+}
 function getDiff(oldValue, newValue) {
     var _a, _b;
     var diffMap = {};
@@ -1041,7 +1045,7 @@ var controlledInput = makeComponent(function controlledInput(props) {
     };
 });
 var labeledInput = makeComponent(function labeledInput(props) {
-    var _a = props.label, label = _a === void 0 ? "" : _a, leftComponent = props.leftComponent, inputComponent = props.inputComponent, rightComponent = props.rightComponent;
+    var _a = props.label, label = _a === void 0 ? " " : _a, leftComponent = props.leftComponent, inputComponent = props.inputComponent, rightComponent = props.rightComponent;
     var fieldset = this.useNode(document.createElement("fieldset"));
     fieldset.onmousedown = function (_event) {
         var event = _event;
@@ -1577,6 +1581,56 @@ var pageWrapper = makeComponent(function pageWrapper(props) {
 });
 renderRoot(root());
 var themeCreatorPage = makeComponent(function themeCreatorPage() {
-    this.append("theme creator");
+    var _this = this;
+    var state = this.useState({
+        color: '#1450a0',
+        count: 7,
+    });
+    this.append(textInput({
+        value: state.color,
+        allowString: function (value, prevAllowedValue) {
+            return value.match("#[0-9a-zA-Z]{6}") ? value : prevAllowedValue;
+        },
+        onChange: function (newValue) {
+            state.color = newValue;
+            _this.rerender();
+        },
+        label: 'Color',
+    }));
+    this.append(numberInput({
+        value: state.count,
+        onChange: function (newValue) {
+            state.count = +newValue;
+            _this.rerender();
+        },
+        label: 'Count',
+    }));
+    var colorBoxRow = this.append(div({
+        style: { display: "flex" },
+    }));
+    for (var i = 0; i < state.count; i++) {
+        var colorRgb = rgbFromHexString(state.color);
+        var alpha = (Math.cos(Math.PI * i / state.count) + 1) / 2;
+        colorBoxRow.append(div({
+            style: {
+                width: 30,
+                height: 24,
+                background: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
+            },
+        }));
+    }
+    var colorTextRow = this.append(div({
+        style: { display: "flex", gap: 4 },
+    }));
+    for (var i = 0; i < state.count; i++) {
+        var colorRgb = rgbFromHexString(state.color);
+        var alpha = (Math.cos(Math.PI * i / state.count) + 1) / 2;
+        colorTextRow.append(span("text", {
+            style: {
+                width: 26,
+                color: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
+            },
+        }));
+    }
 });
 //# sourceMappingURL=docs.js.map

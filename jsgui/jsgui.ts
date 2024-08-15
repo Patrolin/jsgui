@@ -24,6 +24,10 @@ function addPx(value: string | number) {
 function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
 }
+function rgbFromHexString(hexString: string): string {
+  let hexString2 = removePrefix(hexString.trim(), '#');
+  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
+}
 type Nullsy = undefined | null;
 type StringMap<T = any> = Record<string, T>;
 type JSONValue = string | number | any[] | StringMap | null;
@@ -985,7 +989,7 @@ type LabeledInputProps = {
   rightComponent?: Component;
 } & BaseProps;
 const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
-  const {label = "", leftComponent, inputComponent, rightComponent} = props;
+  const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(document.createElement("fieldset"));
   fieldset.onmousedown = (_event: any) => {
     const event = _event as MouseEvent;

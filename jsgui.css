@@ -304,6 +304,7 @@ dialog::backdrop {
   border: var(--fieldsetBorderErrorFocus);
 }
 .labeledInput legend {
+  white-space: pre;
   color: var(--labelColor-x);
   user-select: none;
   font-size: var(--labelSize);
@@ -393,7 +394,7 @@ dialog::backdrop {
   color: var(--cellColor);
 }
 .pageContent {
-  padding: 8px;
+  padding: 8px 16px;
   flex: 1;
   overflow: auto;
 }
