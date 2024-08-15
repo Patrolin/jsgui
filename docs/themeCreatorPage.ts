@@ -1,4 +1,3 @@
-
 const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
     color: '#1450a0',
@@ -23,7 +22,7 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
     },
     label: 'Count',
   }));
-  this.append(colorPallete({
+  this.append(colorPalette({
     color: state.color,
     count: state.count,
     name: "Exponential",
@@ -31,13 +30,13 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
       return 2 - 2**(i/N);
     },
   }));
-  this.append(colorPallete({
+  this.append(colorPalette({
     color: state.color,
     count: state.count,
     name: "Chebyshev roots",
     alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
   }));
-  this.append(colorPallete({
+  this.append(colorPalette({
     color: state.color,
     count: state.count,
     name: "lerp(Chebyshev, linear)",
@@ -46,7 +45,7 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
       return lerp(i/(N-1), v, (N-i)/N)
     },
   }));
-  this.append(colorPallete({
+  this.append(colorPalette({
     color: state.color,
     count: state.count,
     name: "linear",
@@ -54,7 +53,7 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
       return (N-i)/N;
     },
   }));
-  this.append(colorPallete({
+  this.append(colorPalette({
     color: state.color,
     count: state.count,
     name: "Sigmoid",
@@ -64,13 +63,13 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
     },
   }));
 });
-type ColorPalleteProps = BaseProps & {
+type ColorPaletteProps = BaseProps & {
   color: string;
   count: number;
   name: string;
   alphaFunction: (i: number, count: number) => number;
 };
-const colorPallete = makeComponent(function colorPallete(props: ColorPalleteProps) {
+const colorPalette = makeComponent(function colorPallete(props: ColorPaletteProps) {
   const {color, count, name, alphaFunction} = props;
   this.append(span(name, {style: {marginTop: name === "Chebyshev roots" ? 2 : 4}}))
   const colorBoxRow = this.append(div({

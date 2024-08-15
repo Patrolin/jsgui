@@ -1610,7 +1610,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
         },
         label: 'Count',
     }));
-    this.append(colorPallete({
+    this.append(colorPalette({
         color: state.color,
         count: state.count,
         name: "Exponential",
@@ -1618,13 +1618,13 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
             return 2 - Math.pow(2, (i / N));
         },
     }));
-    this.append(colorPallete({
+    this.append(colorPalette({
         color: state.color,
         count: state.count,
         name: "Chebyshev roots",
         alphaFunction: function (i, N) { return (Math.cos(Math.PI * i / N) + 1) / 2; },
     }));
-    this.append(colorPallete({
+    this.append(colorPalette({
         color: state.color,
         count: state.count,
         name: "lerp(Chebyshev, linear)",
@@ -1633,7 +1633,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
             return lerp(i / (N - 1), v, (N - i) / N);
         },
     }));
-    this.append(colorPallete({
+    this.append(colorPalette({
         color: state.color,
         count: state.count,
         name: "linear",
@@ -1641,7 +1641,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
             return (N - i) / N;
         },
     }));
-    this.append(colorPallete({
+    this.append(colorPalette({
         color: state.color,
         count: state.count,
         name: "Sigmoid",
@@ -1651,7 +1651,7 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
         },
     }));
 });
-var colorPallete = makeComponent(function colorPallete(props) {
+var colorPalette = makeComponent(function colorPallete(props) {
     var color = props.color, count = props.count, name = props.name, alphaFunction = props.alphaFunction;
     this.append(span(name, { style: { marginTop: name === "Chebyshev roots" ? 2 : 4 } }));
     var colorBoxRow = this.append(div({
