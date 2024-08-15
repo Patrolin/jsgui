@@ -30,6 +30,8 @@ const root = makeComponent(function root() {
 });
 const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
   const {routes, currentRoute, contentWrapperComponent} = props;
+  const isGithubPages = window.location.pathname.startsWith("/jsgui");
+  const githubPagesPrefix = isGithubPages ? `/jsgui` : "";
   const wrapper = this.append(div({
     style: {
       height: "100%",
@@ -43,14 +45,14 @@ const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) 
   }));
   const appendRoute = (route: Route) => {
     if (route.showInNavigation) {
-      navigation.append(span(route.label, { href: route.defaultPath ?? route.path }));
+      navigation.append(span(route.label, { href: `${githubPagesPrefix}${route.defaultPath ?? route.path}` }));
     }
   }
   const docsRoute = ROUTES[0];
   appendRoute(docsRoute);
   navigation.append(divider());
   for (let section of MAIN_PAGE_SECTIONS) {
-    navigation.append(span(section.label, {href: `/#${section.id}`}));
+    navigation.append(span(section.label, {href: `${githubPagesPrefix}/#${section.id}`}));
   }
   navigation.append(divider());
   for (let route of routes.slice(1)) {

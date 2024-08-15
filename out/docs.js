@@ -1550,6 +1550,8 @@ var root = makeComponent(function root() {
 });
 var pageWrapper = makeComponent(function pageWrapper(props) {
     var routes = props.routes, currentRoute = props.currentRoute, contentWrapperComponent = props.contentWrapperComponent;
+    var isGithubPages = window.location.pathname.startsWith("/jsgui");
+    var githubPagesPrefix = isGithubPages ? "/jsgui" : "";
     var wrapper = this.append(div({
         style: {
             height: "100%",
@@ -1564,7 +1566,7 @@ var pageWrapper = makeComponent(function pageWrapper(props) {
     var appendRoute = function (route) {
         var _a;
         if (route.showInNavigation) {
-            navigation.append(span(route.label, { href: (_a = route.defaultPath) !== null && _a !== void 0 ? _a : route.path }));
+            navigation.append(span(route.label, { href: "".concat(githubPagesPrefix).concat((_a = route.defaultPath) !== null && _a !== void 0 ? _a : route.path) }));
         }
     };
     var docsRoute = ROUTES[0];
@@ -1572,7 +1574,7 @@ var pageWrapper = makeComponent(function pageWrapper(props) {
     navigation.append(divider());
     for (var _i = 0, MAIN_PAGE_SECTIONS_2 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_2.length; _i++) {
         var section = MAIN_PAGE_SECTIONS_2[_i];
-        navigation.append(span(section.label, { href: "/#".concat(section.id) }));
+        navigation.append(span(section.label, { href: "".concat(githubPagesPrefix, "/#").concat(section.id) }));
     }
     navigation.append(divider());
     for (var _a = 0, _b = routes.slice(1); _a < _b.length; _a++) {
