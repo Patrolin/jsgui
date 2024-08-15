@@ -2,7 +2,7 @@ const GITHUB_PAGES_PREFIX = "(/jsgui)?";
 const ROUTES = [
   {
     path: `${GITHUB_PAGES_PREFIX}/`,
-    defaultPath: "/",
+    defaultPath: "/#version",
     component: () => mainPage(),
     wrapper: true,
     showInNavigation: true,

@@ -1500,7 +1500,7 @@ var mainPage = makeComponent(function mainPage() {
     var wrapper = this.append(div({
         style: { display: "flex", flexDirection: "column", alignItems: "flex-start" },
     }));
-    wrapper.append(span("version: ".concat(JSGUI_VERSION), { size: "small", selfLink: "", id: "version" }));
+    wrapper.append(span("version: ".concat(JSGUI_VERSION), { size: "small", selfLink: "version" }));
     for (var _i = 0, MAIN_PAGE_SECTIONS_1 = MAIN_PAGE_SECTIONS; _i < MAIN_PAGE_SECTIONS_1.length; _i++) {
         var section = MAIN_PAGE_SECTIONS_1[_i];
         wrapper.append(span(section.label, { size: "big", selfLink: section.id }));
@@ -1524,7 +1524,7 @@ var GITHUB_PAGES_PREFIX = "(/jsgui)?";
 var ROUTES = [
     {
         path: "".concat(GITHUB_PAGES_PREFIX, "/"),
-        defaultPath: "/",
+        defaultPath: "/#version",
         component: function () { return mainPage(); },
         wrapper: true,
         showInNavigation: true,

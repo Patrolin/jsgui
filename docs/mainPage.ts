@@ -8,7 +8,7 @@ const mainPage = makeComponent(function mainPage() {
       style: {display: "flex", flexDirection: "column", alignItems: "flex-start"},
     })
   );
-  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small", selfLink: "", id: "version"}));
+  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small", selfLink: "version"}));
   for (let section of MAIN_PAGE_SECTIONS) {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     const component = section.component()
