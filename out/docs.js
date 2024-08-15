@@ -1676,7 +1676,7 @@ var colorPalette = makeComponent(function colorPallete(props) {
             var colorRgb = rgbFromHexString(color);
             var alpha = alphaFunction(i, count);
             colorRow.append(span("text", {
-                key: "box-".concat(i),
+                key: "text-".concat(i),
                 style: {
                     width: 30,
                     textAlign: "right",

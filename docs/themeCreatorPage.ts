@@ -93,7 +93,7 @@ const colorPalette = makeComponent(function colorPallete(props: ColorPaletteProp
       const colorRgb = rgbFromHexString(color);
       const alpha = alphaFunction(i, count);
       colorRow.append(span("text", {
-        key: `box-${i}`,
+        key: `text-${i}`,
         style: {
           width: 30,
           textAlign: "right",
