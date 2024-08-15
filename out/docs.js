@@ -1620,14 +1620,15 @@ var themeCreatorPage = makeComponent(function themeCreatorPage() {
         }));
     }
     var colorTextRow = this.append(div({
-        style: { display: "flex", gap: 4 },
+        style: { display: "flex" },
     }));
     for (var i = 0; i < state.count; i++) {
         var colorRgb = rgbFromHexString(state.color);
         var alpha = (Math.cos(Math.PI * i / state.count) + 1) / 2;
         colorTextRow.append(span("text", {
             style: {
-                width: 26,
+                width: 30,
+                textAlign: "center",
                 color: "rgba(".concat(colorRgb, ", ").concat(alpha, ")"),
             },
         }));

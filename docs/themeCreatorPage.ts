@@ -38,14 +38,15 @@ const themeCreatorPage = makeComponent(function themeCreatorPage() {
     }));
   }
   const colorTextRow = this.append(div({
-    style: {display: "flex", gap: 4},
+    style: {display: "flex"},
   }));
   for (let i = 0; i < state.count; i++) {
     const colorRgb = rgbFromHexString(state.color);
     const alpha = (Math.cos(Math.PI*i / state.count) + 1) / 2;
     colorTextRow.append(span("text", {
       style: {
-        width: 26,
+        width: 30,
+        textAlign: "center",
         color: `rgba(${colorRgb}, ${alpha})`,
       },
     }));
