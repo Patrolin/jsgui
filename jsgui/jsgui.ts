@@ -1,6 +1,6 @@
 // TODO: make a typescript compiler to compile packages like odin
 // utils
-const JSGUI_VERSION = "v0.6";
+const JSGUI_VERSION = "v0.6-dev";
 function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
