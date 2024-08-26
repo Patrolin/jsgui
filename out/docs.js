@@ -273,7 +273,7 @@ var Component = /** @class */ (function () {
                 newRootComponent._ = root_;
                 root_.gcFlag = newGcFlag;
                 root_.component = newRootComponent;
-                _render(newRootComponent, null, root_.parentNode);
+                _render(newRootComponent, root_.parentNode);
                 _unloadUnusedComponents(rootComponent, newGcFlag);
                 root_.willRerenderNextFrame = false;
             });
@@ -447,7 +447,7 @@ function renderRoot(rootComponent, parentNode) {
         root_.parentNode = (_a = root_.parentNode) !== null && _a !== void 0 ? _a : document.body;
         if (SCROLLBAR_WIDTH === 0)
             _computeScrollbarWidth();
-        _render(rootComponent, null, root_.parentNode);
+        _render(rootComponent, root_.parentNode);
         requestAnimationFrame(function () {
             _scrollToLocationHash();
         });
@@ -466,14 +466,15 @@ var _START_BASE_PROPS = {
     cssVars: {},
     style: {},
 };
-function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNode) {
-    var _a, _b, _c, _d, _e, _f, _g, _h;
+function _render(component, parentNode, beforeNodeStack, _inheritedBaseProps, isTopNode) {
+    var _a, _b, _c, _d;
+    if (beforeNodeStack === void 0) { beforeNodeStack = []; }
     if (_inheritedBaseProps === void 0) { _inheritedBaseProps = _START_BASE_PROPS; }
     if (isTopNode === void 0) { isTopNode = true; }
     // render elements
-    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, indexedChildCount = component.indexedChildCount, children = component.children;
-    var _j = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _j.onMount, onUnmount = _j.onUnmount;
-    var node = component.node;
+    var _ = component._, name = component.name, args = component.args, baseProps = component.baseProps, props = component.props, onRender = component.onRender, indexedChildCount = component.indexedChildCount;
+    var _e = (_a = onRender.bind(component).apply(void 0, __spreadArray(__spreadArray([], args, false), [props], false))) !== null && _a !== void 0 ? _a : {}, onMount = _e.onMount, onUnmount = _e.onUnmount;
+    var node = component.node, children = component.children; // NOTE: get node and children after render
     // warn if missing keys
     var prevIndexedChildCount = _.prevIndexedChildCount;
     if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
@@ -487,30 +488,27 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
         style: __assign(__assign({}, _inheritedBaseProps.style), baseProps.style),
     };
     var prevNode = _.prevNode;
+    var beforeNode = beforeNodeStack[beforeNodeStack.length - 1];
     if (node) {
         // append
-        if (prevNode) {
-            var prevName = (_b = _.prevComponent) === null || _b === void 0 ? void 0 : _b.name;
-            if (name !== prevName) {
-                prevNode.replaceWith(node);
-                _.prevBaseProps = _START_BASE_PROPS;
-                _.prevEvents = {};
-            }
+        if (beforeNode && (beforeNode !== _.prevBeforeNode)) {
+            beforeNode.after(node);
         }
-        else {
-            if (beforeNode && (beforeNode !== _.prevBeforeNode)) {
-                beforeNode.after(node);
-            }
-            else {
-                parentNode.prepend(node); // NOTE: prepend if no history
-            }
-            _.prevBeforeNode = beforeNode;
+        else if (!prevNode) {
+            parentNode.prepend(node); // NOTE: prepend if no history
+        }
+        _.prevBeforeNode = beforeNode;
+        if (node != prevNode) {
+            if (prevNode)
+                prevNode.remove();
+            _.prevBaseProps = _START_BASE_PROPS;
+            _.prevEvents = {};
         }
         if (!(node instanceof Text)) {
             // style
             var styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
             for (var _i = 0, styleDiff_1 = styleDiff; _i < styleDiff_1.length; _i++) {
-                var _k = styleDiff_1[_i], key = _k.key, newValue = _k.newValue;
+                var _f = styleDiff_1[_i], key = _f.key, newValue = _f.newValue;
                 if (newValue != null) {
                     node.style[key] = addPx(newValue);
                 }
@@ -520,8 +518,8 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
             }
             // cssVars
             var cssVarsDiff = getDiff(_.prevBaseProps.cssVars, inheritedBaseProps.cssVars);
-            for (var _l = 0, cssVarsDiff_1 = cssVarsDiff; _l < cssVarsDiff_1.length; _l++) {
-                var _m = cssVarsDiff_1[_l], key = _m.key, newValue = _m.newValue;
+            for (var _g = 0, cssVarsDiff_1 = cssVarsDiff; _g < cssVarsDiff_1.length; _g++) {
+                var _h = cssVarsDiff_1[_g], key = _h.key, newValue = _h.newValue;
                 if (newValue != null) {
                     node.style.setProperty("--".concat(key), addPx(newValue));
                 }
@@ -535,8 +533,8 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
             }
             ;
             var classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
-            for (var _o = 0, classNameDiff_1 = classNameDiff; _o < classNameDiff_1.length; _o++) {
-                var _p = classNameDiff_1[_o], key = _p.key, newValue = _p.newValue;
+            for (var _j = 0, classNameDiff_1 = classNameDiff; _j < classNameDiff_1.length; _j++) {
+                var _k = classNameDiff_1[_j], key = _k.key, newValue = _k.newValue;
                 if (newValue != null) {
                     if (key === "")
                         console.warn("className cannot be empty,", name, inheritedBaseProps.className);
@@ -550,8 +548,8 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
             }
             // attribute
             var attributeDiff = getDiff(_.prevBaseProps.attribute, inheritedBaseProps.attribute);
-            for (var _q = 0, attributeDiff_1 = attributeDiff; _q < attributeDiff_1.length; _q++) {
-                var _r = attributeDiff_1[_q], key = _r.key, newValue = _r.newValue;
+            for (var _l = 0, attributeDiff_1 = attributeDiff; _l < attributeDiff_1.length; _l++) {
+                var _m = attributeDiff_1[_l], key = _m.key, newValue = _m.newValue;
                 if (newValue != null) {
                     node.setAttribute(camelCaseToKebabCase(key), String(newValue));
                 }
@@ -560,9 +558,9 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
                 }
             }
             // events
-            var eventsDiff = getDiff(_.prevEvents, (_c = baseProps.events) !== null && _c !== void 0 ? _c : {});
-            for (var _s = 0, eventsDiff_1 = eventsDiff; _s < eventsDiff_1.length; _s++) {
-                var _t = eventsDiff_1[_s], key = _t.key, oldValue = _t.oldValue, newValue = _t.newValue;
+            var eventsDiff = getDiff(_.prevEvents, (_b = baseProps.events) !== null && _b !== void 0 ? _b : {});
+            for (var _o = 0, eventsDiff_1 = eventsDiff; _o < eventsDiff_1.length; _o++) {
+                var _p = eventsDiff_1[_o], key = _p.key, oldValue = _p.oldValue, newValue = _p.newValue;
                 node.removeEventListener(key, oldValue);
                 if (newValue) {
                     var passive = key === "scroll" || key === "wheel";
@@ -570,7 +568,7 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
                 }
             }
             _.prevBaseProps = inheritedBaseProps;
-            _.prevEvents = (_d = baseProps.events) !== null && _d !== void 0 ? _d : {};
+            _.prevEvents = (_c = baseProps.events) !== null && _c !== void 0 ? _c : {};
             parentNode = node;
             inheritedBaseProps = _START_BASE_PROPS;
             isTopNode = false;
@@ -587,17 +585,23 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
     }
     // children
     var usedKeys = new Set();
+    if (node)
+        beforeNodeStack.push(null);
     for (var i = 0; i < children.length; i++) {
         var child = children[i];
         var key = child.key;
         if (usedKeys.has(key))
             console.warn("Duplicate key: '".concat(key, "'"), component);
         usedKeys.add(key);
-        var child_ = (_e = _.keyToChild[key]) !== null && _e !== void 0 ? _e : new ComponentMetadata(_);
+        var child_ = (_d = _.keyToChild[key]) !== null && _d !== void 0 ? _d : new ComponentMetadata(_);
         _.keyToChild[key] = child_;
         child._ = child_;
         child_.gcFlag = _.gcFlag;
-        _render(child, (_h = (_g = (_f = children[i - 1]) === null || _f === void 0 ? void 0 : _f._) === null || _g === void 0 ? void 0 : _g.prevNode) !== null && _h !== void 0 ? _h : null, parentNode, inheritedBaseProps, isTopNode);
+        _render(child, parentNode, beforeNodeStack, inheritedBaseProps, isTopNode);
+    }
+    if (node) {
+        beforeNodeStack.pop();
+        beforeNodeStack[beforeNodeStack.length - 1] = node;
     }
     // on mount
     _.prevNode = node;

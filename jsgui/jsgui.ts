@@ -237,7 +237,7 @@ class Component {
         newRootComponent._ = root_;
         root_.gcFlag = newGcFlag;
         root_.component = newRootComponent;
-        _render(newRootComponent, null, root_.parentNode);
+        _render(newRootComponent, root_.parentNode);
         _unloadUnusedComponents(rootComponent, newGcFlag);
         root_.willRerenderNextFrame = false;
       });
@@ -403,7 +403,7 @@ function renderRoot(rootComponent: Component, parentNode: ParentNodeType | null 
   const render = () => {
     root_.parentNode = root_.parentNode ?? document.body;
     if (SCROLLBAR_WIDTH === 0) _computeScrollbarWidth();
-    _render(rootComponent, null, root_.parentNode);
+    _render(rootComponent, root_.parentNode);
     requestAnimationFrame(() => {
       _scrollToLocationHash();
     });
@@ -422,11 +422,11 @@ const _START_BASE_PROPS: InheritedBaseProps = {
   cssVars: {},
   style: {},
 };
-function _render(component: Component, beforeNode: NodeType | null, parentNode: ParentNodeType, _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
+function _render(component: Component, parentNode: ParentNodeType, beforeNodeStack: (NodeType | null)[] = [], _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, indexedChildCount, children} = component;
+  const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
-  const node = component.node;
+  const {node, children} = component; // NOTE: get node and children after render
   // warn if missing keys
   const prevIndexedChildCount = _.prevIndexedChildCount;
   if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
@@ -440,22 +440,19 @@ function _render(component: Component, beforeNode: NodeType | null, parentNode: 
     style: {..._inheritedBaseProps.style, ...baseProps.style},
   };
   const prevNode = _.prevNode;
+  const beforeNode = beforeNodeStack[beforeNodeStack.length - 1];
   if (node) {
     // append
-    if (prevNode) {
-      const prevName = _.prevComponent?.name;
-      if (name !== prevName) {
-        prevNode.replaceWith(node);
-        _.prevBaseProps = _START_BASE_PROPS;
-        _.prevEvents = {} as EventsMap;
-      }
-    } else {
-      if (beforeNode && (beforeNode !== _.prevBeforeNode)) {
-        beforeNode.after(node);
-      } else {
-        parentNode.prepend(node); // NOTE: prepend if no history
-      }
-      _.prevBeforeNode = beforeNode;
+    if (beforeNode && (beforeNode !== _.prevBeforeNode)) {
+      beforeNode.after(node);
+    } else if (!prevNode) {
+      parentNode.prepend(node); // NOTE: prepend if no history
+    }
+    _.prevBeforeNode = beforeNode;
+    if (node != prevNode) {
+      if (prevNode) prevNode.remove();
+      _.prevBaseProps = _START_BASE_PROPS;
+      _.prevEvents = {} as EventsMap;
     }
     if (!(node instanceof Text)) {
       // style
@@ -524,6 +521,7 @@ function _render(component: Component, beforeNode: NodeType | null, parentNode: 
   }
   // children
   const usedKeys = new Set();
+  if (node) beforeNodeStack.push(null);
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
     const key = child.key;
@@ -533,7 +531,11 @@ function _render(component: Component, beforeNode: NodeType | null, parentNode: 
     _.keyToChild[key] = child_;
     child._ = child_;
     child_.gcFlag = _.gcFlag;
-    _render(child, children[i-1]?._?.prevNode ?? null, parentNode, inheritedBaseProps, isTopNode);
+    _render(child, parentNode, beforeNodeStack, inheritedBaseProps, isTopNode);
+  }
+  if (node) {
+    beforeNodeStack.pop();
+    beforeNodeStack[beforeNodeStack.length - 1] = node;
   }
   // on mount
   _.prevNode = node;
