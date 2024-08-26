@@ -86,7 +86,7 @@ var __spreadArray = (this && this.__spreadArray) || function (to, from, pack) {
 };
 // TODO: make a typescript compiler to compile packages like odin
 // utils
-var JSGUI_VERSION = "v0.7";
+var JSGUI_VERSION = "v0.8";
 function parseJsonOrNull(jsonString) {
     try {
         return JSON.parse(jsonString);
