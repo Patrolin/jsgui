@@ -502,7 +502,7 @@ function _render(component, beforeNode, parentNode, _inheritedBaseProps, isTopNo
                 beforeNode.after(node);
             }
             else {
-                parentNode.append(node);
+                parentNode.prepend(node); // NOTE: prepend if no history
             }
             _.prevBeforeNode = beforeNode;
         }
