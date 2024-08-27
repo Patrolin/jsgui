@@ -77,7 +77,6 @@ def tsCompile(accTs: str) -> str:
     (r"(?:var|let|const) [^:=]+:", replaceColon),
     (r"\([^`\"'/?{:\)]+:", replaceColon),
     # TODO: inside class declaration (backwards search "class Xyz {")
-    # TODO: ignore strings and regexes
     (r"\):", lambda *args: replaceColon(*args, isFunctionReturn = True)),
     (r"()<[A-Za-z0-9$_ \[\]<>]+>", replaceGeneric),
     (r"`[^`]*`", ignoreString),
@@ -100,11 +99,6 @@ def tsCompile(accTs: str) -> str:
   return accTs # returns accJs
 
 if __name__ == '__main__':
-  result = tsCompile("""
-  function removeSuffix(value: string, prefix: string): string {
-    return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
-  }
-  """)
   result = tsCompile("""type X = number | string;
   type Y<T> = Bar<T> & {};
   type Bar = {
