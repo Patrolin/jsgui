@@ -51,7 +51,7 @@ type Diff<T> = {
   key: string;
   oldValue: T;
   newValue: T;
-}
+};
 function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
   const diffMap: StringMap<Partial<Diff<T>>> = {};
   for (let [k, v] of Object.entries(oldValue)) {
@@ -95,10 +95,10 @@ type BaseProps = {
   events?: EventsMap;
 };
 type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
-type RenderReturn = {
+type RenderReturn = void | {
   onMount?: () => void,
   onUnmount?: () => void,
-} | void
+};
 type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
 type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 type NavigateFunction = (url: string) => void;
@@ -111,7 +111,8 @@ type UseNavigate = {
   pushHistory: NavigateFunction;
   /** replace url in history */
   replaceHistory: NavigateFunction;
-}
+};
+type UseWindowResize = { windowBottom: number, windowRight: number };
 // component
 function _setChildKey(component: Component, child: Component) {
   const name = child.name;
@@ -190,7 +191,7 @@ class Component {
     }
   }
   // dispatch
-  useMedia(mediaQuery: StringMap<string | number>) { // TODO: type this
+  useMedia(mediaQuery: StringMap<string | number>) { // TODO: add types
     const key = Object.entries(mediaQuery).map(([k, v]) => `(${camelCaseToKebabCase(k)}: ${addPx(v)})`).join(' and ');
     const dispatchTarget = _dispatchTargets.media.addDispatchTarget(key);
     dispatchTarget.addComponent(this);
@@ -214,7 +215,7 @@ class Component {
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
   }
-  useWindowResize(): { windowBottom: number, windowRight: number } {
+  useWindowResize(): UseWindowResize {
     _dispatchTargets.windowResize.addComponent(this);
     return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
   }
@@ -660,7 +661,7 @@ const BASE_COLORS: Record<BaseColor, string> = {
   red: "200, 50, 50",
 };
 const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
-type SpanProps = {
+type SpanProps = BaseProps & {
   iconName?: string;
   size?: Size;
   color?: string;
@@ -671,7 +672,7 @@ type SpanProps = {
   id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
-} & BaseProps;
+};
 const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {

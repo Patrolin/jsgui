@@ -3,7 +3,7 @@ function generateFontSizeCssVars(names: string[] = SIZES) {
     fontSize: number;
     iconSize: number;
     size: number;
-  }
+  };
   const getSizeDef = (i: number) => ({
     fontSize: 12 + i*4,
     iconSize: 14 + i*4,
