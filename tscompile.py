@@ -28,7 +28,7 @@ def replaceType(accTs: str, match: re.Match) -> tuple[str, int]:
   i = findBracketEnd(accTs, ';', match.end(0))
   i = findBracketEnd(accTs, ';', i)
   i += 1
-  print('ayaya.type', repr(accTs[start:i]))
+  #print('ayaya.type', repr(accTs[start:i]))
   return f"{match[1]}/* {escapeMultiLineComments(accTs[start:i])} */", i
 def replaceAs(accTs: str, match: re.Match) -> tuple[str, int]:
   start = match.end(1)
@@ -39,7 +39,9 @@ def replaceColon(accTs: str, match: re.Match, isFunctionReturn: bool = False) ->
   search_start = match.end(0)
   while True:
     i = indexOrEnd(accTs, '{', search_start) if isFunctionReturn else findBracketEnd(accTs, ',=;', search_start) # NOTE: stop on ) if negative bracket_count
-    print('ayaya.1', repr(accTs[i:i+8]), repr(accTs[search_start:i]))
+    if accTs[i:i+2] == "=>":
+      i = findBracketEnd(accTs, ',=;', i+2)
+    #print('ayaya.1', repr(accTs[i:i+8]), repr(accTs[search_start:i]))
     replaceWith += f"/*:{accTs[search_start:i]}*/"
     search_start = i
     nextColon = findBracketEnd(accTs, ':', search_start)
@@ -48,9 +50,34 @@ def replaceColon(accTs: str, match: re.Match, isFunctionReturn: bool = False) ->
     if nextColon >= nextBracket or nextColon >= nextSemicolon or isFunctionReturn:
       break
     replaceWith += accTs[i:nextColon]
-    print('ayaya.2', repr(accTs[nextColon:nextColon+12]))
+    #print('ayaya.2', repr(accTs[nextColon:nextColon+12]))
     search_start = nextColon + 1
   return replaceWith, search_start
+def replaceClassColon(accTs: str, match: re.Match) -> tuple[str, int]:
+  prev_i = indexOrEnd(accTs, "{", match.end(0)) + 1
+  replaceWith = accTs[match.start(0):prev_i]
+  constructorStart = indexOrEnd(accTs, "constructor", prev_i)
+  while True:
+    nameStart = prev_i
+    while nameStart < len(accTs):
+      char = accTs[nameStart]
+      if char == " " or char == "\t" or char == "\n" or char == "\r":
+        nameStart += 1
+      else:
+        break
+    print("ayaya.class.0", nameStart, constructorStart)
+    if nameStart >= constructorStart: break
+    colonStart = findBracketEnd(accTs, ":", nameStart)
+    replaceWith += accTs[prev_i:colonStart]
+    typeEnd = findBracketEnd(accTs, "=;", colonStart)
+    if accTs[typeEnd:typeEnd+2] == "=>":
+      typeEnd = findBracketEnd(accTs, "=;", typeEnd+2)
+    replaceWith += f"/*{accTs[colonStart:typeEnd].strip()} */"
+    valueEnd = findBracketEnd(accTs, ";", typeEnd)
+    replaceWith += f"{accTs[typeEnd:valueEnd]};"
+    print(f"ayaya.class.2, {repr(accTs[nameStart:colonStart])}, {repr(accTs[colonStart:typeEnd])}, {repr(accTs[typeEnd:valueEnd])}")
+    prev_i = valueEnd + 1
+  return replaceWith, prev_i
 def replaceGeneric(accTs: str, match: re.Match) -> tuple[str, int]:
   start = match.start(0)
   i = findBracketEnd(accTs, '>', match.start(0))
@@ -74,9 +101,9 @@ def tsCompile(accTs: str) -> str:
     (r"/\*", ignoreMultiLineComment),
     (r"^(\s*)type ", replaceType),
     (r"( )as ", replaceAs),
-    (r"(?:var|let|const) [^:=]+:", replaceColon),
+    (r"(?:var|let|const) [^:={]+:", replaceColon),
     (r"\([^`\"'/?{:\)]+:", replaceColon),
-    # TODO: inside class declaration (backwards search "class Xyz {")
+    (r"^([\s]*class )", replaceClassColon),
     (r"\):", lambda *args: replaceColon(*args, isFunctionReturn = True)),
     (r"()<[A-Za-z0-9$_ \[\]<>]+>", replaceGeneric),
     (r"`[^`]*`", ignoreString),
@@ -99,30 +126,48 @@ def tsCompile(accTs: str) -> str:
   return accTs # returns accJs
 
 if __name__ == '__main__':
-  result = tsCompile("""type X = number | string;
-  type Y<T> = Bar<T> & {};
-  type Bar = {
-    a: {foo: string, bar: number};
-  };
-  type Zee = {
-    a: {foo: string, bar: number};
-  };
-  const z = 'foo' as 'foo' | 'bar';
-  const z: string = 'foo';
-  type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
-  type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
-  class Z {
-    useState<T extends any>() {...}
-  }
-  // const z: string = "hello";
-  function foo<T>(a: T, b: T): T {
-    return a + b;
-  }
-  const diffMap: StringMap<Partial<Diff<T>>> = {};
-  function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions= {}): ComponentFunction<A> {}
-  type _EventListener<T = Event> = ((event: T) => void);
-  if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
-  /* ... */
-  """)
+  if True:
+    result = tsCompile("""
+    class Z {
+      a: string = '';
+      data: StringMap<DispatchTarget>;
+      addListeners: (key: string) => DispatchTargetAddListeners;
+      constructor(addListeners: (key: string) => DispatchTargetAddListeners) {
+        this.data = {};
+        this.addListeners = addListeners;
+      }
+    }""".strip())
+  else:
+    result = tsCompile("""
+    type X = number | string;
+    type Y<T> = Bar<T> & {};
+    type Bar = {
+      a: {foo: string, bar: number};
+    };
+    type Zee = {
+      a: {foo: string, bar: number};
+    };
+    const z = 'foo' as 'foo' | 'bar';
+    const z: string = 'foo';
+    type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
+    type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
+    class Z {
+      a: int;
+      b: string = '';
+      data: StringMap<DispatchTarget>;
+      addListeners: (key: string) => DispatchTargetAddListeners;
+      constructor() {}
+      useState<T extends any>() {...}
+    }
+    // const z: string = "hello";
+    function foo<T>(a: T, b: T): T {
+      return a + b;
+    }
+    const diffMap: StringMap<Partial<Diff<T>>> = {};
+    function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions= {}): ComponentFunction<A> {}
+    type _EventListener<T = Event> = ((event: T) => void);
+    if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
+    /* ... */
+    """.strip())
   print()
   print(result)

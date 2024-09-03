@@ -51,7 +51,8 @@ if __name__ == '__main__':
   tasks = [
     Task(TaskType.Copy, "jsgui/jsgui.css", "jsgui/out"),
     Task(TaskType.Copy, "jsgui/jsgui.ts", "jsgui/out"),
-    Task(TaskType.TsCompile, "jsgui", "jsgui/out")
+    Task(TaskType.TsCompile, "jsgui", "jsgui/out"),
+    Task(TaskType.TsCompile, "docs", "docs/out"),
     #Task(TaskType.MjsCompile, "jsgui/out/jsgui.js", "jsgui/out/jsgui.mjs")
   ]
   mtimes: dict[str, float] = {}
