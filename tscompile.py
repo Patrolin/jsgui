@@ -65,7 +65,7 @@ def replaceClassColon(accTs: str, match: re.Match) -> tuple[str, int]:
         nameStart += 1
       else:
         break
-    print("ayaya.class.0", nameStart, constructorStart)
+    #print("ayaya.class.0", nameStart, constructorStart)
     if nameStart >= constructorStart: break
     colonStart = findBracketEnd(accTs, ":", nameStart)
     replaceWith += accTs[prev_i:colonStart]
@@ -75,7 +75,7 @@ def replaceClassColon(accTs: str, match: re.Match) -> tuple[str, int]:
     replaceWith += f"/*{accTs[colonStart:typeEnd].strip()} */"
     valueEnd = findBracketEnd(accTs, ";", typeEnd)
     replaceWith += f"{accTs[typeEnd:valueEnd]};"
-    print(f"ayaya.class.2, {repr(accTs[nameStart:colonStart])}, {repr(accTs[colonStart:typeEnd])}, {repr(accTs[typeEnd:valueEnd])}")
+    #print(f"ayaya.class.2, {repr(accTs[nameStart:colonStart])}, {repr(accTs[colonStart:typeEnd])}, {repr(accTs[typeEnd:valueEnd])}")
     prev_i = valueEnd + 1
   return replaceWith, prev_i
 def replaceGeneric(accTs: str, match: re.Match) -> tuple[str, int]:
@@ -92,6 +92,7 @@ def ignoreMultiLineComment(accTs: str, match: re.Match) -> tuple[str, int]:
   i = indexOrEnd(accTs, '*/', start)
   return f"/*{accTs[start:i]}", i
 def ignoreString(accTs: str, match: re.Match) -> tuple[str, int]:
+  print('ayaya.ignoreString', match)
   return match[0], match.end(0)
 
 Replacer = Callable[[str, re.Match], tuple[str, int]]
@@ -101,9 +102,9 @@ def tsCompile(accTs: str) -> str:
     (r"/\*", ignoreMultiLineComment),
     (r"^(\s*)type ", replaceType),
     (r"( )as ", replaceAs),
-    (r"(?:var|let|const) [^:={]+:", replaceColon),
-    (r"\([^`\"'/?{:\)]+:", replaceColon),
-    (r"^([\s]*class )", replaceClassColon),
+    (r"^\s*(?:var|let|const) [^:={]+:", replaceColon), # variable declarations
+    (r"\([^`\"'/?{:\)]+:", replaceColon), # function declarations
+    (r"^(\s*class )", replaceClassColon), # class declarations
     (r"\):", lambda *args: replaceColon(*args, isFunctionReturn = True)),
     (r"()<[A-Za-z0-9$_ \[\]<>]+>", replaceGeneric),
     (r"`[^`]*`", ignoreString),
@@ -128,15 +129,10 @@ def tsCompile(accTs: str) -> str:
 if __name__ == '__main__':
   if True:
     result = tsCompile("""
-    class Z {
-      a: string = '';
-      data: StringMap<DispatchTarget>;
-      addListeners: (key: string) => DispatchTargetAddListeners;
-      constructor(addListeners: (key: string) => DispatchTargetAddListeners) {
-        this.data = {};
-        this.addListeners = addListeners;
-      }
-    }""".strip())
+      const spanSection = makeComponent(function spanSection() {
+        for (let href of [undefined, "https://www.google.com"]) {
+        }
+      }""".strip())
   else:
     result = tsCompile("""
     type X = number | string;
