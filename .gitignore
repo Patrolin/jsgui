@@ -1,3 +1,4 @@
 **.js.map
 jsgui/out/**
+!jsgui/out/jsgui.js
 __pycache__

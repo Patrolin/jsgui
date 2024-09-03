@@ -1,5 +1,5 @@
 {
-  "include": ["jsgui/**.ts", "docs/utils.ts", "docs/sections/**.ts", "docs/**.ts"],
+  "include": ["jsgui/**.ts", "docs/**.ts"],
   "compilerOptions": {
     "target": "es5",
     "lib": [

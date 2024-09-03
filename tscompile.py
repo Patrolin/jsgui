@@ -97,6 +97,8 @@ def ignoreString(accTs: str, match: re.Match) -> tuple[str, int]:
 
 Replacer = Callable[[str, re.Match], tuple[str, int]]
 def tsCompile(accTs: str) -> str:
+  # TODO: handle .mts files
+  # transpile typescript to javascript
   replacers: list[tuple[str, Replacer]] = [
     (r"//", ignoreSingleLineComment),
     (r"/\*", ignoreMultiLineComment),
@@ -124,15 +126,33 @@ def tsCompile(accTs: str) -> str:
     accTs = accTs[:replaceStart] + replaceWith + accTs[searchStart + end:]
     searchStart = replaceStart + len(replaceWith)
     #print(f"{match}   ->   {repr(replaceWith)}")
+  # add window.Xyz = ... Xyz
+  searchStart = 0
+  while True:
+    tsSlice = accTs[searchStart:]
+    match = re.search(r"^(const|class|function) ([A-Za-z0-9$_]+)( =)?", tsSlice, re.MULTILINE)
+    if match == None: break
+    replaceWith = f"window.{match.group(2)} = {match.group(1)} {match.group(2)}"
+    if match.group(1) == "const":
+      replaceWith = f"window.{match.group(2)}{match.group(3)}"
+    replaceStart = searchStart + match.start(0)
+    end = match.end(0)
+    accTs = accTs[:replaceStart] + replaceWith + accTs[searchStart + end:]
+    searchStart = replaceStart + len(replaceWith)
   return accTs # returns accJs
 
 if __name__ == '__main__':
   if True:
     result = tsCompile("""
-      const spanSection = makeComponent(function spanSection() {
-        for (let href of [undefined, "https://www.google.com"]) {
-        }
-      }""".strip())
+const spanSection = makeComponent(function spanSection() {
+  for (let href of [undefined, "https://www.google.com"]) {
+  }
+}
+class Foobar {
+  a: int;
+  constructor() {}
+}
+function foo(a: int) {}""".strip())
   else:
     result = tsCompile("""
     type X = number | string;

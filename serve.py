@@ -7,6 +7,7 @@ HOST = ('localhost', 8000)
 http.server.SimpleHTTPRequestHandler.extensions_map = {
   **http.server.SimpleHTTPRequestHandler.extensions_map,
   ".js": "application/javascript",
+  ".mjs": "application/javascript",
   ".ts": "application/javascript",
 }
 class Handler(http.server.SimpleHTTPRequestHandler):

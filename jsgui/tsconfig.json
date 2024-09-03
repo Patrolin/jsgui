@@ -12,7 +12,7 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "module": "None",
-    "outFile" : "../out/jsgui.js",
+    "outFile" : "out/jsgui.js",
     "sourceMap": false,
     "removeComments": false,
   }
