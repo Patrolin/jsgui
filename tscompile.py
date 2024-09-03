@@ -92,7 +92,7 @@ def ignoreMultiLineComment(accTs: str, match: re.Match) -> tuple[str, int]:
   i = indexOrEnd(accTs, '*/', start)
   return f"/*{accTs[start:i]}", i
 def ignoreString(accTs: str, match: re.Match) -> tuple[str, int]:
-  print('ayaya.ignoreString', match)
+  #print('ayaya.ignoreString', match)
   return match[0], match.end(0)
 
 Replacer = Callable[[str, re.Match], tuple[str, int]]
@@ -123,7 +123,7 @@ def tsCompile(accTs: str) -> str:
     replaceStart = searchStart + match.start(0)
     accTs = accTs[:replaceStart] + replaceWith + accTs[searchStart + end:]
     searchStart = replaceStart + len(replaceWith)
-    print(f"{match}   ->   {repr(replaceWith)}")
+    #print(f"{match}   ->   {repr(replaceWith)}")
   return accTs # returns accJs
 
 if __name__ == '__main__':
