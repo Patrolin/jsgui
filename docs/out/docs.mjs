@@ -1,6 +1,6 @@
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.9";
+export const JSGUI_VERSION = "v0.10";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -1276,15 +1276,6 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-/* utils.mts */
-/*export type MainPageSection = {
-  label: string;
-  id: string;
-  component: ComponentFunction<[]>;
-};*/
-export function getSizeLabel(size/*: string*/) {
-  return size[0].toUpperCase() + size.slice(1);
-}
 /* themeCreatorPage.mts */
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
@@ -1394,6 +1385,19 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
   appendColorRow(color);
   appendColorRow("#000000");
 });
+/* utils.mts */
+/*export type MainPageSection = {
+  label: string;
+  id: string;
+  component: ComponentFunction<[]>;
+};*/
+export function getSizeLabel(size/*: string*/) {
+  return size[0].toUpperCase() + size.slice(1);
+}
+/* notFoundPage.mts */
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
+});
 /* inputs.mts */
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({ username: "" });
@@ -1478,10 +1482,6 @@ export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
     component: tableSection,
   },
 ];
-/* notFoundPage.mts */
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
 /* basicComponents.mts */
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
