@@ -1,5 +1,5 @@
 import {BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, SIZES, span, svg} from '../../jsgui/jsgui.mts';
-import { getSizeLabel, MainPageSection } from '../utils/utils.mts';
+import {getSizeLabel, MainPageSection} from '../utils/utils.mts';
 
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));

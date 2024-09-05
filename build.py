@@ -138,7 +138,7 @@ if __name__ == '__main__':
                       code_file.imports.append(import_file_path)
                       if import_file_path not in linked_code_files:
                         code_files_to_link.add(import_file_path)
-                    code_file.text_without_imports += re.sub(MTS_IMPORT_REGEX, "", text)
+                    code_file.text_without_imports += re.sub(MTS_IMPORT_REGEX, "", text).strip() + "\n"
                     read_code_files[file_path] = code_file
                   else:
                     code_files_to_link.remove(file_path)

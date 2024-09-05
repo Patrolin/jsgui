@@ -35,7 +35,7 @@ def replaceTypeStatement(accTs: str, matchStart: int, matchEnd: int) -> tuple[st
   statementStart = findNotWhitespace(accTs, matchStart)
   semicolonStart = findBracketEnd(accTs, ';', matchEnd)
   semicolonEnd = semicolonStart + 1
-  nextStartOfLine = re.search(r"^[\n/[a-zA-Z$_([]]", f" {accTs[matchEnd:]}", re.MULTILINE)
+  nextStartOfLine = re.search(r"^[\n/a-zA-Z$_(\[]", f" {accTs[matchEnd:]}", re.MULTILINE)
   endByStartOfLine = (matchEnd + nextStartOfLine.start(0) - 2) if nextStartOfLine != None else len(accTs)
   statementEnd = min(semicolonEnd, endByStartOfLine)
   #print('ayaya.type', repr(accTs[matchStart:statementEnd]))

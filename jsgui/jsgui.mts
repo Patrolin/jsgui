@@ -422,6 +422,7 @@ export const _START_BASE_PROPS: InheritedBaseProps = {
   cssVars: {},
   style: {},
 };
+// TODO: make this non-recursive for cleaner console errors
 export function _render(component: Component, parentNode: ParentNodeType, beforeNodeStack: (NodeType | null)[] = [], _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
