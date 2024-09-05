@@ -1276,10 +1276,6 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-/* notFoundPage.mts */
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
 /* themeCreatorPage.mts */
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
@@ -1388,6 +1384,10 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
   }
   appendColorRow(color);
   appendColorRow("#000000");
+});
+/* notFoundPage.mts */
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
 });
 /* utils.mts */
 /*export type MainPageSection = {
