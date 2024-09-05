@@ -7,12 +7,13 @@ index.html
 ```html
 <head>
   <link rel="stylesheet" href="jsgui.css" />
-  <script src="jsgui.js"></script>
-  <script src="app.js"></script>
+  <script type="module" src="app.mjs"></script>
 </head>
 ```
-app.js
+app.mjs
 ```js
+  import { makeComponent, renderRoot, span } from "jsgui.mjs";
+
   const root = makeComponent(function root() {
     this.append(span("Hello world"));
   });
