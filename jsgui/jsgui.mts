@@ -254,12 +254,12 @@ export class Component {
 }
 export function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {
   return (...argsOrProps: any[]) => {
-    const argCount = Math.max(0, onRender.length - 1);
-    const args = new Array(argCount); // NOTE: allow default props
+    const firstOptionalArg = onRender.length;
+    const args = new Array(argsOrProps.length); // NOTE: allow default props
     for (let i = 0; i < argsOrProps.length; i++) {
       args[i] = argsOrProps[i];
     }
-    const propsAndBaseProps = (argsOrProps[argCount] ?? {}) as BaseProps & StringMap;
+    const propsAndBaseProps = (argsOrProps[firstOptionalArg] ?? {}) as BaseProps & StringMap;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} as EventsMap, ...props} = propsAndBaseProps;
     const baseProps: RenderedBaseProps = {
       key: (key != null) ? String(key) : undefined,

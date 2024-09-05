@@ -255,12 +255,12 @@ export class Component {
 }
 export function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction<A>*/, options/*: ComponentOptions*/ = {})/*: ComponentFunction<A>*/ {
   return (...argsOrProps/*: any[]*/) => {
-    const argCount = Math.max(0, onRender.length - 1);
-    const args = new Array(argCount); // NOTE: allow default props
+    const firstOptionalArg = onRender.length;
+    const args = new Array(argsOrProps.length); // NOTE: allow default props
     for (let i = 0; i < argsOrProps.length; i++) {
       args[i] = argsOrProps[i];
     }
-    const propsAndBaseProps = (argsOrProps[argCount] ?? {})/* as BaseProps & StringMap*/;
+    const propsAndBaseProps = (argsOrProps[firstOptionalArg] ?? {})/* as BaseProps & StringMap*/;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {}/* as EventsMap*/, ...props} = propsAndBaseProps;
     const baseProps/*: RenderedBaseProps*/ = {
       key: (key != null) ? String(key) : undefined,
@@ -1276,6 +1276,10 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+/* notFoundPage.mts */
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
+});
 /* themeCreatorPage.mts */
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
@@ -1385,10 +1389,6 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
   appendColorRow(color);
   appendColorRow("#000000");
 });
-/* notFoundPage.mts */
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
 /* utils.mts */
 /*export type MainPageSection = {
   label: string;
@@ -1398,90 +1398,6 @@ export const notFoundPage = makeComponent(function notFoundPage() {
 export function getSizeLabel(size/*: string*/) {
   return size[0].toUpperCase() + size.slice(1);
 }
-/* inputs.mts */
-const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({ username: "" });
-  // username
-  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
-  row.append(
-    textInput({
-      label: "Username",
-      value: state.username,
-      onInput: (newUsername/*: string*/) => {
-        state.username = newUsername;
-        this.rerender();
-      },
-      autoFocus: true,
-    })
-  );
-  row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  row.append(span(`state: ${JSON.stringify(state)}`));
-  // count
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-  row.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (newCount/*: string*/) => {
-        setCount(newCount === "" ? null : +newCount);
-        this.rerender();
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
-  row.append(span(`count: ${count}`));
-});
-const tableSection = makeComponent(function tableSection() {
-  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
-  const rows = Array(+(count ?? 0))
-    .fill(0)
-    .map((_, i) => i);
-  const displayRow = this.append(div({ className: "wideDisplayRow" }));
-  displayRow.append(
-    table({
-      label: "Stuff",
-      rows,
-      columns: [
-        {
-          label: "#",
-          onRender: (props) => span(props.rowIndex + 1),
-        },
-        {
-          label: "Name",
-          onRender: (props) => span(`foo ${props.row}`),
-        },
-        {
-          label: "Count",
-          onRender: (props) => span(props.row),
-        },
-      ],
-    })
-  );
-  if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
-  }
-});
-const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
-  this.append(span(""));
-});
-
-export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
-  {
-    label: "Text input",
-    id: "textInput",
-    component: textInputSection,
-  },
-  {
-    label: "Table",
-    id: "table",
-    component: tableSection,
-  },
-];
 /* basicComponents.mts */
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
@@ -1622,6 +1538,90 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
     component: mediaQuerySection,
   },
 ]
+/* inputs.mts */
+const textInputSection = makeComponent(function textInputSection() {
+  const state = this.useState({ username: "" });
+  // username
+  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
+  row.append(
+    textInput({
+      label: "Username",
+      value: state.username,
+      onInput: (newUsername/*: string*/) => {
+        state.username = newUsername;
+        this.rerender();
+      },
+      autoFocus: true,
+    })
+  );
+  row.append(span("This input is stored in the component state."));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
+  row.append(span(`state: ${JSON.stringify(state)}`));
+  // count
+  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
+  row.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (newCount/*: string*/) => {
+        setCount(newCount === "" ? null : +newCount);
+        this.rerender();
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  row.append(span("This input is stored in local storage (synced across tabs and components)."));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
+  row.append(span(`count: ${count}`));
+});
+const tableSection = makeComponent(function tableSection() {
+  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
+  const rows = Array(+(count ?? 0))
+    .fill(0)
+    .map((_, i) => i);
+  const displayRow = this.append(div({ className: "wideDisplayRow" }));
+  displayRow.append(
+    table({
+      label: "Stuff",
+      rows,
+      columns: [
+        {
+          label: "#",
+          onRender: (props) => span(props.rowIndex + 1),
+        },
+        {
+          label: "Name",
+          onRender: (props) => span(`foo ${props.row}`),
+        },
+        {
+          label: "Count",
+          onRender: (props) => span(props.row),
+        },
+      ],
+    })
+  );
+  if ((count ?? 0) % 2 === 0) {
+    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
+  }
+});
+const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
+  this.append(span(""));
+});
+
+export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
+  {
+    label: "Text input",
+    id: "textInput",
+    component: textInputSection,
+  },
+  {
+    label: "Table",
+    id: "table",
+    component: tableSection,
+  },
+];
 /* mainPage.mts */
 export const MAIN_PAGE_SECTIONS/*: MainPageSection[]*/ = [
   ...BASIC_COMPONENT_SECTIONS,
@@ -1642,10 +1642,10 @@ export const mainPage = makeComponent(function mainPage() {
     const onRender = component.onRender;
     const codeString = `const ${onRender.name} = makeComponent(${onRender});`;
     row.append(code(codeString, {style: {
-      margin: "8px 0",
-      padding: "3px 6px 4px 6px",
+      margin: "6px 0px 4px 0px",
+      padding: "4px 8px",
       background: "rgba(0, 0, 0, 0.1)",
-      borderRadius: 4,
+      borderRadius: 8,
     }}));
   }
 });

@@ -22,10 +22,10 @@ export const mainPage = makeComponent(function mainPage() {
     const onRender = component.onRender;
     const codeString = `const ${onRender.name} = makeComponent(${onRender});`;
     row.append(code(codeString, {style: {
-      margin: "8px 0",
-      padding: "3px 6px 4px 6px",
+      margin: "6px 0px 4px 0px",
+      padding: "4px 8px",
       background: "rgba(0, 0, 0, 0.1)",
-      borderRadius: 4,
+      borderRadius: 8,
     }}));
   }
 });
