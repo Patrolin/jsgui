@@ -35,7 +35,7 @@ def replaceTypeStatement(accTs: str, matchStart: int, matchEnd: int) -> tuple[st
   statementStart = findNotWhitespace(accTs, matchStart)
   semicolonStart = findBracketEnd(accTs, ';', matchEnd)
   semicolonEnd = semicolonStart + 1
-  nextStartOfLine = re.search(r"^[\n\S]", f" {accTs[matchEnd:]}", re.MULTILINE)
+  nextStartOfLine = re.search(r"^[\n/[a-zA-Z$_([]]", f" {accTs[matchEnd:]}", re.MULTILINE)
   endByStartOfLine = (matchEnd + nextStartOfLine.start(0) - 2) if nextStartOfLine != None else len(accTs)
   statementEnd = min(semicolonEnd, endByStartOfLine)
   #print('ayaya.type', repr(accTs[matchStart:statementEnd]))
@@ -77,12 +77,13 @@ def replaceClassColon(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, 
         break
     #print("ayaya.class.0", nameStart, constructorStart)
     if nameStart >= constructorStart: break
-    colonStart = findBracketEnd(accTs, ":", nameStart)
-    replaceWith += accTs[prev_i:colonStart]
-    typeEnd = findBracketEnd(accTs, "=;", colonStart)
+    _colonStart = findBracketEnd(accTs, ":", nameStart)
+    questionColonStart = _colonStart-1 if accTs[_colonStart-1] == "?" else _colonStart
+    replaceWith += accTs[prev_i:questionColonStart]
+    typeEnd = findBracketEnd(accTs, "=;", questionColonStart)
     if accTs[typeEnd:typeEnd+2] == "=>":
       typeEnd = findBracketEnd(accTs, "=;", typeEnd+2)
-    replaceWith += f"/*{accTs[colonStart:typeEnd].strip()}*/"
+    replaceWith += f"/*{accTs[questionColonStart:typeEnd].strip()}*/"
     if accTs[typeEnd-1] == " ": replaceWith += " "
     # value
     valueEnd = findBracketEnd(accTs, ";", typeEnd)

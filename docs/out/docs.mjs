@@ -50,8 +50,8 @@ export function rgbFromHexString(hexString/*: string*/)/*: string*/ {
 /*export type Diff<T> = {
   key: string;
   oldValue: T;
-  newValue: T;*/
-};
+  newValue: T;
+};*/
 export function getDiff/*<T>*/(oldValue/*: StringMap<T>*/, newValue/*: StringMap<T>*/)/*: Diff<T>[]*/ {
   const diffMap/*: StringMap<Partial<Diff<T>>>*/ = {};
   for (let [k, v] of Object.entries(oldValue)) {
@@ -84,21 +84,21 @@ export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*
 // NOTE: tsc is stupid and removes comments before types
 /*export type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;*/
 /*export type ComponentOptions = {
-  name?: string;*/
-};
+  name?: string;
+};*/
 /*export type BaseProps = {
   key?: string | number;
   attribute?: StringMap<string | number | boolean>;
   cssVars?: StringMap<string | number | undefined>;
   className?: string | string[];
   style?: StringMap<string | number | undefined>;
-  events?: EventsMap;*/
-};
+  events?: EventsMap;
+};*/
 /*export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};*/
 /*export type RenderReturn = void | {
   onMount?: () => void,
-  onUnmount?: () => void,*/
-};
+  onUnmount?: () => void,
+};*/
 /*export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;*/
 /*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;*/
 /*export type NavigateFunction = (url: string) => void;*/
@@ -110,8 +110,8 @@ export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*
   /** add url to history *//*
   pushHistory: NavigateFunction;
   /** replace url in history *//*
-  replaceHistory: NavigateFunction;*/
-};
+  replaceHistory: NavigateFunction;
+};*/
 /*export type UseWindowResize = { windowBottom: number, windowRight: number };*/
 // component
 export function _setChildKey(component/*: Component*/, child/*: Component*/) {
@@ -325,8 +325,8 @@ export class DispatchTargetMap {
 /*export type AddDispatchTarget = {
   map: StringMap<DispatchTarget>;
   key: string;
-  addListeners: DispatchTargetAddListeners;*/
-};
+  addListeners: DispatchTargetAddListeners;
+};*/
 export const _dispatchTargets = {
   media: new DispatchTargetMap((key) => (dispatch) => {
     const mediaQueryList = window.matchMedia(key);
@@ -372,7 +372,7 @@ export class ComponentMetadata {
   prevBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS;
   prevEvents/*: EventsMap*/ = {}/* as EventsMap*/;
   gcFlag/*: boolean*/ = false;
-  onUnmount?/*: () => void*/;
+  onUnmount/*?: () => void*/;
   // navigation
   prevBeforeNode/*: NodeType | null*/ = null;
   prevComponent/*: Component | null*/ = null;
@@ -671,8 +671,8 @@ export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: u
   navigate?: NavigateFunction;
   id?: string;
   selfLink?: string;
-  onClick?: (event: MouseEvent) => void;*/
-};
+  onClick?: (event: MouseEvent) => void;
+};*/
 export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {
@@ -725,8 +725,8 @@ export const legend = makeComponent(function legend(text/*: string*/, _props/*: 
 /*export type DialogProps = BaseProps & ({
   open: boolean;
   onClose?: () => void;
-  closeOnClickBackdrop?: boolean;*/
-});
+  closeOnClickBackdrop?: boolean;
+});*/
 export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
   const {open, onClose, closeOnClickBackdrop} = props;
   const state = this.useState({ prevOpen: false });
@@ -849,8 +849,8 @@ export function _getPopupLeftTopWithFlipAndClamp(props/*: {
   // TODO: arrow?: boolean;
   /** NOTE: open on hover if undefined *//*
   open?: boolean;
-  interactable?: boolean;*/
-};
+  interactable?: boolean;
+};*/
 export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
@@ -928,10 +928,10 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
   size?: Size;
   color?: BaseColor;
   onClick?: () => void;
-  disabled?: boolean;*/
+  disabled?: boolean;
 }
 // inputs
-export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
+export const coloredButton = makeComponent(function coloredButton(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
   if (text) this.append(span(text));
@@ -944,7 +944,7 @@ export const coloredButton = makeComponent(function coloredButton(text/*: string
       requestAnimationFrame(onClick);
     }
   }
-});
+});*/
 /*export type InputProps = {
   type?: "text";
   placeholder?: string;
@@ -956,8 +956,8 @@ export const coloredButton = makeComponent(function coloredButton(text/*: string
   onInput?: (newAllowedValue: string, event: InputEvent) => void;
   onChange?: (newAllowedValue: string, event: Event) => void;
   allowChar?: (char: string) => boolean;
-  allowString?: (value: string, prevAllowedValue: string) => string;*/
-} & BaseProps;
+  allowString?: (value: string, prevAllowedValue: string) => string;
+} & BaseProps;*/
 export const controlledInput = makeComponent(function controlledInput(props/*: InputProps*/) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onInput, onChange, allowChar, allowString = (value/*: string*/, _prevAllowedValue/*: string*/) => value } = props;
   const state = this.useState({ prevAllowedValue: String(value ?? '') });
@@ -999,8 +999,8 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   label?: string;
   leftComponent?: Component;
   inputComponent: Component;
-  rightComponent?: Component;*/
-} & BaseProps;
+  rightComponent?: Component;
+} & BaseProps;*/
 export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(document.createElement("fieldset"));
@@ -1027,8 +1027,8 @@ export const errorMessage = makeComponent(function errorMessage(error/*: string*
 });
 /*export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
-  value: string | null | undefined;*/
-};
+  value: string | null | undefined;
+};*/
 export const textInput = makeComponent(function textInput(props/*: TextInputProps*/) {
   const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
@@ -1041,8 +1041,8 @@ export const textInput = makeComponent(function textInput(props/*: TextInputProp
 });
 /*export type NumberArrowProps = {
   onClickUp?: (event: MouseEvent) => void;
-  onClickDown?: (event: MouseEvent) => void;*/
-} & BaseProps;
+  onClickDown?: (event: MouseEvent) => void;
+} & BaseProps;*/
 export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
   const { onClickUp, onClickDown } = props;
   this.useNode(document.createElement("div"));
@@ -1057,8 +1057,8 @@ export const numberArrows = makeComponent(function numberArrows(props/*: NumberA
   stepPrecision?: number,
   clearable?: boolean,
   onInput?: ((newAllowedValue: string, event: InputEvent | undefined) => void);
-  onChange?: ((newAllowedValue: string, event: KeyboardEvent | undefined) => void)*/
-};
+  onChange?: ((newAllowedValue: string, event: KeyboardEvent | undefined) => void)
+};*/
 export const numberInput = makeComponent(function numberInput(props/*: NumberInputProps*/) {
   const {
     label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
@@ -1133,16 +1133,16 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   onRender: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
   minWidth?: string | number;
   maxWidth?: string | number;
-  flex?: string | number;*/
-};
+  flex?: string | number;
+};*/
 /*export type TableProps = {
   label?: string;
   columns: TableColumn[];
   rows: any[];
   isLoading?: boolean;
   minHeight?: number;
-  useMaxHeight?: boolean;*/
-} & BaseProps;
+  useMaxHeight?: boolean;
+} & BaseProps;*/
 export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
   // TODO: set minHeight to fit N rows
   // TODO: actions, filters, search, paging, selection
@@ -1189,8 +1189,8 @@ export const table = makeComponent(function table(props/*: TableProps & BaseProp
   wrapper?: boolean;
   showInNavigation?: boolean;
   label?: string;
-  group?: string;*/
-};
+  group?: string;
+};*/
 /*export type FallbackRoute = Omit<Route, "path">;*/
 /*export type RouterProps = {
   routes: Route[];
@@ -1200,13 +1200,13 @@ export const table = makeComponent(function table(props/*: TableProps & BaseProp
   isLoggedIn?: boolean;
   notLoggedInRoute?: FallbackRoute;
   notFoundRoute?: FallbackRoute;
-  unauthorizedRoute?: FallbackRoute;*/
-};
+  unauthorizedRoute?: FallbackRoute;
+};*/
 /*export type PageWrapperProps = {
   routes: Route[];
   currentRoute: Route;
-  contentWrapperComponent: ComponentFunction<any>,*/
-};
+  contentWrapperComponent: ComponentFunction<any>,
+};*/
 export const router = makeComponent(function router(props/*: RouterProps*/) {
   const {
     routes,
@@ -1275,16 +1275,219 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+/* notFoundPage.mts */
+
+
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
+});
 /* utils.mts */
 
 /*export type MainPageSection = {
   label: string;
   id: string;
-  component: ComponentFunction<[]>;*/
-};
+  component: ComponentFunction<[]>;
+};*/
 export function getSizeLabel(size/*: string*/) {
   return size[0].toUpperCase() + size.slice(1);
 }
+/* themeCreatorPage.mts */
+
+
+export const themeCreatorPage = makeComponent(function themeCreatorPage() {
+  const state = this.useState({
+    color: '#1450a0',
+    count: 7,
+  });
+  this.append(textInput({
+    value: state.color,
+    allowString: (value, prevAllowedValue) => {
+      return value.match("#[0-9a-zA-Z]{6}") ? value : prevAllowedValue;
+    },
+    onChange: (newValue) => {
+      state.color = newValue;
+      this.rerender();
+    },
+    label: 'Color',
+  }));
+  this.append(numberInput({
+    value: state.count,
+    min: 0,
+    onChange: (newValue) => {
+      state.count = +newValue;
+      this.rerender();
+    },
+    label: 'Count',
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "Exponential",
+    alphaFunction: (i, N) => {
+      return 2 - 2**(i/N);
+    },
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "Chebyshev roots",
+    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "lerp(Chebyshev, linear)",
+    alphaFunction: (i, N) => {
+      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
+      return lerp(i/(N-1), v, (N-i)/N)
+    },
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "linear",
+    alphaFunction: (i, N) => {
+      return (N-i)/N;
+    },
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "Sigmoid",
+    alphaFunction: (i, N) => {
+      const v = (i / (0.59*N));
+      return Math.exp(-v*v);
+    },
+  }));
+});
+/*type ColorPaletteProps = BaseProps & {
+  color: string;
+  count: number;
+  name: string;
+  alphaFunction: (i: number, count: number) => number;
+};*/
+const colorPalette = makeComponent(function colorPalette(props/*: ColorPaletteProps*/) {
+  const {color, count, name, alphaFunction} = props;
+  this.append(span(name, {style: {marginTop: 4}}));
+  // color
+  const appendColorRow = (color/*: string*/) => {
+    const colorRow = this.append(div({
+      style: {display: "flex"},
+    }));
+    for (let i = 0; i < count; i++) {
+      const colorRgb = rgbFromHexString(color);
+      const alpha = alphaFunction(i, count);
+      colorRow.append(div({
+        key: `box-${i}`,
+        style: {
+          width: 30,
+          height: 24,
+          background: `rgba(${colorRgb}, ${alpha})`,
+        },
+      }));
+    }
+    for (let i = 0; i < count; i++) {
+      const colorRgb = rgbFromHexString(color);
+      const alpha = alphaFunction(i, count);
+      colorRow.append(span("text", {
+        key: `text-${i}`,
+        style: {
+          width: 30,
+          textAlign: "right",
+          color: `rgba(${colorRgb}, ${alpha})`,
+        },
+      }));
+    }
+  }
+  appendColorRow(color);
+  appendColorRow("#000000");
+});
+/* inputs.mts */
+
+
+const textInputSection = makeComponent(function textInputSection() {
+  const state = this.useState({ username: "" });
+  // username
+  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
+  row.append(
+    textInput({
+      label: "Username",
+      value: state.username,
+      onInput: (newUsername/*: string*/) => {
+        state.username = newUsername;
+        this.rerender();
+      },
+      autoFocus: true,
+    })
+  );
+  row.append(span("This input is stored in the component state."));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
+  row.append(span(`state: ${JSON.stringify(state)}`));
+  // count
+  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
+  row.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (newCount/*: string*/) => {
+        setCount(newCount === "" ? null : +newCount);
+        this.rerender();
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  row.append(span("This input is stored in local storage (synced across tabs and components)."));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
+  row.append(span(`count: ${count}`));
+});
+const tableSection = makeComponent(function tableSection() {
+  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
+  const rows = Array(+(count ?? 0))
+    .fill(0)
+    .map((_, i) => i);
+  const displayRow = this.append(div({ className: "wideDisplayRow" }));
+  displayRow.append(
+    table({
+      label: "Stuff",
+      rows,
+      columns: [
+        {
+          label: "#",
+          onRender: (props) => span(props.rowIndex + 1),
+        },
+        {
+          label: "Name",
+          onRender: (props) => span(`foo ${props.row}`),
+        },
+        {
+          label: "Count",
+          onRender: (props) => span(props.row),
+        },
+      ],
+    })
+  );
+  if ((count ?? 0) % 2 === 0) {
+    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
+  }
+});
+const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
+  this.append(span(""));
+});
+
+export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
+  {
+    label: "Text input",
+    id: "textInput",
+    component: textInputSection,
+  },
+  {
+    label: "Table",
+    id: "table",
+    component: tableSection,
+  },
+];
 /* basicComponents.mts */
 
 
@@ -1427,209 +1630,6 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
     component: mediaQuerySection,
   },
 ]
-/* themeCreatorPage.mts */
-
-
-export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const state = this.useState({
-    color: '#1450a0',
-    count: 7,
-  });
-  this.append(textInput({
-    value: state.color,
-    allowString: (value, prevAllowedValue) => {
-      return value.match("#[0-9a-zA-Z]{6}") ? value : prevAllowedValue;
-    },
-    onChange: (newValue) => {
-      state.color = newValue;
-      this.rerender();
-    },
-    label: 'Color',
-  }));
-  this.append(numberInput({
-    value: state.count,
-    min: 0,
-    onChange: (newValue) => {
-      state.count = +newValue;
-      this.rerender();
-    },
-    label: 'Count',
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Exponential",
-    alphaFunction: (i, N) => {
-      return 2 - 2**(i/N);
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Chebyshev roots",
-    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "lerp(Chebyshev, linear)",
-    alphaFunction: (i, N) => {
-      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
-      return lerp(i/(N-1), v, (N-i)/N)
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "linear",
-    alphaFunction: (i, N) => {
-      return (N-i)/N;
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Sigmoid",
-    alphaFunction: (i, N) => {
-      const v = (i / (0.59*N));
-      return Math.exp(-v*v);
-    },
-  }));
-});
-/*type ColorPaletteProps = BaseProps & {
-  color: string;
-  count: number;
-  name: string;
-  alphaFunction: (i: number, count: number) => number;*/
-};
-const colorPalette = makeComponent(function colorPalette(props/*: ColorPaletteProps*/) {
-  const {color, count, name, alphaFunction} = props;
-  this.append(span(name, {style: {marginTop: 4}}));
-  // color
-  const appendColorRow = (color/*: string*/) => {
-    const colorRow = this.append(div({
-      style: {display: "flex"},
-    }));
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(div({
-        key: `box-${i}`,
-        style: {
-          width: 30,
-          height: 24,
-          background: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
-    }
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(span("text", {
-        key: `text-${i}`,
-        style: {
-          width: 30,
-          textAlign: "right",
-          color: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
-    }
-  }
-  appendColorRow(color);
-  appendColorRow("#000000");
-});
-/* notFoundPage.mts */
-
-
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
-/* inputs.mts */
-
-
-const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({ username: "" });
-  // username
-  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
-  row.append(
-    textInput({
-      label: "Username",
-      value: state.username,
-      onInput: (newUsername/*: string*/) => {
-        state.username = newUsername;
-        this.rerender();
-      },
-      autoFocus: true,
-    })
-  );
-  row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  row.append(span(`state: ${JSON.stringify(state)}`));
-  // count
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-  row.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (newCount/*: string*/) => {
-        setCount(newCount === "" ? null : +newCount);
-        this.rerender();
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
-  row.append(span(`count: ${count}`));
-});
-const tableSection = makeComponent(function tableSection() {
-  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
-  const rows = Array(+(count ?? 0))
-    .fill(0)
-    .map((_, i) => i);
-  const displayRow = this.append(div({ className: "wideDisplayRow" }));
-  displayRow.append(
-    table({
-      label: "Stuff",
-      rows,
-      columns: [
-        {
-          label: "#",
-          onRender: (props) => span(props.rowIndex + 1),
-        },
-        {
-          label: "Name",
-          onRender: (props) => span(`foo ${props.row}`),
-        },
-        {
-          label: "Count",
-          onRender: (props) => span(props.row),
-        },
-      ],
-    })
-  );
-  if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
-  }
-});
-const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
-  this.append(span(""));
-});
-
-export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
-  {
-    label: "Text input",
-    id: "textInput",
-    component: textInputSection,
-  },
-  {
-    label: "Table",
-    id: "table",
-    component: tableSection,
-  },
-];
 /* mainPage.mts */
 
 
