@@ -33,10 +33,13 @@ def escapeMultiLineComments(string: str) -> str:
 
 def replaceTypeStatement(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, int]:
   statementStart = findNotWhitespace(accTs, matchStart)
-  i = findBracketEnd(accTs, ';', matchEnd)
-  i += 1
-  #print('ayaya.type', repr(accTs[start:i]))
-  return f"{accTs[matchStart:statementStart]}/*{escapeMultiLineComments(accTs[statementStart:i])}*/", i
+  semicolonStart = findBracketEnd(accTs, ';', matchEnd)
+  semicolonEnd = semicolonStart + 1
+  nextStartOfLine = re.search(r"^[\n\S]", f" {accTs[matchEnd:]}", re.MULTILINE)
+  endByStartOfLine = (matchEnd + nextStartOfLine.start(0) - 2) if nextStartOfLine != None else len(accTs)
+  statementEnd = min(semicolonEnd, endByStartOfLine)
+  #print('ayaya.type', repr(accTs[matchStart:statementEnd]))
+  return f"{accTs[matchStart:statementStart]}/*{escapeMultiLineComments(accTs[statementStart:statementEnd])}*/", statementEnd
 def replaceValue(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, int]:
   i = findBracketEnd(accTs, ';,', matchEnd)
   return f"/*{accTs[matchStart:i]}*/", i
@@ -111,7 +114,6 @@ def ignoreString(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, int]:
 
 Replacer = Callable[[str, int, int], tuple[str, int]]
 def tsCompile(accTs: str) -> str:
-  # TODO: handle .mts files
   # transpile typescript to javascript
   replacers: list[tuple[str, Replacer]] = [
     (r"//", ignoreSingleLineComment),
@@ -120,11 +122,11 @@ def tsCompile(accTs: str) -> str:
     (r'"[^"]*"', ignoreString),
     (r"'[^']*'", ignoreString),
     (r"/[^/]/", ignoreString),
-    (r"^(\s*)(?:export )?type ", replaceTypeStatement),
+    (r"^\s*(?:export )?type ", replaceTypeStatement),
     (r" as ", replaceValue),
     (r"^\s*(?:export )?(?:var|let|const) [^:={]+:", replaceColon), # variable declarations
     (r"\([^`\"'/?{:\)]+:", replaceColon), # function declarations
-    (r"^(\s*(?:export )?class )", replaceClassColon), # class declarations
+    (r"^\s*(?:export )?class ", replaceClassColon), # class declarations
     (r"\):", lambda *args: replaceColon(*args, isFunctionReturn = True)),
     (r"()<[A-Za-z0-9$_ \[\]<>]+>", replaceGeneric),
   ]
@@ -158,11 +160,11 @@ if __name__ == '__main__':
     bar: number;
     baz: string = '1' as string;
   }
-  const foo = 13;"""), """export type Foo = {
-    bar/*: number*/;
-    baz/*: string*/ = '1'/* as string*/;
-  }
-  const foo = 13;""")
+const foo = 13;"""), """/*export type Foo = {
+    bar: number;
+    baz: string = '1' as string;
+  }*/
+const foo = 13;""")
   expectEquals("classes", tsCompile("""export class Foo {
     bar: number;
     baz: string = '1' as string;
