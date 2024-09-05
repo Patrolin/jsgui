@@ -1,5 +1,5 @@
 // utils
-export const JSGUI_VERSION = "v0.9";
+export const JSGUI_VERSION = "v0.10";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
