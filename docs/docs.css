@@ -30,3 +30,9 @@
   gap: 8px;
   border-radius: 8px;
 }
+code {
+  background: lightgray;
+  border-radius: 8px;
+  padding: 4px 8px;
+  margin-top: 8px;
+}
