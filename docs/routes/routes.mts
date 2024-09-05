@@ -1,5 +1,10 @@
-const GITHUB_PAGES_PREFIX = "(/jsgui)?";
-const ROUTES = [
+import { div, divider, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/jsgui.mts';
+import {MAIN_PAGE_SECTIONS, mainPage} from './mainPage.mts';
+import { notFoundPage } from './notFoundPage.mts';
+import {themeCreatorPage} from './themeCreatorPage.mts'
+
+export const GITHUB_PAGES_PREFIX = "(/jsgui)?";
+export const ROUTES = [
   {
     path: `${GITHUB_PAGES_PREFIX}/`,
     defaultPath: "/#version",
@@ -17,7 +22,7 @@ const ROUTES = [
     label: "Theme creator",
   },
 ];
-const root = makeComponent(function root() {
+export const root = makeComponent(function root() {
   this.append(
     router({
       pageWrapperComponent: pageWrapper,
@@ -28,7 +33,7 @@ const root = makeComponent(function root() {
     })
   );
 });
-const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
+export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
   const {routes, currentRoute, contentWrapperComponent} = props;
   const isGithubPages = window.location.pathname.startsWith("/jsgui");
   const githubPagesPrefix = isGithubPages ? `/jsgui` : "";

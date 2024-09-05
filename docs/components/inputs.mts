@@ -1,3 +1,6 @@
+import {BaseProps, div, makeComponent, numberInput, span, table, textInput} from '../../jsgui/jsgui.mts';
+import {MainPageSection} from '../utils/utils.mts';
+
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({ username: "" });
   // username
@@ -69,7 +72,7 @@ const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps)
   this.append(span(""));
 });
 
-const INPUT_SECTIONS: MainPageSection[] = [
+export const INPUT_SECTIONS: MainPageSection[] = [
   {
     label: "Text input",
     id: "textInput",

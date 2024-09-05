@@ -1,19 +1,21 @@
 {
-  "include": ["jsgui.ts", "generateFontVars.ts"],
+  "include": ["**.mts"],
   "compilerOptions": {
-    "target": "es5",
+    "target": "ES6",
     "lib": [
       "dom",
       "dom.iterable",
       "esnext"
     ],
+    "module": "ES6",
+    "moduleResolution": "Bundler",
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "strict": true,
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
-    "strict": true,
+    "allowImportingTsExtensions": true,
     "forceConsistentCasingInFileNames": true,
-    "module": "None",
-    "outFile" : "out/jsgui.js",
-    "sourceMap": false,
-    "removeComments": false,
+    "outDir": "out"
   }
 }

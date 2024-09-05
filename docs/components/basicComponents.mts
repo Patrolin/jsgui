@@ -1,3 +1,6 @@
+import {BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, SIZES, span, svg} from '../../jsgui/jsgui.mts';
+import { getSizeLabel, MainPageSection } from '../utils/utils.mts';
+
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
   column.append(span("span"));
@@ -100,7 +103,7 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   column.append(span(`lgOrBigger: ${lgOrBigger}`));
   column.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
-const BASIC_COMPONENT_SECTIONS: MainPageSection[] = [
+export const BASIC_COMPONENT_SECTIONS: MainPageSection[] = [
   {
     label: "HTML elements",
     id: "html",

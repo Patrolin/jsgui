@@ -1,43 +1,42 @@
-// TODO: make a typescript compiler to compile packages like odin
 // utils
-const JSGUI_VERSION = "v0.8";
-function parseJsonOrNull(jsonString: string): JSONValue {
+export const JSGUI_VERSION = "v0.9";
+export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
   } catch {
     return null;
   }
 }
-function camelCaseToKebabCase(key: string) {
+export function camelCaseToKebabCase(key: string) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
-function removePrefix(value: string, prefix: string): string {
+export function removePrefix(value: string, prefix: string): string {
   return value.startsWith(prefix) ? value.slice(prefix.length) : value;
 }
-function removeSuffix(value: string, prefix: string): string {
+export function removeSuffix(value: string, prefix: string): string {
   return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
 }
-function addPx(value: string | number) {
+export function addPx(value: string | number) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
 }
-function lerp(value: number, x: number, y: number): number {
+export function lerp(value: number, x: number, y: number): number {
   return (1-value)*x + value*y;
 }
 /** clamp value between min and max (defaulting to min) */
-function clamp(value: number, min: number, max: number): number {
+export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
 }
-function rgbFromHexString(hexString: string): string {
+export function rgbFromHexString(hexString: string): string {
   let hexString2 = removePrefix(hexString.trim(), '#');
   return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
 }
-type Nullsy = undefined | null;
-type StringMap<T = any> = Record<string, T>;
-type JSONValue = string | number | any[] | StringMap | null;
-type ParentNodeType = HTMLElement | SVGSVGElement;
-type NodeType = ParentNodeType | Text;
-type _EventListener<T = Event> = ((event: T) => void);
-type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
+export type Nullsy = undefined | null;
+export type StringMap<T = any> = Record<string, T>;
+export type JSONValue = string | number | any[] | StringMap | null;
+export type ParentNodeType = HTMLElement | SVGSVGElement;
+export type NodeType = ParentNodeType | Text;
+export type _EventListener<T = Event> = ((event: T) => void);
+export type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
   & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
   & Record<"focus" | "blur" | "focusin" | "focusout", _EventListener<FocusEvent>>
   & Record<"keydown" | "keypress" | "keyup", _EventListener<KeyboardEvent>>
@@ -46,13 +45,13 @@ type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", 
   & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
   & Record<"change", _EventListener<Event>>
   & Record<string, _EventListener>>;
-type UndoPartial<T> = T extends Partial<infer R> ? R : T;
-type Diff<T> = {
+export type UndoPartial<T> = T extends Partial<infer R> ? R : T;
+export type Diff<T> = {
   key: string;
   oldValue: T;
   newValue: T;
 };
-function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
+export function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
   const diffMap: StringMap<Partial<Diff<T>>> = {};
   for (let [k, v] of Object.entries(oldValue)) {
     let d = diffMap[k] ?? {key: k};
@@ -66,7 +65,7 @@ function getDiff<T>(oldValue: StringMap<T>, newValue: StringMap<T>): Diff<T>[] {
   }
   return (Object.values(diffMap) as Diff<T>[]).filter(v => v.newValue !== v.oldValue);
 }
-function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] {
+export function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] {
   const diffMap: StringMap<Partial<Diff<string>>> = {};
   for (let k of oldValues) {
     let d = diffMap[k] ?? {key: k};
@@ -82,11 +81,11 @@ function getDiffArray(oldValues: string[], newValues: string[]): Diff<string>[] 
 }
 
 // NOTE: tsc is stupid and removes comments before types
-type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
-type ComponentOptions = {
+export type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
+export type ComponentOptions = {
   name?: string;
 };
-type BaseProps = {
+export type BaseProps = {
   key?: string | number;
   attribute?: StringMap<string | number | boolean>;
   cssVars?: StringMap<string | number | undefined>;
@@ -94,15 +93,15 @@ type BaseProps = {
   style?: StringMap<string | number | undefined>;
   events?: EventsMap;
 };
-type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
-type RenderReturn = void | {
+export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
+export type RenderReturn = void | {
   onMount?: () => void,
   onUnmount?: () => void,
 };
-type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
-type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
-type NavigateFunction = (url: string) => void;
-type UseNavigate = {
+export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
+export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
+export type NavigateFunction = (url: string) => void;
+export type UseNavigate = {
   /** add url to history and reload page */
   pushRoute: NavigateFunction;
   /** replace url in history and reload page */
@@ -112,9 +111,9 @@ type UseNavigate = {
   /** replace url in history */
   replaceHistory: NavigateFunction;
 };
-type UseWindowResize = { windowBottom: number, windowRight: number };
+export type UseWindowResize = { windowBottom: number, windowRight: number };
 // component
-function _setChildKey(component: Component, child: Component) {
+export function _setChildKey(component: Component, child: Component) {
   const name = child.name;
   let key = child.baseProps.key;
   if (key == null) {
@@ -126,7 +125,7 @@ function _setChildKey(component: Component, child: Component) {
   }
   child.key = key;
 }
-class Component {
+export class Component {
   // props
   name: string;
   args: any[];
@@ -234,7 +233,7 @@ class Component {
     if (!root_.willRerenderNextFrame) {
       root_.willRerenderNextFrame = true;
       requestAnimationFrame(() => {
-        const newRootComponent = _copyRootComponent(rootComponent);
+        const newRootComponent = _copyComponent(rootComponent);
         newRootComponent._ = root_;
         root_.gcFlag = newGcFlag;
         root_.component = newRootComponent;
@@ -253,7 +252,7 @@ class Component {
     console.log({ ...(component ?? {}), _: {...(component?._ ?? {})} });
   }
 }
-function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {
+export function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {
   return (...argsOrProps: any[]) => {
     const argCount = Math.max(0, onRender.length - 1);
     const args = new Array(argCount); // NOTE: allow default props
@@ -273,15 +272,15 @@ function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, o
     return new Component(onRender, args, baseProps, props, options);
   }
 }
-function _copyRootComponent(component: Component) {
+export function _copyComponent(component: Component) {
   const newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
   newComponent._ = component._;
   return newComponent;
 }
 
-type DispatchTargetAddListeners = (dispatch: () => void) => any;
+export type DispatchTargetAddListeners = (dispatch: () => void) => any;
 // dispatch
-class DispatchTarget {
+export class DispatchTarget {
   components: Component[];
   state: any;
   constructor(addListeners: DispatchTargetAddListeners = () => {}) {
@@ -301,7 +300,7 @@ class DispatchTarget {
     }
   }
 }
-class DispatchTargetMap {
+export class DispatchTargetMap {
   data: StringMap<DispatchTarget>;
   addListeners: (key: string) => DispatchTargetAddListeners;
   constructor(addListeners: (key: string) => DispatchTargetAddListeners) {
@@ -322,12 +321,12 @@ class DispatchTargetMap {
     }
   }
 }
-type AddDispatchTarget = {
+export type AddDispatchTarget = {
   map: StringMap<DispatchTarget>;
   key: string;
   addListeners: DispatchTargetAddListeners;
-}
-const _dispatchTargets = {
+};
+export const _dispatchTargets = {
   media: new DispatchTargetMap((key) => (dispatch) => {
     const mediaQueryList = window.matchMedia(key);
     mediaQueryList.addEventListener("change", dispatch);
@@ -357,15 +356,15 @@ const _dispatchTargets = {
     _dispatchTargets.windowResize.removeComponent(component);
   },
 }
-function _scrollToLocationHash() {
+export function _scrollToLocationHash() {
   const element = document.getElementById(location.hash.slice(1));
   if (element) element.scrollIntoView();
 }
 
 // metadata
-class ComponentMetadata {
+export class ComponentMetadata {
   // state
-  stateIsInitialized: boolean = false
+  stateIsInitialized: boolean = false;
   state: StringMap = {};
   prevState: any | null = null;
   prevNode: NodeType | null = null;
@@ -385,7 +384,7 @@ class ComponentMetadata {
     this.root = parent?.root ?? null as any;
   }
 }
-class RootComponentMetadata extends ComponentMetadata {
+export class RootComponentMetadata extends ComponentMetadata {
   component: Component;
   parentNode: ParentNodeType;
   willRerenderNextFrame: boolean = false;
@@ -398,7 +397,7 @@ class RootComponentMetadata extends ComponentMetadata {
 }
 
 // render
-function renderRoot(rootComponent: Component, parentNode: ParentNodeType | null = null): RootComponentMetadata {
+export function renderRoot(rootComponent: Component, parentNode: ParentNodeType | null = null): RootComponentMetadata {
   const root_ = new RootComponentMetadata(rootComponent, parentNode as any);
   rootComponent._ = root_;
   const render = () => {
@@ -416,14 +415,14 @@ function renderRoot(rootComponent: Component, parentNode: ParentNodeType | null 
   }
   return root_;
 }
-type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};
-const _START_BASE_PROPS: InheritedBaseProps = {
+export type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};
+export const _START_BASE_PROPS: InheritedBaseProps = {
   attribute: {},
   className: [],
   cssVars: {},
   style: {},
 };
-function _render(component: Component, parentNode: ParentNodeType, beforeNodeStack: (NodeType | null)[] = [], _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
+export function _render(component: Component, parentNode: ParentNodeType, beforeNodeStack: (NodeType | null)[] = [], _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
@@ -548,7 +547,7 @@ function _render(component: Component, parentNode: ParentNodeType, beforeNodeSta
 }
 
 // rerender
-function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) {
+export function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) {
   for (let child of prevComponent.children) {
     const {gcFlag, parent, onUnmount, prevNode} = child._;
     if (gcFlag !== rootGcFlag) {
@@ -560,17 +559,17 @@ function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: boolean) 
     _unloadUnusedComponents(child, rootGcFlag);
   }
 }
-function moveRoot(root_: RootComponentMetadata, parentNode: ParentNodeType) {
+export function moveRoot(root_: RootComponentMetadata, parentNode: ParentNodeType) {
   root_.parentNode = parentNode;
   if (root_.prevNode) parentNode.append(root_.prevNode);
 }
-function unloadRoot(root_: RootComponentMetadata) {
+export function unloadRoot(root_: RootComponentMetadata) {
   _unloadUnusedComponents(root_.component, !root_.gcFlag);
 }
 
 // basic components
-const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
-const text = makeComponent(function text(str: string, _props: {} = {}) {
+export const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
+export const text = makeComponent(function text(str: string, _props: {} = {}) {
   const state = this.useState({prevStr: ""});
   const e = this.useNode(new Text(""));
   if (str !== state.prevStr) {
@@ -578,69 +577,69 @@ const text = makeComponent(function text(str: string, _props: {} = {}) {
     (e as Text).textContent = str;
   }
 })
-const ul = makeComponent(function ul(_props: BaseProps = {}) {
+export const ul = makeComponent(function ul(_props: BaseProps = {}) {
   this.useNode(document.createElement("ul"));
 });
-const ol = makeComponent(function ol(_props: BaseProps = {}) {
+export const ol = makeComponent(function ol(_props: BaseProps = {}) {
   this.useNode(document.createElement("ol"));
 });
-const li = makeComponent(function li(text: string, _props: BaseProps = {}) {
+export const li = makeComponent(function li(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("li"));
   this.append(text);
 });
-const h1 = makeComponent(function h1(text: string, _props: BaseProps = {}) {
+export const h1 = makeComponent(function h1(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h1"));
   this.append(text);
 });
-const h2 = makeComponent(function h2(text: string, _props: BaseProps = {}) {
+export const h2 = makeComponent(function h2(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h2"));
   this.append(text);
 });
-const h3 = makeComponent(function h3(text: string, _props: BaseProps = {}) {
+export const h3 = makeComponent(function h3(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h3"));
   this.append(text);
 });
-const h4 = makeComponent(function h4(text: string, _props: BaseProps = {}) {
+export const h4 = makeComponent(function h4(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h4"));
   this.append(text);
 });
-const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
+export const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h5"));
   this.append(text);
 });
-const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
+export const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("h6"));
   this.append(text);
 });
-const divider = makeComponent(function divider(vertical: boolean = false, _props: BaseProps = {}) {
+export const divider = makeComponent(function divider(vertical: boolean = false, _props: BaseProps = {}) {
   this.append(div({
     attribute: {dataVertical: vertical},
   }));
 });
-const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
+export const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("p"));
   this.append(text);
 });
-const b = makeComponent(function b(text: string, _props: BaseProps = {}) {
+export const b = makeComponent(function b(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("b"));
   this.append(text);
 });
-const em = makeComponent(function em(text: string, _props: BaseProps = {}) {
+export const em = makeComponent(function em(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("em"));
   this.append(text);
 });
-const code = makeComponent(function code(text: string, _props: BaseProps = {}) {
+export const code = makeComponent(function code(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("code"));
   this.append(text);
 });
-const button = makeComponent(function button(text: string, _props: BaseProps = {}) {
+export const button = makeComponent(function button(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("button"));
   this.append(text);
 });
-const input = makeComponent(function input(_props: BaseProps = {}) {
+export const input = makeComponent(function input(_props: BaseProps = {}) {
   this.useNode(document.createElement("input"));
 });
-const svg = makeComponent(function svg(svgText: string, _props: BaseProps = {}) {
+export const svg = makeComponent(function svg(svgText: string, _props: BaseProps = {}) {
   let defaultNode = this._.prevNode;
   if (defaultNode == null) {
     const tmp = document.createElement("span");
@@ -649,19 +648,19 @@ const svg = makeComponent(function svg(svgText: string, _props: BaseProps = {}) 
   }
   this.useNode(defaultNode);
 });
-const div = makeComponent(function div(_props: BaseProps = {}) {
+export const div = makeComponent(function div(_props: BaseProps = {}) {
   this.useNode(document.createElement('div'));
 });
-type Size = "small" | "normal" | "big" | "bigger";
-const SIZES: Size[] = ["small", "normal", "big", "bigger"];
-type BaseColor = "gray" | "secondary" | "red";
-const BASE_COLORS: Record<BaseColor, string> = {
+export type Size = "small" | "normal" | "big" | "bigger";
+export const SIZES: Size[] = ["small", "normal", "big", "bigger"];
+export type BaseColor = "gray" | "secondary" | "red";
+export const BASE_COLORS: Record<BaseColor, string> = {
   gray: "0, 0, 0",
   secondary: "20, 80, 160",
   red: "200, 50, 50",
 };
-const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
-type SpanProps = BaseProps & {
+export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
+export type SpanProps = BaseProps & {
   iconName?: string;
   size?: Size;
   color?: string;
@@ -673,7 +672,7 @@ type SpanProps = BaseProps & {
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 };
-const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
+export const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
@@ -708,26 +707,26 @@ const span = makeComponent(function _span(text: string | number | null | undefin
   this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });
 // https://fonts.google.com/icons
-type IconProps = SpanProps;
-const icon = makeComponent(function icon(iconName: string, props: IconProps = {}) {
+export type IconProps = SpanProps;
+export const icon = makeComponent(function icon(iconName: string, props: IconProps = {}) {
   let {size, style = {}, ...extraProps} = props;
   this.baseProps.attribute.dataIcon = iconName;
   this.append(span("", {iconName, size, style, ...extraProps}));
 });
-const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
+export const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
   this.append(icon("progress_activity", props));
 });
-const legend = makeComponent(function legend(text: string, _props: BaseProps = {}) {
+export const legend = makeComponent(function legend(text: string, _props: BaseProps = {}) {
   this.useNode(document.createElement("legend"));
   this.append(text);
   this.baseProps.className.push("ellipsis");
 });
-type DialogProps = BaseProps & ({
+export type DialogProps = BaseProps & ({
   open: boolean;
   onClose?: () => void;
   closeOnClickBackdrop?: boolean;
 });
-const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
+export const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
   const {open, onClose, closeOnClickBackdrop} = props;
   const state = this.useState({ prevOpen: false });
   const e = this.useNode(document.createElement("dialog"));
@@ -747,10 +746,10 @@ const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
     },
   };
 });
-type PopupDirection = "up" | "right" | "down" | "left" | "mouse";
-let SCROLLBAR_WIDTH = 0;
-let THIN_SCROLLBAR_WIDTH = 0;
-function _computeScrollbarWidth() {
+export type PopupDirection = "up" | "right" | "down" | "left" | "mouse";
+export let SCROLLBAR_WIDTH = 0;
+export let THIN_SCROLLBAR_WIDTH = 0;
+export function _computeScrollbarWidth() {
   let e = document.createElement("div");
   e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
   document.body.append(e);
@@ -761,7 +760,7 @@ function _computeScrollbarWidth() {
   document.body.style.setProperty("--scrollbarWidth", addPx(SCROLLBAR_WIDTH));
   document.body.style.setProperty("--thinScrollbarWidth", addPx(THIN_SCROLLBAR_WIDTH));
 }
-function _getPopupLeftTop(direction: PopupDirection, props: {
+export function _getPopupLeftTop(direction: PopupDirection, props: {
   mouse: {x: number, y: number},
   wrapperRect: DOMRect,
   popupRect: DOMRect,
@@ -795,7 +794,7 @@ function _getPopupLeftTop(direction: PopupDirection, props: {
       ];
   }
 }
-function _getPopupLeftTopWithFlipAndClamp(props: {
+export function _getPopupLeftTopWithFlipAndClamp(props: {
   direction: PopupDirection,
   mouse: {x: number, y: number},
   windowRight: number;
@@ -843,7 +842,7 @@ function _getPopupLeftTopWithFlipAndClamp(props: {
   top = clamp(top, 0, maxTop);
   return [left, top] as [number, number];
 }
-type PopupWrapperProps = {
+export type PopupWrapperProps = {
   content: Component;
   direction?: PopupDirection;
   // TODO: arrow?: boolean;
@@ -851,7 +850,7 @@ type PopupWrapperProps = {
   open?: boolean;
   interactable?: boolean;
 };
-const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
+export const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(document.createElement("div"));
@@ -924,14 +923,14 @@ const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProp
   };
 });
 
-type ButtonProps = {
+export type ButtonProps = {
   size?: Size;
   color?: BaseColor;
   onClick?: () => void;
   disabled?: boolean;
 }
 // inputs
-const coloredButton = makeComponent(function coloredButton(text: string, props: ButtonProps = {}) {
+export const coloredButton = makeComponent(function coloredButton(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(document.createElement("button"));
   if (text) this.append(span(text));
@@ -945,7 +944,7 @@ const coloredButton = makeComponent(function coloredButton(text: string, props: 
     }
   }
 });
-type InputProps = {
+export type InputProps = {
   type?: "text";
   placeholder?: string;
   value: string | number | null | undefined;
@@ -958,7 +957,7 @@ type InputProps = {
   allowChar?: (char: string) => boolean;
   allowString?: (value: string, prevAllowedValue: string) => string;
 } & BaseProps;
-const controlledInput = makeComponent(function controlledInput(props: InputProps) {
+export const controlledInput = makeComponent(function controlledInput(props: InputProps) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
   const state = this.useState({ prevAllowedValue: String(value ?? '') });
   const e = this.useNode(document.createElement('input'));
@@ -995,13 +994,13 @@ const controlledInput = makeComponent(function controlledInput(props: InputProps
     }
   };
 });
-type LabeledInputProps = {
+export type LabeledInputProps = {
   label?: string;
   leftComponent?: Component;
   inputComponent: Component;
   rightComponent?: Component;
 } & BaseProps;
-const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
+export const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(document.createElement("fieldset"));
   fieldset.onmousedown = (_event: any) => {
@@ -1022,14 +1021,14 @@ const labeledInput = makeComponent(function labeledInput(props: LabeledInputProp
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent);
 });
-const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
+export const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
   this.append(span(error, {color: "red", size: "small", ...props}));
 });
-type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
+export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
   value: string | null | undefined;
 };
-const textInput = makeComponent(function textInput(props: TextInputProps) {
+export const textInput = makeComponent(function textInput(props: TextInputProps) {
   const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
     label,
@@ -1039,17 +1038,17 @@ const textInput = makeComponent(function textInput(props: TextInputProps) {
   }));
   if (error) this.append(errorMessage(error));
 });
-type NumberArrowProps = {
+export type NumberArrowProps = {
   onClickUp?: (event: MouseEvent) => void;
   onClickDown?: (event: MouseEvent) => void;
 } & BaseProps;
-const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
+export const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
   this.useNode(document.createElement("div"));
   this.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
   this.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
 });
-type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
+export type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
   min?: number,
   max?: number,
@@ -1059,7 +1058,7 @@ type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> &
   onInput?: ((newAllowedValue: string, event: InputEvent | undefined) => void);
   onChange?: ((newAllowedValue: string, event: KeyboardEvent | undefined) => void)
 };
-const numberInput = makeComponent(function numberInput(props: NumberInputProps) {
+export const numberInput = makeComponent(function numberInput(props: NumberInputProps) {
   const {
     label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
     value, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, ...extraProps // numberInput
@@ -1128,14 +1127,14 @@ const numberInput = makeComponent(function numberInput(props: NumberInputProps) 
 });
 
 // table
-type TableColumn = {
+export type TableColumn = {
   label: string;
   onRender: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
   minWidth?: string | number;
   maxWidth?: string | number;
   flex?: string | number;
 };
-type TableProps = {
+export type TableProps = {
   label?: string;
   columns: TableColumn[];
   rows: any[];
@@ -1143,7 +1142,7 @@ type TableProps = {
   minHeight?: number;
   useMaxHeight?: boolean;
 } & BaseProps;
-const table = makeComponent(function table(props: TableProps & BaseProps) {
+export const table = makeComponent(function table(props: TableProps & BaseProps) {
   // TODO: set minHeight to fit N rows
   // TODO: actions, filters, search, paging, selection
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
@@ -1181,7 +1180,7 @@ const table = makeComponent(function table(props: TableProps & BaseProps) {
 });
 
 // router
-type Route = {
+export type Route = {
   path: string;
   defaultPath?: string;
   component: (props?: BaseProps) => Component;
@@ -1191,8 +1190,8 @@ type Route = {
   label?: string;
   group?: string;
 };
-type FallbackRoute = Omit<Route, "path">;
-type RouterProps = {
+export type FallbackRoute = Omit<Route, "path">;
+export type RouterProps = {
   routes: Route[];
   pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
   contentWrapperComponent?: ComponentFunction<any>,
@@ -1202,12 +1201,12 @@ type RouterProps = {
   notFoundRoute?: FallbackRoute;
   unauthorizedRoute?: FallbackRoute;
 };
-type PageWrapperProps = {
+export type PageWrapperProps = {
   routes: Route[];
   currentRoute: Route;
   contentWrapperComponent: ComponentFunction<any>,
 };
-const router = makeComponent(function router(props: RouterProps) {
+export const router = makeComponent(function router(props: RouterProps) {
   const {
     routes,
     pageWrapperComponent = () => fragment(),
@@ -1274,3 +1273,4 @@ TODO: documentation
 // TODO: badgeWrapper
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
+// TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})

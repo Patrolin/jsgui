@@ -1,8 +1,13 @@
-const MAIN_PAGE_SECTIONS: MainPageSection[] = [
+import { code, div, JSGUI_VERSION, makeComponent, span } from '../../jsgui/jsgui.mts';
+import { BASIC_COMPONENT_SECTIONS } from '../components/basicComponents.mts';
+import { INPUT_SECTIONS } from '../components/inputs.mts';
+import {MainPageSection} from '../utils/utils.mts';
+
+export const MAIN_PAGE_SECTIONS: MainPageSection[] = [
   ...BASIC_COMPONENT_SECTIONS,
   ...INPUT_SECTIONS,
 ];
-const mainPage = makeComponent(function mainPage() {
+export const mainPage = makeComponent(function mainPage() {
   const wrapper = this.append(
     div({
       style: {display: "flex", flexDirection: "column", alignItems: "flex-start"},

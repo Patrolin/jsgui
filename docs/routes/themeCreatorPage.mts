@@ -1,4 +1,6 @@
-const themeCreatorPage = makeComponent(function themeCreatorPage() {
+import { BaseProps, div, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput } from "../../jsgui/jsgui.mts";
+
+export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
     color: '#1450a0',
     count: 7,
