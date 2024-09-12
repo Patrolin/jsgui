@@ -969,6 +969,8 @@ export const controlledInput = makeComponent(function controlledInput(props: Inp
   e.onfocus = onFocus as _EventListener;
   e.onblur = onBlur as _EventListener;
   e.onkeydown = onKeyDown as _EventListener;
+  // TODO: call onInput when raw text changes, call onChange when valid value changes
+  // TODO: combine allowChar, allowString and allowDisplayString into one call?
   e.oninput = (_event) => {
     const event = _event as InputEvent;
     if (allowChar && "data" in event) {
