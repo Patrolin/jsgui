@@ -1,6 +1,6 @@
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.10";
+export const JSGUI_VERSION = "v0.10-dev";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -970,6 +970,8 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   e.onfocus = onFocus/* as _EventListener*/;
   e.onblur = onBlur/* as _EventListener*/;
   e.onkeydown = onKeyDown/* as _EventListener*/;
+  // TODO: call onInput when raw text changes, call onChange when valid value changes
+  // TODO: combine allowChar, allowString and allowDisplayString into one call?
   e.oninput = (_event) => {
     const event = _event/* as InputEvent*/;
     if (allowChar && "data" in event) {
@@ -1276,6 +1278,19 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+/* notFoundPage.mts */
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
+});
+/* utils.mts */
+/*export type MainPageSection = {
+  label: string;
+  id: string;
+  component: ComponentFunction<[]>;
+};*/
+export function getSizeLabel(size/*: string*/) {
+  return size[0].toUpperCase() + size.slice(1);
+}
 /* themeCreatorPage.mts */
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
@@ -1385,103 +1400,6 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
   appendColorRow(color);
   appendColorRow("#000000");
 });
-/* utils.mts */
-/*export type MainPageSection = {
-  label: string;
-  id: string;
-  component: ComponentFunction<[]>;
-};*/
-export function getSizeLabel(size/*: string*/) {
-  return size[0].toUpperCase() + size.slice(1);
-}
-/* notFoundPage.mts */
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
-/* inputs.mts */
-const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({ username: "" });
-  // username
-  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
-  row.append(
-    textInput({
-      label: "Username",
-      value: state.username,
-      onInput: (newUsername/*: string*/) => {
-        state.username = newUsername;
-        this.rerender();
-      },
-      autoFocus: true,
-    })
-  );
-  row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  row.append(span(`state: ${JSON.stringify(state)}`));
-  // count
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-  row.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (newCount/*: string*/) => {
-        setCount(newCount === "" ? null : +newCount);
-        this.rerender();
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
-  row.append(span(`count: ${count}`));
-});
-const tableSection = makeComponent(function tableSection() {
-  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
-  const rows = Array(+(count ?? 0))
-    .fill(0)
-    .map((_, i) => i);
-  const displayRow = this.append(div({ className: "wideDisplayRow" }));
-  displayRow.append(
-    table({
-      label: "Stuff",
-      rows,
-      columns: [
-        {
-          label: "#",
-          onRender: (props) => span(props.rowIndex + 1),
-        },
-        {
-          label: "Name",
-          onRender: (props) => span(`foo ${props.row}`),
-        },
-        {
-          label: "Count",
-          onRender: (props) => span(props.row),
-        },
-      ],
-    })
-  );
-  if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
-  }
-});
-const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
-  this.append(span(""));
-});
-
-export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
-  {
-    label: "Text input",
-    id: "textInput",
-    component: textInputSection,
-  },
-  {
-    label: "Table",
-    id: "table",
-    component: tableSection,
-  },
-];
 /* basicComponents.mts */
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
@@ -1622,6 +1540,90 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
     component: mediaQuerySection,
   },
 ]
+/* inputs.mts */
+const textInputSection = makeComponent(function textInputSection() {
+  const state = this.useState({ username: "" });
+  // username
+  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
+  row.append(
+    textInput({
+      label: "Username",
+      value: state.username,
+      onInput: (newUsername/*: string*/) => {
+        state.username = newUsername;
+        this.rerender();
+      },
+      autoFocus: true,
+    })
+  );
+  row.append(span("This input is stored in the component state."));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
+  row.append(span(`state: ${JSON.stringify(state)}`));
+  // count
+  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
+  row.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (newCount/*: string*/) => {
+        setCount(newCount === "" ? null : +newCount);
+        this.rerender();
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  row.append(span("This input is stored in local storage (synced across tabs and components)."));
+  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
+  row.append(span(`count: ${count}`));
+});
+const tableSection = makeComponent(function tableSection() {
+  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
+  const rows = Array(+(count ?? 0))
+    .fill(0)
+    .map((_, i) => i);
+  const displayRow = this.append(div({ className: "wideDisplayRow" }));
+  displayRow.append(
+    table({
+      label: "Stuff",
+      rows,
+      columns: [
+        {
+          label: "#",
+          onRender: (props) => span(props.rowIndex + 1),
+        },
+        {
+          label: "Name",
+          onRender: (props) => span(`foo ${props.row}`),
+        },
+        {
+          label: "Count",
+          onRender: (props) => span(props.row),
+        },
+      ],
+    })
+  );
+  if ((count ?? 0) % 2 === 0) {
+    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
+  }
+});
+const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
+  this.append(span(""));
+});
+
+export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
+  {
+    label: "Text input",
+    id: "textInput",
+    component: textInputSection,
+  },
+  {
+    label: "Table",
+    id: "table",
+    component: tableSection,
+  },
+];
 /* mainPage.mts */
 export const MAIN_PAGE_SECTIONS/*: MainPageSection[]*/ = [
   ...BASIC_COMPONENT_SECTIONS,
