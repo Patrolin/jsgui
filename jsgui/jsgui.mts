@@ -1149,7 +1149,7 @@ export const numberInput = makeComponent(function numberInput(props: NumberInput
 // table
 export type TableColumn = {
   label: string;
-  onRender: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
+  render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
   minWidth?: string | number;
   maxWidth?: string | number;
   flex?: string | number;
@@ -1193,7 +1193,7 @@ export const table = makeComponent(function table(props: TableProps & BaseProps)
       for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
         let column = columns[columnIndex];
         const cellWrapper = rowWrapper.append(makeCell(column));
-        cellWrapper.append(column.onRender({row, rowIndex, column, columnIndex}));
+        cellWrapper.append(column.render({row, rowIndex, column, columnIndex}));
       }
     }
   }

@@ -1150,7 +1150,7 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
 // table
 /*export type TableColumn = {
   label: string;
-  onRender: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
+  render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
   minWidth?: string | number;
   maxWidth?: string | number;
   flex?: string | number;
@@ -1194,7 +1194,7 @@ export const table = makeComponent(function table(props/*: TableProps & BaseProp
       for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
         let column = columns[columnIndex];
         const cellWrapper = rowWrapper.append(makeCell(column));
-        cellWrapper.append(column.onRender({row, rowIndex, column, columnIndex}));
+        cellWrapper.append(column.render({row, rowIndex, column, columnIndex}));
       }
     }
   }
@@ -1662,15 +1662,15 @@ const tableSection = makeComponent(function tableSection() {
       columns: [
         {
           label: "#",
-          onRender: (props) => span(props.rowIndex + 1),
+          render: (props) => span(props.rowIndex + 1),
         },
         {
           label: "Name",
-          onRender: (props) => span(`foo ${props.row}`),
+          render: (props) => span(`foo ${props.row}`),
         },
         {
           label: "Count",
-          onRender: (props) => span(props.row),
+          render: (props) => span(props.row),
         },
       ],
     })

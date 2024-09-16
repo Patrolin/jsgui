@@ -66,15 +66,15 @@ const tableSection = makeComponent(function tableSection() {
       columns: [
         {
           label: "#",
-          onRender: (props) => span(props.rowIndex + 1),
+          render: (props) => span(props.rowIndex + 1),
         },
         {
           label: "Name",
-          onRender: (props) => span(`foo ${props.row}`),
+          render: (props) => span(`foo ${props.row}`),
         },
         {
           label: "Count",
-          onRender: (props) => span(props.row),
+          render: (props) => span(props.row),
         },
       ],
     })
