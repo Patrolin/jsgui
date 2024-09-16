@@ -1460,7 +1460,7 @@ setTimeout(() => {
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
   column.append(span("span"));
-  column.append(input());
+  column.append(input({attribute: {placeholder: "input"}}));
   const someButton = column.append(button("Button", {style: {fontSize: "14px"}}));
   someButton.append(svg(`
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
@@ -1505,8 +1505,8 @@ const iconSection = makeComponent(function spanSection() {
   // TODO: circle buttons
 });
 const dialogSection = makeComponent(function dialogSection() {
-  const row = this.append(div({ className: "displayRow" }));
-  const state = this.useState({ dialogOpen: false });
+  const row = this.append(div({className: "displayRow"}));
+  const state = this.useState({dialogOpen: false});
   const openDialog = () => {
     state.dialogOpen = true;
     this.rerender();
@@ -1515,14 +1515,14 @@ const dialogSection = makeComponent(function dialogSection() {
     state.dialogOpen = false;
     this.rerender();
   };
-  row.append(coloredButton("Open dialog", { color: "secondary", onClick: openDialog }));
-  const dialogWrapper = row.append(dialog({ open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true }));
+  row.append(coloredButton("Open dialog", {color: "secondary", onClick: openDialog}));
+  const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
   dialogWrapper.append(span("Hello world"));
 });
 const popupSection = makeComponent(function popupSection() {
   for (let direction of ["up", "right", "down", "left", "mouse"]/* as PopupDirection[]*/) {
     const popupProps = {direction, interactable: direction !== "mouse"};
-    const row = this.append(div({ className: "wideDisplayRow" }));
+    const row = this.append(div({className: "wideDisplayRow"}));
     const popupA = row.append(popupWrapper({
       content: span("Tiny"),
       ...popupProps,
@@ -1534,8 +1534,8 @@ const popupSection = makeComponent(function popupSection() {
     }));
     popupB.append(span(`direction: "${direction}"`));
   }
-  const state = this.useState({ buttonPopupOpen: false });
-  const row = this.append(div({ className: "wideDisplayRow" }));
+  const state = this.useState({buttonPopupOpen: false});
+  const row = this.append(div({className: "wideDisplayRow"}));
   const popup = row.append(popupWrapper({
     content: span("Tiny"),
     direction: "down",
@@ -1549,11 +1549,11 @@ const popupSection = makeComponent(function popupSection() {
   }));
 });
 const mediaQuerySection = makeComponent(function mediaQuerySection() {
-  const smOrBigger = this.useMedia({ minWidth: 600 });
-  const mdOrBigger = this.useMedia({ minWidth: 900 });
-  const lgOrBigger = this.useMedia({ minWidth: 1200 });
-  const xlOrBigger = this.useMedia({ minWidth: 1500 });
-  const column = this.append(div({ className: "displayColumn" }));
+  const smOrBigger = this.useMedia({minWidth: 600});
+  const mdOrBigger = this.useMedia({minWidth: 900});
+  const lgOrBigger = this.useMedia({minWidth: 1200});
+  const xlOrBigger = this.useMedia({minWidth: 1500});
+  const column = this.append(div({className: "displayColumn"}));
   column.append(span(`smOrBigger: ${smOrBigger}`));
   column.append(span(`mdOrBigger: ${mdOrBigger}`));
   column.append(span(`lgOrBigger: ${lgOrBigger}`));
@@ -1598,7 +1598,7 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
 ]
 /* inputs.mts */
 const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({ username: "" });
+  const state = this.useState({username: ""});
   // username
   let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
   row.append(
@@ -1636,11 +1636,25 @@ const textInputSection = makeComponent(function textInputSection() {
   row.append(span(`count: ${count}`));
 });
 const tableSection = makeComponent(function tableSection() {
-  const [count] = this.useLocalStorage("count", 0/* as number | null*/);
-  const rows = Array(Math.min(+(count ?? 0), 100))
+  const displayRow = this.append(div({className: "wideDisplayColumn"}));
+  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
+  displayRow.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (event) => {
+        const newCount = event.target.value;
+        setCount(newCount === "" ? null : +newCount);
+        this.rerender();
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  ;
+  const rows = Array(clamp(+(count ?? 0), 0, 100))
     .fill(0)
     .map((_, i) => i);
-  const displayRow = this.append(div({ className: "wideDisplayRow" }));
   displayRow.append(
     table({
       label: "Stuff",
@@ -1662,7 +1676,7 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
+    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
   }
 });
 const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {

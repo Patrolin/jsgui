@@ -1,8 +1,8 @@
-import {BaseProps, div, makeComponent, numberInput, span, table, textInput} from '../../jsgui/jsgui.mts';
+import {BaseProps, clamp, div, makeComponent, numberInput, span, table, textInput} from '../../jsgui/jsgui.mts';
 import {MainPageSection} from '../utils/utils.mts';
 
 const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({ username: "" });
+  const state = this.useState({username: ""});
   // username
   let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
   row.append(
@@ -40,11 +40,25 @@ const textInputSection = makeComponent(function textInputSection() {
   row.append(span(`count: ${count}`));
 });
 const tableSection = makeComponent(function tableSection() {
-  const [count] = this.useLocalStorage("count", 0 as number | null);
-  const rows = Array(Math.min(+(count ?? 0), 100))
+  const displayRow = this.append(div({className: "wideDisplayColumn"}));
+  const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
+  displayRow.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (event) => {
+        const newCount = event.target.value;
+        setCount(newCount === "" ? null : +newCount);
+        this.rerender();
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  ;
+  const rows = Array(clamp(+(count ?? 0), 0, 100))
     .fill(0)
     .map((_, i) => i);
-  const displayRow = this.append(div({ className: "wideDisplayRow" }));
   displayRow.append(
     table({
       label: "Stuff",
@@ -66,7 +80,7 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({ key: "testKeysComponent" }));
+    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
   }
 });
 const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps) {
