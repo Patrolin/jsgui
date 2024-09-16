@@ -54,7 +54,7 @@ class TaskStatus(Enum):
 @dataclass
 class Task:
   task_type: TaskType
-  src: str
+  src: list[str]
   dest: str
   done: bool = False
 
@@ -62,9 +62,9 @@ if __name__ == '__main__':
   makedir("jsgui/out", True)
   makedir("docs/out", True)
   tasks = [
-    Task(TaskType.Copy, "jsgui/jsgui.css", "jsgui/out"),
-    Task(TaskType.MtsCompile, "jsgui", "jsgui/out"),
-    Task(TaskType.MtsCompile, "docs", "docs/out"),
+    Task(TaskType.Copy, ["jsgui/jsgui.css"], "jsgui/out"),
+    Task(TaskType.MtsCompile, ["jsgui"], "jsgui/out"),
+    Task(TaskType.MtsCompile, ["docs", "jsgui"], "docs/out"), # TODO: only build docs?
     #Task(TaskType.MtsCompile, "docs", "docs/out"),
     #Task(TaskType.MjsCompile, "jsgui/out/jsgui.js", "jsgui/out/jsgui.mjs")
   ]
@@ -84,30 +84,34 @@ if __name__ == '__main__':
       # check if files changed
       for task in tasks:
         if task.task_type.value == TaskType.Copy.value:
-          mtime = getmtime(task.src)
-          task.done = (task.src in mtimes) and mtime == mtimes[task.src]
-          mtimes[task.src] = mtime
+          for src in task.src:
+            mtime = getmtime(src)
+            task.done = (src in mtimes) and mtime == mtimes[src]
+            mtimes[src] = mtime
         elif task.task_type.value == TaskType.MtsCompile.value:
           need_recompile = False
-          for file_name, file_path in walk(task.src, "out"):
-            mtime = getmtime(file_path)
-            if (file_path not in mtimes) or mtime != mtimes[file_path]:
-              need_recompile = True
-              mtimes[file_path] = mtime
-              print_state()
+          for src in task.src:
+            for file_name, file_path in walk(src, "out"):
+              mtime = getmtime(file_path)
+              if (file_path not in mtimes) or mtime != mtimes[file_path]:
+                need_recompile = True
+                mtimes[file_path] = mtime # TODO: don't overwrite docs builds in jsgui build
+                print_state()
           task.done = not need_recompile
       print_state()
       # do the task
       for task in tasks:
         if task.done: continue
         if task.task_type.value == TaskType.Copy.value:
-          print(f"{task.src} -> {task.dest}/{splitFilePath(task.src)[1]}.js")
-          copy(task.src, task.dest)
+          for src in task.src:
+            print(f"{src} -> {task.dest}/{splitFilePath(src)[1]}.js")
+            copy(src, task.dest)
         elif task.task_type.value == TaskType.MtsCompile.value:
           # add initial files
           code_files_to_link: set[str] = set()
-          for file_name, file_path in walk(task.src, "out"):
-            code_files_to_link.add(file_path)
+          for src in task.src:
+            for file_name, file_path in walk(src, "out"):
+              code_files_to_link.add(file_path)
           # read and link files
           try:
             read_code_files: dict[str, CodeFile] = {}
@@ -165,11 +169,11 @@ if __name__ == '__main__':
             # transpile typescript to javascript
             accJs = tsCompile(accTs)
             # write files
-            print(f"{task.src}/**.mts -> {task.dest}/{task.src}.mts {len(accJs)}")
-            with open(f"{task.dest}/{task.src}.mts", "w+") as f:
+            print(f"{task.src}/**.mts -> {task.dest}/{task.src[0]}.mts {len(accJs)}")
+            with open(f"{task.dest}/{task.src[0]}.mts", "w+") as f:
               f.write(accTs)
-            print(f"{task.src}/**.mts -> {task.dest}/{task.src}.mjs {len(accJs)}")
-            with open(f"{task.dest}/{task.src}.mjs", "w+") as f:
+            print(f"{task.src}/**.mts -> {task.dest}/{task.src[0]}.mjs {len(accJs)}")
+            with open(f"{task.dest}/{task.src[0]}.mjs", "w+") as f:
               f.write(accJs)
         task.done = True
         print_state()

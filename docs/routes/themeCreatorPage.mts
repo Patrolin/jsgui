@@ -7,11 +7,11 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   });
   this.append(textInput({
     value: state.color,
-    allowString: (value, prevAllowedValue) => {
-      return value.match("#[0-9a-zA-Z]{6}") ? value : prevAllowedValue;
+    allowString: (value) => {
+      if (value.match("#[0-9a-zA-Z]{6}")) return value;
     },
-    onChange: (newValue) => {
-      state.color = newValue;
+    onInput: (event) => {
+      state.color = event.target.value;
       this.rerender();
     },
     label: 'Color',
@@ -19,8 +19,8 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   this.append(numberInput({
     value: state.count,
     min: 0,
-    onChange: (newValue) => {
-      state.count = +newValue;
+    onInput: (event) => {
+      state.count = +event.target.value;
       this.rerender();
     },
     label: 'Count',

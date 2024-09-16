@@ -35,15 +35,18 @@ export type StringMap<T = any> = Record<string, T>;
 export type JSONValue = string | number | any[] | StringMap | null;
 export type ParentNodeType = HTMLElement | SVGSVGElement;
 export type NodeType = ParentNodeType | Text;
+export type EventWithTarget<T = Event, E = HTMLInputElement> = T & {target: E};
+export type InputEventWithTarget = EventWithTarget<InputEvent>;
+export type ChangeEventWithTarget = EventWithTarget<Event>;
 export type _EventListener<T = Event> = ((event: T) => void);
 export type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
   & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
   & Record<"focus" | "blur" | "focusin" | "focusout", _EventListener<FocusEvent>>
   & Record<"keydown" | "keypress" | "keyup", _EventListener<KeyboardEvent>>
   & Record<"scroll", _EventListener<WheelEvent>>
-  & Record<"beforeinput" | "input", _EventListener<InputEvent>>
+  & Record<"beforeinput" | "input", _EventListener<InputEventWithTarget>>
   & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
-  & Record<"change", _EventListener<Event>>
+  & Record<"change", _EventListener<ChangeEventWithTarget>>
   & Record<string, _EventListener>>;
 export type UndoPartial<T> = T extends Partial<infer R> ? R : T;
 export type Diff<T> = {
@@ -953,14 +956,19 @@ export type InputProps = {
   onFocus?: (event: FocusEvent) => void;
   onBlur?: (event: FocusEvent) => void;
   onKeyDown?: (event: KeyboardEvent) => void;
-  onInput?: (newAllowedValue: string, event: InputEvent) => void;
-  onChange?: (newAllowedValue: string, event: Event) => void;
-  allowChar?: (char: string) => boolean;
-  allowString?: (value: string, prevAllowedValue: string) => string;
+  onRawInput?: (event: InputEventWithTarget) => void;
+  onInput?: (event: InputEventWithTarget) => void;
+  onChange?: (event: ChangeEventWithTarget) => void;
+  allowDisplayString?: (value: string) => boolean;
+  allowString?: (value: string) => string | undefined;
 } & BaseProps;
 export const controlledInput = makeComponent(function controlledInput(props: InputProps) {
-  const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onInput, onChange, allowChar, allowString = (value: string, _prevAllowedValue: string) => value } = props;
-  const state = this.useState({ prevAllowedValue: String(value ?? '') });
+  const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onRawInput, onInput, onChange,
+    allowDisplayString = () => true,
+    allowString = (value) => value,
+  } = props;
+  const state = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
+  state.prevAllowedString = String(value ?? '');
   const e = this.useNode(document.createElement('input'));
   e.type = type;
   if (placeholder) e.placeholder = placeholder;
@@ -969,32 +977,30 @@ export const controlledInput = makeComponent(function controlledInput(props: Inp
   e.onfocus = onFocus as _EventListener;
   e.onblur = onBlur as _EventListener;
   e.onkeydown = onKeyDown as _EventListener;
-  // TODO: call onInput when raw text changes, call onChange when valid value changes
-  // TODO: combine allowChar, allowString and allowDisplayString into one call?
   e.oninput = (_event) => {
-    const event = _event as InputEvent;
-    if (allowChar && "data" in event) {
-      if ((event.data !== null) && !allowChar(event.data)) {
-        event.preventDefault();
-        event.stopPropagation();
-        e.value = state.prevAllowedValue;
-        return;
-      }
+    const event = _event as InputEventWithTarget;
+    if (event.data != null && !allowDisplayString(e.value)) {
+      event.preventDefault();
+      event.stopPropagation();
+      e.value = state.prevAllowedDisplayString;
+      return;
     }
-    const allowedValue = allowString(e.value, state.prevAllowedValue);
-    state.prevAllowedValue = allowedValue;
-    if (allowedValue === e.value) {
-      if (onInput) onInput(allowedValue, event);
-    }
+    state.prevAllowedDisplayString = e.value;
+    if (onRawInput) onRawInput(event);
+    const allowedString = allowString(e.value);
+    if (allowedString === e.value && onInput) onInput(event);
   }
-  e.onchange = (event) => {
-    const allowedValue = allowString(e.value, state.prevAllowedValue);
-    state.prevAllowedValue = allowedValue;
-    if (e.value === allowedValue) {
-      if (onChange) onChange(e.value, event);
-    } else {
-      e.value = allowedValue;
+  e.onchange = (_event) => { // NOTE: called only on blur
+    const event = _event as ChangeEventWithTarget;
+    const allowedString = allowString(e.value) ?? state.prevAllowedString;
+    state.prevAllowedString = allowedString;
+    if (e.value !== allowedString) {
+      e.value = allowedString;
+      const target = event.target;
+      if (onRawInput) onRawInput({target} as InputEventWithTarget);
+      if (onInput) onInput({target} as InputEventWithTarget);
     }
+    if (onChange) onChange(event);
   };
 });
 export type LabeledInputProps = {
@@ -1058,13 +1064,14 @@ export type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputCompon
   step?: number,
   stepPrecision?: number,
   clearable?: boolean,
-  onInput?: ((newAllowedValue: string, event: InputEvent | undefined) => void);
-  onChange?: ((newAllowedValue: string, event: KeyboardEvent | undefined) => void)
+  onRawInput?: ((event: InputEventWithTarget) => void);
+  onInput?: ((event: InputEventWithTarget) => void);
+  onChange?: ((event: ChangeEventWithTarget) => void)
 };
 export const numberInput = makeComponent(function numberInput(props: NumberInputProps) {
   const {
     label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
-    value, min, max, step, stepPrecision, clearable = true, onKeyDown, onInput, onChange, ...extraProps // numberInput
+    value, min, max, step, stepPrecision, clearable = true, onKeyDown, onRawInput, onInput, onChange, ...extraProps // numberInput
   } = props;
   const stepAndClamp = (number: number) => {
     if (step) {
@@ -1073,14 +1080,17 @@ export const numberInput = makeComponent(function numberInput(props: NumberInput
     }
     number = Math.min(number, max ?? 1/0);
     number = Math.max(min ?? -1/0, number);
-    const defaultStepPrecision = step ? String(step).split(".")[1].length : 0;
+    const defaultStepPrecision = String(step).split(".")[1]?.length ?? 0;
     return number.toFixed(stepPrecision ?? defaultStepPrecision);
   };
   const incrementValue = (by: number) => {
     const number = stepAndClamp(+(value ?? 0) + by);
     const newValue = String(number);
-    if (onInput) onInput(newValue, undefined);
-    if (onChange) onChange(newValue, undefined);
+    const target = inputComponent._.prevNode as HTMLInputElement;
+    target.value = newValue;
+    if (onRawInput) onRawInput({target} as unknown as InputEventWithTarget);
+    if (onInput) onInput({target} as unknown as InputEventWithTarget);
+    if (onChange) onChange({target} as ChangeEventWithTarget);
   };
   const inputComponent = controlledInput({
     value,
@@ -1088,23 +1098,30 @@ export const numberInput = makeComponent(function numberInput(props: NumberInput
       switch (event.key) {
         case "ArrowUp":
           incrementValue(step ?? 1);
+          event.preventDefault();
           break;
         case "ArrowDown":
           incrementValue(-(step ?? 1));
+          event.preventDefault();
           break;
       }
       if (onKeyDown) onKeyDown(event);
     },
+    onRawInput,
     onInput,
     onChange,
     ...extraProps,
-    allowChar: (c) => "-0123456789".includes(c),
-    allowString: (value, prevAllowedValue) => {
-      if (value === "") return clearable ? "" : prevAllowedValue;
-      let number = +value;
-      if (isNaN(number)) return prevAllowedValue;
-      return String(stepAndClamp(number));
-    },
+    allowDisplayString: (value) => value.split("").every((c, i) => {
+      if (c === "-" && i === 0) return true;
+      if (c === "." && ((step ?? 1) % 1) !== 0) return true;
+      return "0123456789".includes(c);
+    }),
+    allowString: (value) => {
+      const isAllowed = (value === "") ? clearable : !isNaN(+value);
+      if (isAllowed) {
+        return String(stepAndClamp(+value));
+      }
+    }
   });
   const rightComponent = fragment();
   if (customRightComponent) rightComponent.append(customRightComponent);

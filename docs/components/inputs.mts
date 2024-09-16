@@ -9,8 +9,8 @@ const textInputSection = makeComponent(function textInputSection() {
     textInput({
       label: "Username",
       value: state.username,
-      onInput: (newUsername: string) => {
-        state.username = newUsername;
+      onInput: (event) => {
+        state.username = event.target.value;
         this.rerender();
       },
       autoFocus: true,
@@ -26,7 +26,8 @@ const textInputSection = makeComponent(function textInputSection() {
     numberInput({
       label: "Count",
       value: count,
-      onInput: (newCount: string) => {
+      onInput: (event) => {
+        const newCount = event.target.value;
         setCount(newCount === "" ? null : +newCount);
         this.rerender();
       },
@@ -40,7 +41,7 @@ const textInputSection = makeComponent(function textInputSection() {
 });
 const tableSection = makeComponent(function tableSection() {
   const [count] = this.useLocalStorage("count", 0 as number | null);
-  const rows = Array(+(count ?? 0))
+  const rows = Array(Math.min(+(count ?? 0), 100))
     .fill(0)
     .map((_, i) => i);
   const displayRow = this.append(div({ className: "wideDisplayRow" }));
