@@ -1282,15 +1282,6 @@ TODO: documentation
 export const notFoundPage = makeComponent(function notFoundPage() {
   this.append(span("Page not found"));
 });
-/* utils.mts */
-/*export type MainPageSection = {
-  label: string;
-  id: string;
-  component: ComponentFunction<[]>;
-};*/
-export function getSizeLabel(size/*: string*/) {
-  return size[0].toUpperCase() + size.slice(1);
-}
 /* themeCreatorPage.mts */
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({
@@ -1400,6 +1391,15 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
   appendColorRow(color);
   appendColorRow("#000000");
 });
+/* utils.mts */
+/*export type MainPageSection = {
+  label: string;
+  id: string;
+  component: ComponentFunction<[]>;
+};*/
+export function getSizeLabel(size/*: string*/) {
+  return size[0].toUpperCase() + size.slice(1);
+}
 /* basicComponents.mts */
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "displayColumn", style: {gap: 4}}));

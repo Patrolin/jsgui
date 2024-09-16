@@ -115,7 +115,7 @@ if __name__ == '__main__':
             accTs = ""
             while len(code_files_to_link) > 0:
               made_progress = False
-              for file_path in set(code_files_to_link): # TODO: sort files for consistent build
+              for file_path in sorted(code_files_to_link):
                 # read file if necessary
                 if file_path not in read_code_files:
                   made_progress = True
