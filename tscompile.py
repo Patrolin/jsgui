@@ -52,12 +52,14 @@ def replaceColon(accTs: str, matchStart: int, matchEnd: int, isFunctionReturn: b
       i = findBracketEnd(accTs, ',=;', i+2)
     #print('ayaya.1', repr(accTs[i:i+8]), repr(accTs[search_start:i]))
     spaceOrNothing = " " if accTs[i-1] == " " else ""
-    replaceWith += f"/*: {accTs[search_start:i].strip()}*/{spaceOrNothing}"
+    typeChars = "?:" if accTs[search_start] == "?" else ":"
+    replaceWith += f"/*{typeChars} {accTs[search_start:i].strip()}*/{spaceOrNothing}"
     search_start = i
     nextColon = findBracketEnd(accTs, ':', search_start)
+    if accTs[nextColon-1] == "?": nextColon -= 1
     nextBracket = findBracketEnd(accTs, ')', search_start)
     nextSemicolon = findBracketEnd(accTs, ';', search_start)
-    if nextColon >= nextBracket or nextColon >= nextSemicolon or isFunctionReturn:
+    if (nextColon >= nextBracket) or (nextColon >= nextSemicolon) or isFunctionReturn:
       break
     replaceWith += accTs[i:nextColon]
     #print('ayaya.2', repr(accTs[nextColon:nextColon+12]))
@@ -108,7 +110,7 @@ def ignoreSingleLineComment(accTs: str, matchStart: int, matchEnd: int) -> tuple
   return f"//{accTs[start:i]}", i
 def ignoreMultiLineComment(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, int]:
   start = matchEnd
-  i = indexOrEnd(accTs, '*/', start)
+  i = indexOrEnd(accTs, '*/', start) + 2
   return f"/*{accTs[start:i]}", i
 def ignoreString(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, int]:
   return accTs[matchStart:matchEnd], matchEnd
@@ -116,33 +118,33 @@ def ignoreString(accTs: str, matchStart: int, matchEnd: int) -> tuple[str, int]:
 Replacer = Callable[[str, int, int], tuple[str, int]]
 def tsCompile(accTs: str) -> str:
   # transpile typescript to javascript
-  replacers: list[tuple[str, Replacer]] = [
-    (r"//", ignoreSingleLineComment),
-    (r"/\*", ignoreMultiLineComment),
-    (r"`[^`]*`", ignoreString),
-    (r'"[^"]*"', ignoreString),
-    (r"'[^']*'", ignoreString),
-    (r"/[^/]/", ignoreString),
-    (r"^\s*(?:export )?type ", replaceTypeStatement),
-    (r" as ", replaceValue),
-    (r"^\s*(?:export )?(?:var|let|const) [^:={]+:", replaceColon), # variable declarations
-    (r"\([^`\"'/?{:\)]+:", replaceColon), # function declarations
-    (r"^\s*(?:export )?class ", replaceClassColon), # class declarations
-    (r"\):", lambda *args: replaceColon(*args, isFunctionReturn = True)),
-    (r"()<[A-Za-z0-9$_ \[\]<>]+>", replaceGeneric),
+  replacers: list[tuple[str, Replacer, str]] = [
+    (r"//", ignoreSingleLineComment, "singleline"),
+    (r"/\*", ignoreMultiLineComment, "multiline"),
+    (r"`[^`]*`", ignoreString, "backstring"),
+    (r'"[^"]*"', ignoreString, "string"),
+    (r"'[^']*'", ignoreString, "quotestring"),
+    (r"/(?:\\/|[^/])*/", ignoreString, "regex"),
+    (r"^\s*(?:export )?type ", replaceTypeStatement, "type_statement"),
+    (r" as ", replaceValue, "as_operator"),
+    (r"^\s*(?:export )?(?:var|let|const) [^:={]+:", replaceColon, "var_decl"),
+    (r"\([^`\"'/?{:\)]+:", replaceColon, "function_decl"),
+    (r"^\s*(?:export )?class ", replaceClassColon, "class_decl"),
+    (r"\):", lambda *args: replaceColon(*args, isFunctionReturn = True), "function_return_type"),
+    (r"<[A-Za-z0-9$_ \[\]<>]+>", replaceGeneric, "generic"),
   ]
   searchStart = 0
   while True:
     tsSlice = accTs[searchStart:]
-    matches = [(re.search(regex, tsSlice, re.MULTILINE), replacer) for regex, replacer in replacers]
+    matches = [(re.search(regex, tsSlice, re.MULTILINE), replacer, name) for regex, replacer, name in replacers]
     first_match = min(matches, key = lambda v: v[0].start(0) if v[0] else len(accTs))
-    match, replacer = first_match
+    match, replacer, match_name = first_match
     if match == None: break
     replaceWith, end = replacer(tsSlice, match.start(0), match.end(0))
     replaceStart = searchStart + match.start(0)
+    #print(f"{match_name}:\n  {repr(accTs[replaceStart:searchStart + end])}\n  {repr(replaceWith)}")
     accTs = accTs[:replaceStart] + replaceWith + accTs[searchStart + end:]
     searchStart = replaceStart + len(replaceWith)
-    #print(f"{match}   ->   {repr(replaceWith)}")
   return accTs # returns accJs
 
 if __name__ == '__main__':
@@ -184,3 +186,36 @@ const foo = 13;""")
   function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction<A>*/, options/*: ComponentOptions*/= {})/*: ComponentFunction<A>*/ {}
   /*type _EventListener<T = Event> = ((event: T) => void);*/
   """)
+  expectEquals("classBug", tsCompile(r"""
+  export class CountryDate {
+    countryIsoString: string;
+    country: string;
+    constructor(countryIsoString: string, country: string = "GMT") {
+      this.countryIsoString = countryIsoString;
+      this.country = country;
+    }
+    /** https://en.wikipedia.org/wiki/List_of_tz_database_time_zones - e.g. "Europe/Prague" */
+    static fromIsoString(isoString: string, country: string = "GMT"): CountryDate {
+      const match = isoString.match(/^(\d+)-(\d+)-(\d+)(?:T(\d+):(\d+):(\d+)(?:\.(\d+))?)?(?:([\-+\d]+):(\d+))?/);
+    }
+  }""".strip()), r"""
+  export class CountryDate {
+    countryIsoString/*: string*/;
+    country/*: string*/;
+    constructor(countryIsoString/*: string*/, country/*: string*/ = "GMT") {
+      this.countryIsoString = countryIsoString;
+      this.country = country;
+    }
+    /** https://en.wikipedia.org/wiki/List_of_tz_database_time_zones - e.g. "Europe/Prague" */
+    static fromIsoString(isoString/*: string*/, country/*: string*/ = "GMT")/*: CountryDate*/ {
+      const match = isoString.match(/^(\d+)-(\d+)-(\d+)(?:T(\d+):(\d+):(\d+)(?:\.(\d+))?)?(?:([\-+\d]+):(\d+))?/);
+    }
+  }""".strip())
+  expectEquals("stringBug", tsCompile(r"""
+    `hello world`;
+    const incrementValue = (by: number) => {};
+  """.strip()), r"""
+    `hello world`;
+    const incrementValue = (by/*: number*/) => {};
+  """.strip())
+# TODO: make a proper compiler, since this fails on division
