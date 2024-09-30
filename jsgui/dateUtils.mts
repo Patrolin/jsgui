@@ -1,3 +1,4 @@
+/* TODO
 export type DateParts = {
   year?: number;
   month?: number;
@@ -37,6 +38,7 @@ export class CountryDate {
     this.country = country;
   }
   /** https://en.wikipedia.org/wiki/List_of_tz_database_time_zones - e.g. "Europe/Prague" */
+/* TODO
   static fromIsoString(isoString: string, country: string = "GMT"): CountryDate {
     const match = isoString.match(/^(\d+)-(\d+)-(\d+)(?:T(\d+):(\d+):(\d+)(?:\.(\d+))?)?(?:([\-+\d]+):(\d+))?/);
     if (match === null) throw new Error(`Invalid isoString: '${isoString}'`);
@@ -82,6 +84,7 @@ export class CountryDate {
     return new CountryDate(date.toISOString(), country ?? this.country);
   }
   /** https://www.unicode.org/cldr/charts/45/supplemental/language_territory_information.html - e.g. "cs-CZ" */
+/* TODO
   toLocaleString(format: string, options: Omit<Intl.DateTimeFormatOptions, "timeZone"> = {}): string {
     return this._toCountryUTCDate().toLocaleString(format, {...options, timeZone: "GMT"});
   }
@@ -92,3 +95,4 @@ export class CountryDate {
 setTimeout(() => {
   console.log("ayaya.dateUtil", CountryDate.fromIsoString("2022-03-01T00:00:00Z"))
 })
+*/

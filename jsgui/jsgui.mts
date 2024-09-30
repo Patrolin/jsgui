@@ -1,5 +1,5 @@
 // utils
-export const JSGUI_VERSION = "v0.10-dev";
+export const JSGUI_VERSION = "v0.11";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -163,6 +163,9 @@ export class Component {
   }
   useNode<T extends NodeType>(defaultNode: T): T {
     return (this.node = (this._?.prevNode ?? defaultNode)) as T;
+  }
+  getNode(): NodeType | null {
+    return this._.prevNode;
   }
   append(childOrString: string | Component): Component {
     const child = (childOrString instanceof Component) ? childOrString : text(childOrString);
