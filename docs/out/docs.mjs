@@ -1597,7 +1597,7 @@ const anchorSection = makeComponent(function anchorSection() {
   }
   for (let href of ["assets/test_image.bmp"]) {
     let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
-    row.append(span("download", {size: "small", href, download: "test_image.bmp", onClick() {console.log('ayaya')}}));
+    row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
   }
 });
 const buttonSection = makeComponent(function buttonSection() {
