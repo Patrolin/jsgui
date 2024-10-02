@@ -1,5 +1,5 @@
 // utils
-export const JSGUI_VERSION = "v0.11";
+export const JSGUI_VERSION = "v0.12";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -674,13 +674,14 @@ export type SpanProps = BaseProps & {
   singleLine?: string;
   fontFamily?: string;
   href?: string;
+  download?: string;
   navigate?: NavigateFunction;
   id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 };
 export const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, navigate, id, selfLink, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, download, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
@@ -689,8 +690,9 @@ export const span = makeComponent(function _span(text: string | number | null | 
   }
   const isLink = (href != null);
   const e = this.useNode(document.createElement(isLink ? 'a' : 'span'));
-  const {attribute, className, style} = this.baseProps;
+  const {attribute, className, style, events} = this.baseProps;
   if (id) attribute.id = id;
+  if (download) attribute.download = download;
   if (size) attribute.dataSize = size;
   if (iconName) className.push("material-symbols-outlined");
   if (color) style.color = `var(--${color})`; // TODO: remove style?
@@ -703,13 +705,13 @@ export const span = makeComponent(function _span(text: string | number | null | 
       attribute.tabindex = "-1";
       attribute.clickable = "true";
     }
-    e.onclick = (event) => {
+    events.click = events.click ?? ((event: MouseEvent) => {
       if (onClick) onClick(event);
-      if (href) {
+      if (href && !download) {
         event.preventDefault();
         navigate(href);
       }
-    }
+    });
   }
   this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });

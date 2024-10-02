@@ -12,7 +12,7 @@ const htmlSection = makeComponent(function htmlSection() {
     </svg>`, {style: {width: "1em", height: "1em"}}));
 });
 const spanSection = makeComponent(function spanSection() {
-  for (let href of [undefined, "https://www.google.com"]) {
+  for (let href of [undefined]) {
     let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
@@ -27,6 +27,19 @@ const spanSection = makeComponent(function spanSection() {
     }
   }
 });
+const anchorSection = makeComponent(function anchorSection() {
+  for (let href of ["https://www.google.com"]) {
+    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    row.append(span("Small", {size: "small", href}));
+    row.append(span("Normal", {size: "normal", href}));
+    row.append(span("Big", {size: "big", href}));
+    row.append(span("Bigger", {size: "bigger", href}));
+  }
+  for (let href of ["assets/test_image.bmp"]) {
+    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
+  }
+});
 const buttonSection = makeComponent(function buttonSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {size}));
@@ -35,7 +48,7 @@ const buttonSection = makeComponent(function buttonSection() {
   row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
   for (let size of SIZES) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-const iconSection = makeComponent(function spanSection() {
+const iconSection = makeComponent(function iconSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(icon("link", {size}));
   row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
@@ -115,6 +128,11 @@ export const BASIC_COMPONENT_SECTIONS: MainPageSection[] = [
     label: "Span",
     id: "span",
     component: spanSection,
+  },
+  {
+    label: "Anchor",
+    id: "anchor",
+    component: anchorSection,
   },
   {
     label: "Button",

@@ -99,7 +99,7 @@ setTimeout(() => {
 */
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.11";
+export const JSGUI_VERSION = "v0.12";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -774,13 +774,14 @@ export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: u
   singleLine?: string;
   fontFamily?: string;
   href?: string;
+  download?: string;
   navigate?: NavigateFunction;
   id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 };*/
 export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, navigate, id, selfLink, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, download, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
@@ -789,8 +790,9 @@ export const span = makeComponent(function _span(text/*: string | number | null 
   }
   const isLink = (href != null);
   const e = this.useNode(document.createElement(isLink ? 'a' : 'span'));
-  const {attribute, className, style} = this.baseProps;
+  const {attribute, className, style, events} = this.baseProps;
   if (id) attribute.id = id;
+  if (download) attribute.download = download;
   if (size) attribute.dataSize = size;
   if (iconName) className.push("material-symbols-outlined");
   if (color) style.color = `var(--${color})`; // TODO: remove style?
@@ -803,13 +805,13 @@ export const span = makeComponent(function _span(text/*: string | number | null 
       attribute.tabindex = "-1";
       attribute.clickable = "true";
     }
-    e.onclick = (event) => {
+    events.click = events.click ?? ((event/*: MouseEvent*/) => {
       if (onClick) onClick(event);
-      if (href) {
+      if (href && !download) {
         event.preventDefault();
         navigate(href);
       }
-    }
+    });
   }
   this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });
@@ -1570,7 +1572,7 @@ const htmlSection = makeComponent(function htmlSection() {
     </svg>`, {style: {width: "1em", height: "1em"}}));
 });
 const spanSection = makeComponent(function spanSection() {
-  for (let href of [undefined, "https://www.google.com"]) {
+  for (let href of [undefined]) {
     let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
@@ -1585,6 +1587,19 @@ const spanSection = makeComponent(function spanSection() {
     }
   }
 });
+const anchorSection = makeComponent(function anchorSection() {
+  for (let href of ["https://www.google.com"]) {
+    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    row.append(span("Small", {size: "small", href}));
+    row.append(span("Normal", {size: "normal", href}));
+    row.append(span("Big", {size: "big", href}));
+    row.append(span("Bigger", {size: "bigger", href}));
+  }
+  for (let href of ["assets/test_image.bmp"]) {
+    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    row.append(span("download", {size: "small", href, download: "test_image.bmp", onClick() {console.log('ayaya')}}));
+  }
+});
 const buttonSection = makeComponent(function buttonSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {size}));
@@ -1593,7 +1608,7 @@ const buttonSection = makeComponent(function buttonSection() {
   row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
   for (let size of SIZES) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-const iconSection = makeComponent(function spanSection() {
+const iconSection = makeComponent(function iconSection() {
   let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
   for (let size of SIZES) row.append(icon("link", {size}));
   row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
@@ -1673,6 +1688,11 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
     label: "Span",
     id: "span",
     component: spanSection,
+  },
+  {
+    label: "Anchor",
+    id: "anchor",
+    component: anchorSection,
   },
   {
     label: "Button",
