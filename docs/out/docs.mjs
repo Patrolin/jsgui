@@ -261,8 +261,15 @@ export class Component {
     this.indexedChildCount = 0;
     this.indexedTextCount = 0;
   }
-  useNode/*<T extends NodeType>*/(defaultNode/*: T*/)/*: T*/ {
-    return (this.node = (this._?.prevNode ?? defaultNode))/* as T*/;
+  useNode/*<T extends NodeType>*/(getNode/*: () => T*/, nodeDependOn/*: : any*/)/*: T*/ {
+    const state = this.useState({})/* as {nodeDependOn?: any}*/;
+    let node = this.getNode();
+    if (state.nodeDependOn !== nodeDependOn) {
+      node = getNode();
+    } else if (node == null) {
+      node = getNode();
+    }
+    return (this.node = node)/* as T*/;
   }
   getNode()/*: NodeType | null*/ {
     return this._.prevNode;
@@ -678,44 +685,44 @@ export function unloadRoot(root_/*: RootComponentMetadata*/) {
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
 export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ = {}) {
   const state = this.useState({prevStr: ""});
-  const e = this.useNode(new Text(""));
+  const e = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
     state.prevStr = str;
     (e/* as Text*/).textContent = str;
   }
 })
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("ul"));
+  this.useNode(() => document.createElement("ul"));
 });
 export const ol = makeComponent(function ol(_props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("ol"));
+  this.useNode(() => document.createElement("ol"));
 });
 export const li = makeComponent(function li(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("li"));
+  this.useNode(() => document.createElement("li"));
   this.append(text);
 });
 export const h1 = makeComponent(function h1(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("h1"));
+  this.useNode(() => document.createElement("h1"));
   this.append(text);
 });
 export const h2 = makeComponent(function h2(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("h2"));
+  this.useNode(() => document.createElement("h2"));
   this.append(text);
 });
 export const h3 = makeComponent(function h3(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("h3"));
+  this.useNode(() => document.createElement("h3"));
   this.append(text);
 });
 export const h4 = makeComponent(function h4(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("h4"));
+  this.useNode(() => document.createElement("h4"));
   this.append(text);
 });
 export const h5 = makeComponent(function h5(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("h5"));
+  this.useNode(() => document.createElement("h5"));
   this.append(text);
 });
 export const h6 = makeComponent(function h6(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("h6"));
+  this.useNode(() => document.createElement("h6"));
   this.append(text);
 });
 export const divider = makeComponent(function divider(vertical/*: boolean*/ = false, _props/*: BaseProps*/ = {}) {
@@ -724,39 +731,54 @@ export const divider = makeComponent(function divider(vertical/*: boolean*/ = fa
   }));
 });
 export const p = makeComponent(function p(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("p"));
+  this.useNode(() => document.createElement("p"));
   this.append(text);
 });
 export const b = makeComponent(function b(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("b"));
+  this.useNode(() => document.createElement("b"));
   this.append(text);
 });
 export const em = makeComponent(function em(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("em"));
+  this.useNode(() => document.createElement("em"));
   this.append(text);
 });
 export const code = makeComponent(function code(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("code"));
+  this.useNode(() => document.createElement("code"));
   this.append(text);
 });
 export const button = makeComponent(function button(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("button"));
+  this.useNode(() => document.createElement("button"));
   this.append(text);
 });
 export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("input"));
+  this.useNode(() => document.createElement("input"));
+});
+export const img = makeComponent(function img(_props/*: BaseProps*/ = {}) {
+  this.useNode(() => document.createElement("img"));
 });
 export const svg = makeComponent(function svg(svgText/*: string*/, _props/*: BaseProps*/ = {}) {
-  let defaultNode = this._.prevNode;
-  if (defaultNode == null) {
+  this.useNode(() => {
     const tmp = document.createElement("span");
     tmp.innerHTML = svgText;
-    defaultNode = (tmp.children[0] ?? document.createElement("svg"))/* as NodeType*/;
-  }
-  this.useNode(defaultNode);
+    return (tmp.children[0] ?? document.createElement("svg"))/* as NodeType*/;
+  });
+});
+export const audio = makeComponent(function audio(_props/*: BaseProps*/ = {}) {
+  this.useNode(() => document.createElement("audio"));
+});
+export const video = makeComponent(function video(sources/*: string[]*/, _props/*: BaseProps*/ = {}) {
+  this.useNode(() => {
+    const node = document.createElement("video");
+    for (let source of sources) {
+      const sourceNode = document.createElement("source");
+      sourceNode.src = source;
+      node.append(sourceNode);
+    }
+    return node;
+  }, JSON.stringify(sources));
 });
 export const div = makeComponent(function div(_props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement('div'));
+  this.useNode(() => document.createElement('div'));
 });
 /*export type Size = "small" | "normal" | "big" | "bigger";*/
 export const SIZES/*: Size[]*/ = ["small", "normal", "big", "bigger"];
@@ -789,7 +811,7 @@ export const span = makeComponent(function _span(text/*: string | number | null 
     return;
   }
   const isLink = (href != null);
-  const e = this.useNode(document.createElement(isLink ? 'a' : 'span'));
+  const e = this.useNode(() => document.createElement(isLink ? 'a' : 'span'));
   const {attribute, className, style, events} = this.baseProps;
   if (id) attribute.id = id;
   if (download) attribute.download = download;
@@ -826,7 +848,7 @@ export const loadingSpinner = makeComponent(function loadingSpinner(props/*: Ico
   this.append(icon("progress_activity", props));
 });
 export const legend = makeComponent(function legend(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(document.createElement("legend"));
+  this.useNode(() => document.createElement("legend"));
   this.append(text);
   this.baseProps.className.push("ellipsis");
 });
@@ -838,7 +860,7 @@ export const legend = makeComponent(function legend(text/*: string*/, _props/*: 
 export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
   const {open, onClose, closeOnClickBackdrop} = props;
   const state = this.useState({ prevOpen: false });
-  const e = this.useNode(document.createElement("dialog"));
+  const e = this.useNode(() => document.createElement("dialog"));
   e.onclick = (event) => {
     if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
   }
@@ -962,7 +984,7 @@ export function _getPopupLeftTopWithFlipAndClamp(props/*: {
 export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
-  const wrapper = this.useNode(document.createElement("div"));
+  const wrapper = this.useNode(() => document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener
   const movePopup = () => {
     if (!state.open) return;
@@ -1041,7 +1063,7 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
 // inputs
 export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
   const {size, color, onClick, disabled} = props;
-  const e = this.useNode(document.createElement("button"));
+  const e = this.useNode(() => document.createElement("button"));
   if (text) this.append(span(text));
   const {attribute} = this.baseProps;
   if (size) attribute.dataSize = size;
@@ -1074,7 +1096,7 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   } = props;
   const state = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
   state.prevAllowedString = String(value ?? '');
-  const e = this.useNode(document.createElement('input'));
+  const e = this.useNode(() => document.createElement('input'));
   e.type = type;
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
@@ -1116,7 +1138,7 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
 } & BaseProps;*/
 export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
-  const fieldset = this.useNode(document.createElement("fieldset"));
+  const fieldset = this.useNode(() => document.createElement("fieldset"));
   fieldset.onmousedown = (_event/*: any*/) => {
     const event = _event/* as MouseEvent*/;
     if (event.target !== inputComponent._.prevNode) {
@@ -1158,7 +1180,7 @@ export const textInput = makeComponent(function textInput(props/*: TextInputProp
 } & BaseProps;*/
 export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
   const { onClickUp, onClickDown } = props;
-  this.useNode(document.createElement("div"));
+  this.useNode(() => document.createElement("div"));
   this.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
   this.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
 });
@@ -1570,6 +1592,14 @@ const htmlSection = makeComponent(function htmlSection() {
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: "1em", height: "1em"}}));
+  column.append(audio({attribute: {
+    controls: true,
+    src: "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
+  }}));
+  column.append(video([
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+  ], {style: {height: 240}, attribute: {controls: true}}));
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined]) {

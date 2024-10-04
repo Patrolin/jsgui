@@ -1,4 +1,4 @@
-import {BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, SIZES, span, svg} from '../../jsgui/jsgui.mts';
+import {audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, SIZES, span, svg, video} from '../../jsgui/jsgui.mts';
 import {getSizeLabel, MainPageSection} from '../utils/utils.mts';
 
 const htmlSection = makeComponent(function htmlSection() {
@@ -10,6 +10,14 @@ const htmlSection = makeComponent(function htmlSection() {
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: "1em", height: "1em"}}));
+  column.append(audio({attribute: {
+    controls: true,
+    src: "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
+  }}));
+  column.append(video([
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+  ], {style: {height: 240}, attribute: {controls: true}}));
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined]) {
