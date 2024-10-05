@@ -72,10 +72,10 @@ const spinnerSection = makeComponent(function spinnerSection() {
   let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
   for (let size of Object.values(SIZES)) row.append(loadingSpinner({size}));
   // linear progress
-  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  row = this.append(div({className: "wide-display-row", style: {marginTop: 0}}));
   row.append(progress());
-  const state = this.useState({ progress: 0 });
-  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  const state = this.useState({ progress: 0.5 });
+  row = this.append(div({className: "wide-display-row", style: {marginTop: 0}}));
   row.append(progress({fraction: state.progress}));
   row = this.append(coloredButton("progress = (progress + 0.15) % 1", {
     color: "secondary",
