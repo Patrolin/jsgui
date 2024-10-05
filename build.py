@@ -4,6 +4,7 @@ from os import makedirs, walk as os_walk
 from dataclasses import dataclass
 from enum import Enum
 from time import sleep
+from itertools import chain
 from tscompile import tsCompile
 import re
 
@@ -56,17 +57,16 @@ class Task:
   task_type: TaskType
   src: list[str]
   dest: str
+  extra_files_to_watch: list[str]
   done: bool = False
 
 if __name__ == '__main__':
   makedir("jsgui/out", True)
   makedir("docs/out", True)
   tasks = [
-    Task(TaskType.Copy, ["jsgui/jsgui.css"], "jsgui/out"),
-    Task(TaskType.MtsCompile, ["jsgui"], "jsgui/out"),
-    Task(TaskType.MtsCompile, ["docs", "jsgui"], "docs/out"), # TODO: only build docs?
-    #Task(TaskType.MtsCompile, "docs", "docs/out"),
-    #Task(TaskType.MjsCompile, "jsgui/out/jsgui.js", "jsgui/out/jsgui.mjs")
+    Task(TaskType.Copy, ["jsgui/jsgui.css"], "jsgui/out", []),
+    Task(TaskType.MtsCompile, ["jsgui"], "jsgui/out", []),
+    Task(TaskType.MtsCompile, ["docs"], "docs/out", []),
   ]
   mtimes: dict[str, float] = {}
   state_strings = [
@@ -91,12 +91,15 @@ if __name__ == '__main__':
         elif task.task_type.value == TaskType.MtsCompile.value:
           need_recompile = False
           for src in task.src:
-            for file_name, file_path in walk(src, "out"):
-              mtime = getmtime(file_path)
-              if (file_path not in mtimes) or mtime != mtimes[file_path]:
+            for file_name, file_path in chain(walk(src, "out"), task.extra_files_to_watch):
+              try:
+                mtime = getmtime(file_path)
+                if (file_path not in mtimes) or mtime != mtimes[file_path]:
+                  need_recompile = True
+                  mtimes[file_path] = mtime # TODO: don't overwrite docs builds in jsgui build
+                  print_state()
+              except OSError:
                 need_recompile = True
-                mtimes[file_path] = mtime # TODO: don't overwrite docs builds in jsgui build
-                print_state()
           task.done = not need_recompile
       print_state()
       # do the task
@@ -112,6 +115,7 @@ if __name__ == '__main__':
           for src in task.src:
             for file_name, file_path in walk(src, "out"):
               code_files_to_link.add(file_path)
+          extra_files_to_watch: list[str] = []
           # read and link files
           try:
             read_code_files: dict[str, CodeFile] = {}
@@ -140,8 +144,9 @@ if __name__ == '__main__':
                     for g1 in re.findall(MTS_IMPORT_REGEX, text, re.MULTILINE):
                       import_file_path = pathRelativeToFile(file_path, g1)
                       code_file.imports.append(import_file_path)
-                      if import_file_path not in linked_code_files:
+                      if (import_file_path not in linked_code_files) and (import_file_path not in code_files_to_link):
                         code_files_to_link.add(import_file_path)
+                        extra_files_to_watch.append(import_file_path)
                     code_file.text_without_imports += re.sub(MTS_IMPORT_REGEX, "", text).strip() + "\n"
                     read_code_files[file_path] = code_file
                   else:
@@ -160,6 +165,7 @@ if __name__ == '__main__':
                   message = read_code_files[file_path].to_short_string() if file_path in read_code_files else repr(file_path)
                   print(f"- Invalid import: {message}")
                 break
+            task.extra_files_to_watch = extra_files_to_watch
           except FileNotFoundError:
             match = next(v for v in read_code_files.values() if file_path in v.imports)
             print("Failed to link files:")

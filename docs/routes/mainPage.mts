@@ -1,4 +1,4 @@
-import { code, div, JSGUI_VERSION, makeComponent, span } from '../../jsgui/jsgui.mts';
+import { code, div, JSGUI_VERSION, makeComponent, span } from '../../jsgui/out/jsgui.mts';
 import { BASIC_COMPONENT_SECTIONS } from '../components/basicComponents.mts';
 import { INPUT_SECTIONS } from '../components/inputs.mts';
 import {MainPageSection} from '../utils/utils.mts';
@@ -18,7 +18,7 @@ export const mainPage = makeComponent(function mainPage() {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     const component = section.component()
     wrapper.append(component);
-    const row = wrapper.append(div({className: "displayRow"}));
+    const row = wrapper.append(div({className: "display-row"}));
     const onRender = component.onRender;
     const codeString = `const ${onRender.name} = makeComponent(${onRender});`;
     row.append(code(codeString, {style: {

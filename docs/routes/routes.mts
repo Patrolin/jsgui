@@ -1,4 +1,4 @@
-import { div, divider, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/jsgui.mts';
+import { div, divider, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
 import {MAIN_PAGE_SECTIONS, mainPage} from './mainPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
@@ -45,7 +45,7 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
     },
   }));
   const navigation = wrapper.append(div({
-    className: "navMenu", // TODO: styles
+    className: "nav-menu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
   const appendRoute = (route: Route) => {

@@ -1,4 +1,4 @@
-/* v0.13 */
+/* v0.14-dev */
 html, body {
   width: 100%;
   height: 100%;
@@ -125,7 +125,7 @@ span, a, button {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
 }
-span, a, .coloredButton {
+span, a, .colored-button {
   font-size: var(--fontSize-x);
   line-height: var(--size-x);
 }
@@ -136,19 +136,19 @@ a.icon {
   text-decoration: none;
   color: var(--secondary);
 }
-.selfLink {
+.self-link {
   display: inline-flex;
   align-items: center;
 }
-.selfLink > .icon {
+.self-link > .icon {
   visibility: hidden;
   color: var(--gray-2);
   text-decoration: none;
 }
-.selfLink:hover > .icon {
+.self-link:hover > .icon {
   visibility: visible;
 }
-.selfLink > .icon:hover {
+.self-link > .icon:hover {
   color: var(--secondary);
 }
 code {
@@ -166,10 +166,6 @@ code {
 }
 .icon[clickable="true"] {
   cursor: pointer;
-}
-.loadingSpinner {
-  color: var(--secondary);
-  animation: 2s linear 0s infinite normal none running spin-animation;
 }
 dialog {
   outline: none;
@@ -196,7 +192,7 @@ dialog::backdrop {
   background: transparent;
   /* NOTE: Scrolling inside .popup only scrolls the <html> tag, there is nothing we can do. */
 }
-.popupContentWrapper {
+.popup-content-wrapper {
   max-width: calc(100vw - var(--scrollbarWidth));
   width: fit-content;
   border-radius: 8px;
@@ -209,7 +205,7 @@ dialog::backdrop {
 }
 /* inputs */
 /* TODO: use .jsguiButton instead */
-.coloredButton {
+.colored-button {
   border: none;
   border-radius: 4px;
   padding: 0px 10px;
@@ -228,40 +224,40 @@ dialog::backdrop {
   --buttonColorActive: var(--gray-2);
   --buttonFontColor: var(--gray);
 }
-.coloredButton[data-color="secondary"] {
+.colored-button[data-color="secondary"] {
   --buttonColor: var(--secondary);
   --buttonColorHover: var(--secondary-067);
   --buttonColorActive: var(--secondary-1);
   --buttonFontColor: white;
 }
-.coloredButton:hover:not([disabled]) {
+.colored-button:hover:not([disabled]) {
   background: var(--buttonColorHover);
   box-shadow: none;
 }
-.coloredButton:active:not([disabled]) {
+.colored-button:active:not([disabled]) {
   background: var(--buttonColorActive);
   margin-top: 1px;
   height: calc(var(--size-x) + 1px);
   border-bottom: none;
 }
-.coloredButton:not([disabled]) {
+.colored-button:not([disabled]) {
   cursor: pointer;
 }
-.coloredButton[disabled] {
+.colored-button[disabled] {
   background-color: var(--gray-3);
   opacity: 0.5; /* TODO */
   --buttonFontColor: var(--gray);
 }
-.coloredButton > span:not(.icon) {
+.colored-button > span:not(.icon) {
   align-self: flex-start;
 }
-.coloredButton .icon {
+.colored-button .icon {
   color: var(--buttonFontColor); /* TODO: invert grays? */
 }
-.coloredButton > .icon {
+.colored-button > .icon {
   padding-inline: 0;
 }
-.labeledInput {
+.labeled-input {
   margin: var(--fieldsetMargin);
   padding: 0;
   width: var(--fieldsetWidth);
@@ -287,23 +283,23 @@ dialog::backdrop {
   --labelColor-x: var(--labelColor);
   --labelMarginLeft: 8px;
 }
-.labeledInput:hover {
+.labeled-input:hover {
   border: var(--fieldsetBorderHover);
 }
-.labeledInput:focus-within {
+.labeled-input:focus-within {
   margin: var(--fieldsetMarginFocus);
   width: calc(var(--fieldsetWidth) + 2px);
   border: var(--fieldsetBorderFocus);
   --labelColor-x: var(--labelColorFocus);
 }
-.labeledInput[fieldset-error="true"] {
+.labeled-input[fieldset-error="true"] {
   border: var(--fieldsetBorderError);
   --labelColor-x: var(--labelColorError);
 }
-.labeledInput[fieldset-error="true"]:focus-within {
+.labeled-input[fieldset-error="true"]:focus-within {
   border: var(--fieldsetBorderErrorFocus);
 }
-.labeledInput legend {
+.labeled-input legend {
   white-space: pre;
   color: var(--labelColor-x);
   user-select: none;
@@ -313,32 +309,32 @@ dialog::backdrop {
   padding-inline: 4px;
   max-width: calc(var(--fieldsetWidth) - 33px);
 }
-.labeledInput > :not(legend) {
+.labeled-input > :not(legend) {
   position: relative;
   background: none;
   top: -3px;
   height: calc(var(--fieldsetHeight) - 6px);
 }
-.numberArrows {
+.number-arrows {
   top: -6px !important;
   display: flex;
   flex-direction: column;
   color: var(--gray-1);
   --numberArrowPadding: calc(var(--size-x) - var(--iconSize-x));
 }
-.numberArrows .icon {
+.number-arrows .icon {
   padding-left: calc(0.5*(var(--size-x) - var(--iconSize-x)) - 1px);
   border-left: 1px solid var(--gray-3);
 }
-.numberArrows .icon[data-icon="arrow_drop_up"] {
+.number-arrows .icon[data-icon="arrow_drop_up"] {
   padding-bottom: calc(0.5*(var(--size-x) - var(--iconSize-x)) - 1px);
   border-bottom: 1px solid var(--gray-3);
 }
-.numberArrows .icon:hover {
+.number-arrows .icon:hover {
   color: var(--gray);
   background: var(--gray-3);
 }
-.labeledInput input {
+.labeled-input input {
   width: 100%;
   height: calc(var(--fieldsetHeight) - 9px);
   outline: none;
@@ -348,6 +344,25 @@ dialog::backdrop {
   font-family: var(--fontFamily-sans);
   font-size: var(--fontSize-normal);
 }
+/* spinners */
+.loading-spinner {
+  color: var(--secondary);
+  animation: 2s linear 0s infinite normal none running spin-animation;
+}
+.progress {
+  position: relative;
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+}
+.progress-bar {
+  position: absolute;
+  height: 100%;
+}
+.progress-bar-indeterminate {
+  /* TODO: animation */
+}
+/* table */
 .table {
   width: 100%;
   display: flex;
@@ -370,12 +385,12 @@ dialog::backdrop {
   justify-content: center;
   align-items: center;
 }
-.tableLabel {
+.table-label {
   padding: var(--labelPadding);
   font-size: var(--fontSize-bigger);
   color: var(--labelColor);
 }
-.tableRow {
+.table-row {
   width: 100%;
   display: flex;
   flex-direction: row;
@@ -384,16 +399,16 @@ dialog::backdrop {
   border-bottom: var(--tableBorder);
   padding: var(--rowPadding);
 }
-.tableRow.tableBody {
+.table-row.table-body {
   font-family: var(--fontFamily-serif);
   font-size: var(--fontSize-big);
 }
-.tableCell {
+.table-cell {
   flex: 1;
   padding: var(--cellPadding);
   color: var(--cellColor);
 }
-.pageContent {
+.page-content {
   padding: 8px 16px;
   flex: 1;
   overflow: auto;

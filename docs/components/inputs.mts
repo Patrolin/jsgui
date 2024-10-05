@@ -1,10 +1,10 @@
-import {BaseProps, clamp, div, makeComponent, numberInput, span, table, textInput} from '../../jsgui/jsgui.mts';
+import {BaseProps, clamp, div, makeComponent, numberInput, span, table, textInput} from '../../jsgui/out/jsgui.mts';
 import {MainPageSection} from '../utils/utils.mts';
 
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({username: ""});
   // username
-  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
+  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
   row.append(
     textInput({
       label: "Username",
@@ -13,14 +13,14 @@ const textInputSection = makeComponent(function textInputSection() {
         state.username = event.target.value;
         this.rerender();
       },
-      autoFocus: true,
+      //autoFocus: true,
     })
   );
   row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
+  row = this.append(div({className: "display-row", style: {marginTop: -4}}));
   row.append(span(`state: ${JSON.stringify(state)}`));
   // count
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
   row.append(
     numberInput({
@@ -36,11 +36,11 @@ const textInputSection = makeComponent(function textInputSection() {
     })
   );
   row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
+  row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: 4}}));
   row.append(span(`count: ${count}`));
 });
 const tableSection = makeComponent(function tableSection() {
-  const displayRow = this.append(div({className: "wideDisplayColumn"}));
+  const displayRow = this.append(div({className: "wide-display-column"}));
   const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
   displayRow.append(
     numberInput({

@@ -1,4 +1,4 @@
-import {ComponentFunction} from '../../jsgui/jsgui.mts'
+import {ComponentFunction} from '../../jsgui/out/jsgui.mts'
 export type MainPageSection = {
   label: string;
   id: string;

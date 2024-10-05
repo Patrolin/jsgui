@@ -1,8 +1,8 @@
-import {audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, SIZES, span, svg, video} from '../../jsgui/jsgui.mts';
+import {audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, img, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, progress, SIZES, span, svg, video} from '../../jsgui/out/jsgui.mts';
 import {getSizeLabel, MainPageSection} from '../utils/utils.mts';
 
 const htmlSection = makeComponent(function htmlSection() {
-  let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
+  let column = this.append(div({className: "display-column", style: {gap: 4}}));
   column.append(span("span"));
   column.append(input({attribute: {placeholder: "input"}}));
   const someButton = column.append(button("Button", {style: {fontSize: "14px"}}));
@@ -10,9 +10,9 @@ const htmlSection = makeComponent(function htmlSection() {
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: "1em", height: "1em"}}));
-  column.append(audio({attribute: {
+  column.append(img("assets/test_image.bmp", {style: {width: 24}}));
+  column.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
     controls: true,
-    src: "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
   }}));
   column.append(video([
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
@@ -21,14 +21,14 @@ const htmlSection = makeComponent(function htmlSection() {
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined]) {
-    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
   }
   for (let baseColor of Object.keys(BASE_COLORS)) {
-    let row = this.append(div({className: "displayRow"}))
+    let row = this.append(div({className: "display-row"}))
     for (let shade of COLOR_SHADES) {
       const color = shade ? `${baseColor}-${shade}` : baseColor;
       row.append(span(color, {color}));
@@ -37,40 +37,56 @@ const spanSection = makeComponent(function spanSection() {
 });
 const anchorSection = makeComponent(function anchorSection() {
   for (let href of ["https://www.google.com"]) {
-    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
   }
   for (let href of ["assets/test_image.bmp"]) {
-    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
   }
 });
 const buttonSection = makeComponent(function buttonSection() {
-  let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  for (let size of SIZES) row.append(coloredButton("Disabled", {disabled: true, size}));
+  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {size}));
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  for (let size of Object.values(SIZES)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
 const iconSection = makeComponent(function iconSection() {
-  let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(icon("link", {size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(loadingSpinner({size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) {
+  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) row.append(icon("link", {size}));
+  row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) {
     const buttonWrapper = row.append(coloredButton("", {size, color: "secondary"}));
     buttonWrapper.append(icon("link", {size}));
     buttonWrapper.append(span(getSizeLabel(size)));
   }
   // TODO: circle buttons
 });
+const spinnerSection = makeComponent(function spinnerSection() {
+  // loading spinner
+  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) row.append(loadingSpinner({size}));
+  // linear progress
+  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  row.append(progress());
+  const state = this.useState({ progress: 0 });
+  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  row.append(progress({fraction: state.progress}));
+  row = this.append(coloredButton("progress = (progress + 0.15) % 1", {
+    color: "secondary",
+    onClick: () => {
+      state.progress = (state.progress + 0.15) % 1;
+      this.rerender();
+    }
+  }));
+})
 const dialogSection = makeComponent(function dialogSection() {
-  const row = this.append(div({className: "displayRow"}));
+  const row = this.append(div({className: "display-row"}));
   const state = this.useState({dialogOpen: false});
   const openDialog = () => {
     state.dialogOpen = true;
@@ -86,7 +102,7 @@ const dialogSection = makeComponent(function dialogSection() {
 });
 const popupSection = makeComponent(function popupSection() {
   for (let direction of ["up", "right", "down", "left", "mouse"] as PopupDirection[]) {
-    const row = this.append(div({className: "wideDisplayRow"}));
+    const row = this.append(div({className: "wide-display-row"}));
     const leftPopup = row.append(popupWrapper({
       content: span("Tiny"),
       direction,
@@ -101,7 +117,7 @@ const popupSection = makeComponent(function popupSection() {
     rightPopup.append(span(`direction: "${direction}"`));
   }
   const state = this.useState({buttonPopupOpen: false});
-  const row = this.append(div({className: "wideDisplayRow"}));
+  const row = this.append(div({className: "wide-display-row"}));
   const popup = row.append(popupWrapper({
     content: span("Tiny"),
     direction: "down",
@@ -120,7 +136,7 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   const mdOrBigger = this.useMedia({minWidth: 900});
   const lgOrBigger = this.useMedia({minWidth: 1200});
   const xlOrBigger = this.useMedia({minWidth: 1500});
-  const column = this.append(div({className: "displayColumn"}));
+  const column = this.append(div({className: "display-column"}));
   column.append(span(`smOrBigger: ${smOrBigger}`));
   column.append(span(`mdOrBigger: ${mdOrBigger}`));
   column.append(span(`lgOrBigger: ${lgOrBigger}`));
@@ -151,6 +167,11 @@ export const BASIC_COMPONENT_SECTIONS: MainPageSection[] = [
     label: "Icon",
     id: "icon",
     component: iconSection,
+  },
+  {
+    label: "Spinner",
+    id: "spinner",
+    component: spinnerSection,
   },
   {
     label: "Dialog",

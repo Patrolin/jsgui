@@ -1,4 +1,4 @@
-import { BaseProps, div, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput } from "../../jsgui/jsgui.mts";
+import { BaseProps, div, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput } from "../../jsgui/out/jsgui.mts";
 
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const state = this.useState({

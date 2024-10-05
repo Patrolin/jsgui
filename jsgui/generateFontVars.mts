@@ -1,6 +1,6 @@
 import {BASE_COLORS, COLOR_SHADES, SIZES, StringMap} from './jsgui.mts';
 
-export function generateFontSizeCssVars(names: string[] = SIZES) {
+export function generateFontSizeCssVars(names: string[] = Object.values(SIZES)) {
   type SizeDef = {
     fontSize: number;
     iconSize: number;

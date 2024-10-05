@@ -1,3 +1,4 @@
+/* jsgui.mts */
 /* dateUtils.mts */
 /* TODO
 export type DateParts = {
@@ -99,7 +100,7 @@ setTimeout(() => {
 */
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.12";
+export const JSGUI_VERSION = "v0.14-dev";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -385,6 +386,14 @@ export function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderF
     return new Component(onRender, args, baseProps, props, options);
   }
 }
+export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ = {}) {
+  const state = this.useState({prevStr: ""});
+  const e = this.useNode(() => new Text(""));
+  if (str !== state.prevStr) {
+    state.prevStr = str;
+    (e/* as Text*/).textContent = str;
+  }
+});
 export function _copyComponent(component/*: Component*/) {
   const newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
   newComponent._ = component._;
@@ -510,6 +519,19 @@ export class RootComponentMetadata extends ComponentMetadata {
 }
 
 // render
+export let SCROLLBAR_WIDTH = 0;
+export let THIN_SCROLLBAR_WIDTH = 0;
+export function _computeScrollbarWidth() {
+  let e = document.createElement("div");
+  e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
+  document.body.append(e);
+  SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
+  e.style.scrollbarWidth = "thin";
+  THIN_SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
+  e.remove();
+  document.body.style.setProperty("--scrollbarWidth", addPx(SCROLLBAR_WIDTH));
+  document.body.style.setProperty("--thinScrollbarWidth", addPx(THIN_SCROLLBAR_WIDTH));
+}
 export function renderRoot(rootComponent/*: Component*/, parentNode/*: ParentNodeType | null*/ = null)/*: RootComponentMetadata*/ {
   const root_ = new RootComponentMetadata(rootComponent, parentNode/* as any*/);
   rootComponent._ = root_;
@@ -589,7 +611,7 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
       }
       // class
       if (name !== node.tagName.toLowerCase()) {
-        inheritedBaseProps.className.push(name);
+        inheritedBaseProps.className.push(camelCaseToKebabCase(name));
       };
       const classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
       for (let {key, newValue} of classNameDiff) {
@@ -631,7 +653,7 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
       _.prevBaseProps = {}/* as InheritedBaseProps*/;
       _.prevEvents = {}/* as EventsMap*/;
     }
-    if (name) inheritedBaseProps.className.push(name); // NOTE: fragment has name: ''
+    if (name) inheritedBaseProps.className.push(camelCaseToKebabCase(name)); // NOTE: fragment has name: ''
   }
   // children
   const usedKeys = new Set();
@@ -681,16 +703,48 @@ export function unloadRoot(root_/*: RootComponentMetadata*/) {
   _unloadUnusedComponents(root_.component, !root_.gcFlag);
 }
 
+// sizes
+/*export type Size = "small" | "normal" | "big" | "bigger";*/
+export const SIZES/*: Record<Size, Size>*/ = {
+  small: "small",
+  normal: "normal",
+  big: "big",
+  bigger: "bigger",
+};
+// TODO: default colors
+/*export type BaseColor = "gray" | "secondary" | "red";*/
+export const BASE_COLORS/*: Record<BaseColor, string>*/ = {
+  gray: "0, 0, 0",
+  secondary: "20, 80, 160",
+  red: "200, 50, 50",
+};
+export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
+
+/*
+TODO: documentation
+  renderRoot(), moveRoot(), unloadRoot()
+  css utils
+  router()
+  validation api
+    const validate = this.useValidate((errors) => {
+      if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
+    });
+    const onSubmit = () => {
+      if (validate()) {
+        // ...
+      }
+    }
+  useLocalStorage()
+  useNavigate()
+*/
+// TODO: more input components (icon button, radio, checkbox/switch, select, date/date range input, file input)
+// TODO: badgeWrapper
+// TODO: snackbar api
+// https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
+// TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+/* basics.mts */
 // basic components
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
-export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ = {}) {
-  const state = this.useState({prevStr: ""});
-  const e = this.useNode(() => new Text(""));
-  if (str !== state.prevStr) {
-    state.prevStr = str;
-    (e/* as Text*/).textContent = str;
-  }
-})
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
 });
@@ -753,8 +807,9 @@ export const button = makeComponent(function button(text/*: string*/, _props/*: 
 export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("input"));
 });
-export const img = makeComponent(function img(_props/*: BaseProps*/ = {}) {
+export const img = makeComponent(function img(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("img"));
+  this.baseProps.attribute.src = src;
 });
 export const svg = makeComponent(function svg(svgText/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => {
@@ -763,8 +818,9 @@ export const svg = makeComponent(function svg(svgText/*: string*/, _props/*: Bas
     return (tmp.children[0] ?? document.createElement("svg"))/* as NodeType*/;
   });
 });
-export const audio = makeComponent(function audio(_props/*: BaseProps*/ = {}) {
+export const audio = makeComponent(function audio(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("audio"));
+  this.baseProps.attribute.src = src;
 });
 export const video = makeComponent(function video(sources/*: string[]*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => {
@@ -780,15 +836,13 @@ export const video = makeComponent(function video(sources/*: string[]*/, _props/
 export const div = makeComponent(function div(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement('div'));
 });
-/*export type Size = "small" | "normal" | "big" | "bigger";*/
-export const SIZES/*: Size[]*/ = ["small", "normal", "big", "bigger"];
-/*export type BaseColor = "gray" | "secondary" | "red";*/
-export const BASE_COLORS/*: Record<BaseColor, string>*/ = {
-  gray: "0, 0, 0",
-  secondary: "20, 80, 160",
-  red: "200, 50, 50",
-};
-export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
+export const legend = makeComponent(function legend(text/*: string*/, _props/*: BaseProps*/ = {}) {
+  this.useNode(() => document.createElement("legend"));
+  this.append(text);
+  this.baseProps.className.push("ellipsis");
+});
+
+// span
 /*export type SpanProps = BaseProps & {
   iconName?: string;
   size?: Size;
@@ -805,7 +859,7 @@ export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: u
 export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, download, navigate, id, selfLink, onClick } = props;
   if (selfLink != null) {
-    const selfLinkWrapper = this.append(div({ className: "selfLink", attribute: { id: id == null ? selfLink : id } }));
+    const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
     selfLinkWrapper.append(icon("tag", { size: "normal", href: `#${selfLink}` }));
     return;
@@ -844,216 +898,7 @@ export const icon = makeComponent(function icon(iconName/*: string*/, props/*: I
   this.baseProps.attribute.dataIcon = iconName;
   this.append(span("", {iconName, size, style, ...extraProps}));
 });
-export const loadingSpinner = makeComponent(function loadingSpinner(props/*: IconProps*/ = {}) {
-  this.append(icon("progress_activity", props));
-});
-export const legend = makeComponent(function legend(text/*: string*/, _props/*: BaseProps*/ = {}) {
-  this.useNode(() => document.createElement("legend"));
-  this.append(text);
-  this.baseProps.className.push("ellipsis");
-});
-/*export type DialogProps = BaseProps & ({
-  open: boolean;
-  onClose?: () => void;
-  closeOnClickBackdrop?: boolean;
-});*/
-export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
-  const {open, onClose, closeOnClickBackdrop} = props;
-  const state = this.useState({ prevOpen: false });
-  const e = this.useNode(() => document.createElement("dialog"));
-  e.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
-  }
-  return {
-    onMount: () => {
-      if (open !== state.prevOpen) {
-        if (open) {
-          e.showModal();
-        } else {
-          e.close();
-        }
-        state.prevOpen = open;
-      }
-    },
-  };
-});
-/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse";*/
-export let SCROLLBAR_WIDTH = 0;
-export let THIN_SCROLLBAR_WIDTH = 0;
-export function _computeScrollbarWidth() {
-  let e = document.createElement("div");
-  e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
-  document.body.append(e);
-  SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
-  e.style.scrollbarWidth = "thin";
-  THIN_SCROLLBAR_WIDTH = e.offsetWidth - e.clientWidth;
-  e.remove();
-  document.body.style.setProperty("--scrollbarWidth", addPx(SCROLLBAR_WIDTH));
-  document.body.style.setProperty("--thinScrollbarWidth", addPx(THIN_SCROLLBAR_WIDTH));
-}
-export function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
-  mouse: {x: number, y: number},
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  const {mouse, popupRect, wrapperRect} = props;
-  switch (direction) {
-    case "up":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top - popupRect.height
-      ];
-    case "right":
-      return [
-        wrapperRect.left + wrapperRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "down":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top + wrapperRect.height
-      ]
-    case "left":
-      return [
-        wrapperRect.left - popupRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "mouse":
-      return [
-        mouse.x,
-        mouse.y - popupRect.height
-      ];
-  }
-}
-export function _getPopupLeftTopWithFlipAndClamp(props/*: {
-  direction: PopupDirection,
-  mouse: {x: number, y: number},
-  windowRight: number;
-  windowBottom: number;
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  let {direction, windowBottom, windowRight, popupRect} = props;
-  // flip
-  let [left, top] = _getPopupLeftTop(direction, props);
-  switch (direction) {
-    case "up":
-      if (top < 0) {
-        direction = "down";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "down": {
-      const bottom = top + popupRect.height;
-      if (bottom >= windowBottom) {
-        direction = "up";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-    case "left":
-      if (left < 0) {
-        direction = "right";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "right": {
-      const right = left + popupRect.width;
-      if (right >= windowRight) {
-        direction = "left";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-  }
-  // clamp
-  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
-  left = clamp(left, 0, maxLeft);
-  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
-  top = clamp(top, 0, maxTop);
-  return [left, top]/* as [number, number]*/;
-}
-/*export type PopupWrapperProps = {
-  content: Component;
-  direction?: PopupDirection;
-  // TODO: arrow?: boolean;
-  /** NOTE: open on hover if undefined *//*
-  open?: boolean;
-  interactable?: boolean;
-};*/
-export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
-  const {content, direction: _direction = "up", open, interactable = false} = props;
-  const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
-  const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener
-  const movePopup = () => {
-    if (!state.open) return;
-    const popupNode = popup._.prevNode/* as HTMLDivElement*/;
-    const popupContentWrapperNode = popupContentWrapper._.prevNode/* as HTMLDivElement*/;
-    const wrapperRect = wrapper.getBoundingClientRect();
-    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
-    popupNode.style.top = "0px";
-    const popupRect = popupContentWrapperNode.getBoundingClientRect();
-    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
-      direction: _direction,
-      mouse: state.mouse,
-      popupRect,
-      windowBottom,
-      windowRight,
-      wrapperRect
-    });
-    popupNode.style.left = addPx(left);
-    popupNode.style.top = addPx(top);
-  }
-  const openPopup = () => {
-    state.open = true;
-    (popup._.prevNode/* as HTMLDivElement | null*/)?.showPopover();
-    movePopup();
-  }
-  const closePopup = () => {
-    state.open = false;
-    (popup._.prevNode/* as HTMLDivElement | null*/)?.hidePopover();
-  };
-  if (open == null) {
-    wrapper.onmouseenter = openPopup;
-    wrapper.onmouseleave = closePopup;
-  }
-  if (_direction === "mouse") {
-    wrapper.onmousemove = (event) => {
-      state.mouse = { x: event.clientX, y: event.clientY }; // TODO: useGlobalMouse() and recheck bounds on scroll?
-      movePopup();
-    }
-  }
-  const popup = this.append(div({
-    className: "popup",
-    attribute: {popover: "manual", dataInteractable: interactable},
-  }));
-  const popupContentWrapper = popup.append(div({className: "popupContentWrapper"}));
-  popupContentWrapper.append(content);
-  return {
-    onMount: () => {
-      for (let acc = (this._.prevNode/* as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-        acc.addEventListener("scroll", movePopup, {passive: true});
-      }
-      state.prevOnScroll = movePopup;
-      if (open == null) return;
-      if (open != state.open) {
-        if (open) {
-          openPopup();
-        } else {
-          closePopup();
-        }
-      }
-    },
-    onUnmount: () => {
-      for (let acc = (this._.prevNode/* as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-      }
-    },
-  };
-});
-
+/* inputs.mts */
 /*export type ButtonProps = {
   size?: Size;
   color?: BaseColor;
@@ -1272,61 +1117,199 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   }));
   if (error) this.append(errorMessage(error));
 });
-
-// table
-/*export type TableColumn = {
-  label: string;
-  render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
-  minWidth?: string | number;
-  maxWidth?: string | number;
-  flex?: string | number;
-};*/
-/*export type TableProps = {
-  label?: string;
-  columns: TableColumn[];
-  rows: any[];
-  isLoading?: boolean;
-  minHeight?: number;
-  useMaxHeight?: boolean;
-} & BaseProps;*/
-export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
-  // TODO: set minHeight to fit N rows
-  // TODO: actions, filters, search, paging, selection
-  const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
-  const tableWrapper = this.append(div({
-    attribute: {useMaxHeight, isLoading},
-    style: {minHeight},
-  }));
-  const makeRow = (className/*: string*/, key/*: string*/) => div({className, key});
-  const makeCell = (column/*: TableColumn*/) => div({
-    className: "tableCell",
-    style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
-  });
-  if (label) {
-    tableWrapper.append(span(label, {className: "tableLabel"}));
+/* popup.mts */
+// dialog
+/*export type DialogProps = BaseProps & ({
+  open: boolean;
+  onClose?: () => void;
+  closeOnClickBackdrop?: boolean;
+});*/
+export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
+  const {open, onClose, closeOnClickBackdrop} = props;
+  const state = this.useState({ prevOpen: false });
+  const e = this.useNode(() => document.createElement("dialog"));
+  e.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
   }
-  if (isLoading) {
-    tableWrapper.append(loadingSpinner());
-  } else {
-    const headerWrapper = tableWrapper.append(makeRow("tableRow tableHeader", "header"));
-    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
-      const column = columns[columnIndex];
-      const cellWrapper = headerWrapper.append(makeCell(column));
-      cellWrapper.append(span(column.label));
-    }
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      let row = rows[rowIndex];
-      const rowWrapper = tableWrapper.append(makeRow("tableRow tableBody", `row-${rowIndex}`));
-      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
-        let column = columns[columnIndex];
-        const cellWrapper = rowWrapper.append(makeCell(column));
-        cellWrapper.append(column.render({row, rowIndex, column, columnIndex}));
+  return {
+    onMount: () => {
+      if (open !== state.prevOpen) {
+        if (open) {
+          e.showModal();
+        } else {
+          e.close();
+        }
+        state.prevOpen = open;
       }
-    }
-  }
+    },
+  };
 });
 
-// router
+// popup
+/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse";*/
+export function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
+  mouse: {x: number, y: number},
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  const {mouse, popupRect, wrapperRect} = props;
+  switch (direction) {
+    case "up":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top - popupRect.height
+      ];
+    case "right":
+      return [
+        wrapperRect.left + wrapperRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "down":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top + wrapperRect.height
+      ]
+    case "left":
+      return [
+        wrapperRect.left - popupRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "mouse":
+      return [
+        mouse.x,
+        mouse.y - popupRect.height
+      ];
+  }
+}
+export function _getPopupLeftTopWithFlipAndClamp(props/*: {
+  direction: PopupDirection,
+  mouse: {x: number, y: number},
+  windowRight: number;
+  windowBottom: number;
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  let {direction, windowBottom, windowRight, popupRect} = props;
+  // flip
+  let [left, top] = _getPopupLeftTop(direction, props);
+  switch (direction) {
+    case "up":
+      if (top < 0) {
+        direction = "down";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "down": {
+      const bottom = top + popupRect.height;
+      if (bottom >= windowBottom) {
+        direction = "up";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "left":
+      if (left < 0) {
+        direction = "right";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "right": {
+      const right = left + popupRect.width;
+      if (right >= windowRight) {
+        direction = "left";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+  }
+  // clamp
+  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+  left = clamp(left, 0, maxLeft);
+  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+  top = clamp(top, 0, maxTop);
+  return [left, top]/* as [number, number]*/;
+}
+/*export type PopupWrapperProps = {
+  content: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+  /** NOTE: open on hover if undefined *//*
+  open?: boolean;
+  interactable?: boolean;
+};*/
+export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
+  const {content, direction: _direction = "up", open, interactable = false} = props;
+  const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
+  const wrapper = this.useNode(() => document.createElement("div"));
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener
+  const movePopup = () => {
+    if (!state.open) return;
+    const popupNode = popup._.prevNode/* as HTMLDivElement*/;
+    const popupContentWrapperNode = popupContentWrapper._.prevNode/* as HTMLDivElement*/;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+    popupNode.style.top = "0px";
+    const popupRect = popupContentWrapperNode.getBoundingClientRect();
+    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
+      direction: _direction,
+      mouse: state.mouse,
+      popupRect,
+      windowBottom,
+      windowRight,
+      wrapperRect
+    });
+    popupNode.style.left = addPx(left);
+    popupNode.style.top = addPx(top);
+  }
+  const openPopup = () => {
+    state.open = true;
+    (popup._.prevNode/* as HTMLDivElement | null*/)?.showPopover();
+    movePopup();
+  }
+  const closePopup = () => {
+    state.open = false;
+    (popup._.prevNode/* as HTMLDivElement | null*/)?.hidePopover();
+  };
+  if (open == null) {
+    wrapper.onmouseenter = openPopup;
+    wrapper.onmouseleave = closePopup;
+  }
+  if (_direction === "mouse") {
+    wrapper.onmousemove = (event) => {
+      state.mouse = { x: event.clientX, y: event.clientY }; // TODO: useGlobalMouse() and recheck bounds on scroll?
+      movePopup();
+    }
+  }
+  const popup = this.append(div({
+    className: "popup",
+    attribute: {popover: "manual", dataInteractable: interactable},
+  }));
+  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
+  popupContentWrapper.append(content);
+  return {
+    onMount: () => {
+      for (let acc = (this._.prevNode/* as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+        acc.addEventListener("scroll", movePopup, {passive: true});
+      }
+      state.prevOnScroll = movePopup;
+      if (open == null) return;
+      if (open != state.open) {
+        if (open) {
+          openPopup();
+        } else {
+          closePopup();
+        }
+      }
+    },
+    onUnmount: () => {
+      for (let acc = (this._.prevNode/* as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+      }
+    },
+  };
+});
+/* router.mts */
 /*export type Route = {
   path: string;
   defaultPath?: string;
@@ -1357,7 +1340,7 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
   const {
     routes,
     pageWrapperComponent = () => fragment(),
-    contentWrapperComponent = () => div({ className: "pageContent" }),
+    contentWrapperComponent = () => div({ className: "page-content" }),
     currentRoles,
     isLoggedIn,
     notLoggedInRoute = { component: fragment },
@@ -1399,28 +1382,112 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     }
   }
 });
-/*
-TODO: documentation
-  renderRoot(), moveRoot(), unloadRoot()
-  css utils
-  router()
-  validation api
-    const validate = this.useValidate((errors) => {
-      if (state.username.length < 4) errors.username = "Username must have at least 4 characters."
-    });
-    const onSubmit = () => {
-      if (validate()) {
-        // ...
+/* spinners.mts */
+export const loadingSpinner = makeComponent(function loadingSpinner(props/*: IconProps*/ = {}) {
+  this.append(icon("progress_activity", props));
+});
+/*export type ProgressProps = {
+  fraction?: number;
+} & BaseProps;*/
+export const progress = makeComponent(function progress(props/*: ProgressProps*/ = {}) {
+  const {fraction} = props;
+  const wrapper = this.append(div({}));
+  wrapper.append(div(fraction == null
+    ? {className: 'progress-bar progress-bar-indeterminate'}
+    : {className: 'progress-bar', style: {width: `${fraction * 100}%`}}
+  ));
+});
+/* table.mts */
+/*export type TableColumn = {
+  label: string;
+  render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
+  minWidth?: string | number;
+  maxWidth?: string | number;
+  flex?: string | number;
+};*/
+/*export type TableProps = {
+  label?: string;
+  columns: TableColumn[];
+  rows: any[];
+  isLoading?: boolean;
+  minHeight?: number;
+  useMaxHeight?: boolean;
+} & BaseProps;*/
+export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
+  // TODO: set minHeight to fit N rows
+  // TODO: actions, filters, search, paging, selection
+  const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
+  const tableWrapper = this.append(div({
+    attribute: {useMaxHeight, isLoading},
+    style: {minHeight},
+  }));
+  const makeRow = (className/*: string*/, key/*: string*/) => div({className, key});
+  const makeCell = (column/*: TableColumn*/) => div({
+    className: "table-cell",
+    style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
+  });
+  if (label) {
+    tableWrapper.append(span(label, {className: "table-label"}));
+  }
+  if (isLoading) {
+    tableWrapper.append(loadingSpinner());
+  } else {
+    const headerWrapper = tableWrapper.append(makeRow("table-row table-header", "header"));
+    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+      const column = columns[columnIndex];
+      const cellWrapper = headerWrapper.append(makeCell(column));
+      cellWrapper.append(span(column.label));
+    }
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      let row = rows[rowIndex];
+      const rowWrapper = tableWrapper.append(makeRow("table-row table-body", `row-${rowIndex}`));
+      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+        let column = columns[columnIndex];
+        const cellWrapper = rowWrapper.append(makeCell(column));
+        cellWrapper.append(column.render({row, rowIndex, column, columnIndex}));
       }
     }
-  useLocalStorage()
-  useNavigate()
-*/
-// TODO: more input components (icon button, radio, checkbox/switch, select, date/date range input, file input)
-// TODO: badgeWrapper
-// TODO: snackbar api
-// https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
-// TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+  }
+});
+/* generateFontVars.mts */
+export function generateFontSizeCssVars(names/*: string[]*/ = Object.values(SIZES)) {
+  /*type SizeDef = {
+    fontSize: number;
+    iconSize: number;
+    size: number;
+  };*/
+  const getSizeDef = (i/*: number*/) => ({
+    fontSize: 12 + i*4,
+    iconSize: 14 + i*4,
+    size: 16 + i*8,
+  })/* as SizeDef*/;
+  let acc = "  /* generated by generateFontSizeCssVars */";
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    const {fontSize, iconSize, size} = getSizeDef(i);
+    acc += `\n  --fontSize-${name}: ${fontSize}px;`;
+    acc += `\n  --iconSize-${name}: ${iconSize}px;`;
+    acc += `\n  --size-${name}: ${size}px;`;
+  }
+  return acc;
+}
+export function generateColorCssVars(colors/*: StringMap<string>*/ = BASE_COLORS, start = 0.874, step = 2, shades = COLOR_SHADES) {
+  let acc = "  /* generated by generateColorCssVars */";
+  for (let [colorName, color] of Object.entries(colors)) {
+    for (let i = 0; i < shades.length; i++) {
+      const shadeName = shades[i];
+      const shadeSuffix = shadeName ? `-${shadeName}` : "";
+      const shadeNumber = +`${(shadeName || "0")[0]}.${shadeName.slice(1)}`;
+      const alpha = start / step ** shadeNumber;
+      acc += `\n  --${colorName}${shadeSuffix}: rgba(${color}, ${alpha.toFixed(3)});`
+    }
+  }
+  return acc;
+}
+setTimeout(() => {
+  //console.log(generateFontSizeCssVars());
+  //console.log(generateColorCssVars());
+})
 /* notFoundPage.mts */
 export const notFoundPage = makeComponent(function notFoundPage() {
   this.append(span("Page not found"));
@@ -1543,48 +1610,9 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
 export function getSizeLabel(size/*: string*/) {
   return size[0].toUpperCase() + size.slice(1);
 }
-/* generateFontVars.mts */
-export function generateFontSizeCssVars(names/*: string[]*/ = SIZES) {
-  /*type SizeDef = {
-    fontSize: number;
-    iconSize: number;
-    size: number;
-  };*/
-  const getSizeDef = (i/*: number*/) => ({
-    fontSize: 12 + i*4,
-    iconSize: 14 + i*4,
-    size: 16 + i*8,
-  })/* as SizeDef*/;
-  let acc = "  /* generated by generateFontSizeCssVars */";
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i];
-    const {fontSize, iconSize, size} = getSizeDef(i);
-    acc += `\n  --fontSize-${name}: ${fontSize}px;`;
-    acc += `\n  --iconSize-${name}: ${iconSize}px;`;
-    acc += `\n  --size-${name}: ${size}px;`;
-  }
-  return acc;
-}
-export function generateColorCssVars(colors/*: StringMap<string>*/ = BASE_COLORS, start = 0.874, step = 2, shades = COLOR_SHADES) {
-  let acc = "  /* generated by generateColorCssVars */";
-  for (let [colorName, color] of Object.entries(colors)) {
-    for (let i = 0; i < shades.length; i++) {
-      const shadeName = shades[i];
-      const shadeSuffix = shadeName ? `-${shadeName}` : "";
-      const shadeNumber = +`${(shadeName || "0")[0]}.${shadeName.slice(1)}`;
-      const alpha = start / step ** shadeNumber;
-      acc += `\n  --${colorName}${shadeSuffix}: rgba(${color}, ${alpha.toFixed(3)});`
-    }
-  }
-  return acc;
-}
-setTimeout(() => {
-  //console.log(generateFontSizeCssVars());
-  //console.log(generateColorCssVars());
-})
 /* basicComponents.mts */
 const htmlSection = makeComponent(function htmlSection() {
-  let column = this.append(div({className: "displayColumn", style: {gap: 4}}));
+  let column = this.append(div({className: "display-column", style: {gap: 4}}));
   column.append(span("span"));
   column.append(input({attribute: {placeholder: "input"}}));
   const someButton = column.append(button("Button", {style: {fontSize: "14px"}}));
@@ -1592,9 +1620,9 @@ const htmlSection = makeComponent(function htmlSection() {
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: "1em", height: "1em"}}));
-  column.append(audio({attribute: {
+  column.append(img("assets/test_image.bmp", {style: {width: 24}}));
+  column.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
     controls: true,
-    src: "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3"
   }}));
   column.append(video([
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
@@ -1603,14 +1631,14 @@ const htmlSection = makeComponent(function htmlSection() {
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined]) {
-    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
   }
   for (let baseColor of Object.keys(BASE_COLORS)) {
-    let row = this.append(div({className: "displayRow"}))
+    let row = this.append(div({className: "display-row"}))
     for (let shade of COLOR_SHADES) {
       const color = shade ? `${baseColor}-${shade}` : baseColor;
       row.append(span(color, {color}));
@@ -1619,40 +1647,56 @@ const spanSection = makeComponent(function spanSection() {
 });
 const anchorSection = makeComponent(function anchorSection() {
   for (let href of ["https://www.google.com"]) {
-    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
   }
   for (let href of ["assets/test_image.bmp"]) {
-    let row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
     row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
   }
 });
 const buttonSection = makeComponent(function buttonSection() {
-  let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  for (let size of SIZES) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
-  for (let size of SIZES) row.append(coloredButton("Disabled", {disabled: true, size}));
+  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {size}));
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  for (let size of Object.values(SIZES)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
 const iconSection = makeComponent(function iconSection() {
-  let row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(icon("link", {size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) row.append(loadingSpinner({size}));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
-  for (let size of SIZES) {
+  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) row.append(icon("link", {size}));
+  row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) {
     const buttonWrapper = row.append(coloredButton("", {size, color: "secondary"}));
     buttonWrapper.append(icon("link", {size}));
     buttonWrapper.append(span(getSizeLabel(size)));
   }
   // TODO: circle buttons
 });
+const spinnerSection = makeComponent(function spinnerSection() {
+  // loading spinner
+  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  for (let size of Object.values(SIZES)) row.append(loadingSpinner({size}));
+  // linear progress
+  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  row.append(progress());
+  const state = this.useState({ progress: 0 });
+  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  row.append(progress({fraction: state.progress}));
+  row = this.append(coloredButton("progress = (progress + 0.15) % 1", {
+    color: "secondary",
+    onClick: () => {
+      state.progress = (state.progress + 0.15) % 1;
+      this.rerender();
+    }
+  }));
+})
 const dialogSection = makeComponent(function dialogSection() {
-  const row = this.append(div({className: "displayRow"}));
+  const row = this.append(div({className: "display-row"}));
   const state = this.useState({dialogOpen: false});
   const openDialog = () => {
     state.dialogOpen = true;
@@ -1668,7 +1712,7 @@ const dialogSection = makeComponent(function dialogSection() {
 });
 const popupSection = makeComponent(function popupSection() {
   for (let direction of ["up", "right", "down", "left", "mouse"]/* as PopupDirection[]*/) {
-    const row = this.append(div({className: "wideDisplayRow"}));
+    const row = this.append(div({className: "wide-display-row"}));
     const leftPopup = row.append(popupWrapper({
       content: span("Tiny"),
       direction,
@@ -1683,7 +1727,7 @@ const popupSection = makeComponent(function popupSection() {
     rightPopup.append(span(`direction: "${direction}"`));
   }
   const state = this.useState({buttonPopupOpen: false});
-  const row = this.append(div({className: "wideDisplayRow"}));
+  const row = this.append(div({className: "wide-display-row"}));
   const popup = row.append(popupWrapper({
     content: span("Tiny"),
     direction: "down",
@@ -1702,7 +1746,7 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   const mdOrBigger = this.useMedia({minWidth: 900});
   const lgOrBigger = this.useMedia({minWidth: 1200});
   const xlOrBigger = this.useMedia({minWidth: 1500});
-  const column = this.append(div({className: "displayColumn"}));
+  const column = this.append(div({className: "display-column"}));
   column.append(span(`smOrBigger: ${smOrBigger}`));
   column.append(span(`mdOrBigger: ${mdOrBigger}`));
   column.append(span(`lgOrBigger: ${lgOrBigger}`));
@@ -1735,6 +1779,11 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
     component: iconSection,
   },
   {
+    label: "Spinner",
+    id: "spinner",
+    component: spinnerSection,
+  },
+  {
     label: "Dialog",
     id: "dialog",
     component: dialogSection,
@@ -1754,7 +1803,7 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({username: ""});
   // username
-  let row = this.append(div({className: "displayRow", style: {marginTop: 6}}));
+  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
   row.append(
     textInput({
       label: "Username",
@@ -1763,14 +1812,14 @@ const textInputSection = makeComponent(function textInputSection() {
         state.username = event.target.value;
         this.rerender();
       },
-      autoFocus: true,
+      //autoFocus: true,
     })
   );
   row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4}}));
+  row = this.append(div({className: "display-row", style: {marginTop: -4}}));
   row.append(span(`state: ${JSON.stringify(state)}`));
   // count
-  row = this.append(div({className: "displayRow", style: {marginTop: 4}}));
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
   row.append(
     numberInput({
@@ -1786,11 +1835,11 @@ const textInputSection = makeComponent(function textInputSection() {
     })
   );
   row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "displayRow", style: {marginTop: -4, marginBottom: 4}}));
+  row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: 4}}));
   row.append(span(`count: ${count}`));
 });
 const tableSection = makeComponent(function tableSection() {
-  const displayRow = this.append(div({className: "wideDisplayColumn"}));
+  const displayRow = this.append(div({className: "wide-display-column"}));
   const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
   displayRow.append(
     numberInput({
@@ -1865,7 +1914,7 @@ export const mainPage = makeComponent(function mainPage() {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     const component = section.component()
     wrapper.append(component);
-    const row = wrapper.append(div({className: "displayRow"}));
+    const row = wrapper.append(div({className: "display-row"}));
     const onRender = component.onRender;
     const codeString = `const ${onRender.name} = makeComponent(${onRender});`;
     row.append(code(codeString, {style: {
@@ -1919,7 +1968,7 @@ export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapp
     },
   }));
   const navigation = wrapper.append(div({
-    className: "navMenu", // TODO: styles
+    className: "nav-menu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
   const appendRoute = (route/*: Route*/) => {

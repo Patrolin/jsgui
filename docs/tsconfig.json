@@ -1,5 +1,5 @@
 {
-  "include": ["**.mts", "components/popup.mts"],
+  "include": ["**.mts", "../jsgui/out/jsgui.mts"],
   "compilerOptions": {
     "target": "ES6",
     "lib": ["dom", "dom.iterable", "esnext"],
