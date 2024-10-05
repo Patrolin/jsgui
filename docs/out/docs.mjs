@@ -100,7 +100,7 @@ setTimeout(() => {
 */
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.14-dev";
+export const JSGUI_VERSION = "v0.14";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
