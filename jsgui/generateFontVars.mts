@@ -34,5 +34,5 @@ export function generateColorCssVars(colors: StringMap<string> = BASE_COLORS, n:
 }
 setTimeout(() => {
   //console.log(generateFontSizeCssVars());
-  console.log(generateColorCssVars());
+  //console.log(generateColorCssVars());
 })

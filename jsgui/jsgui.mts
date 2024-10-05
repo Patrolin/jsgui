@@ -610,14 +610,14 @@ export const SIZES: Record<Size, Size> = {
   big: "big",
   bigger: "bigger",
 };
-// TODO: default colors
+// default colors
 export type BaseColor = "gray" | "secondary" | "red";
 export const BASE_COLORS: Record<BaseColor, string> = {
   gray: "0, 0, 0",
-  secondary: "20, 80, 160",
+  secondary: "20, 80, 160", // TODO: find a better secondary color
   red: "200, 50, 50",
 };
-export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
+export const COLOR_SHADES = ["0", "1", "2", "3", "4", "5", "6"];
 
 /*
 TODO: documentation

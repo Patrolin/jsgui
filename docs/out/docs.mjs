@@ -711,14 +711,14 @@ export const SIZES/*: Record<Size, Size>*/ = {
   big: "big",
   bigger: "bigger",
 };
-// TODO: default colors
+// default colors
 /*export type BaseColor = "gray" | "secondary" | "red";*/
 export const BASE_COLORS/*: Record<BaseColor, string>*/ = {
   gray: "0, 0, 0",
-  secondary: "20, 80, 160",
+  secondary: "20, 80, 160", // TODO: find a better secondary color
   red: "200, 50, 50",
 };
-export const COLOR_SHADES = ["", "033", "067", "1", "2", "250", "3"]; // TODO: use linear colors
+export const COLOR_SHADES = ["0", "1", "2", "3", "4", "5", "6"];
 
 /*
 TODO: documentation
@@ -871,9 +871,9 @@ export const span = makeComponent(function _span(text/*: string | number | null 
   if (download) attribute.download = download;
   if (size) attribute.dataSize = size;
   if (iconName) className.push("material-symbols-outlined");
-  if (color) style.color = `var(--${color})`; // TODO: remove style?
+  if (color) style.color = `var(--${color})`;
   if (singleLine) className.push("ellipsis");
-  if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`; // TODO: remove style?
+  if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
   if (isLink) (e/* as HTMLAnchorElement*/).href = href;
   navigate = (navigate ?? this.useNavigate().pushRoute);
   if (onClick || href) {
@@ -1387,10 +1387,12 @@ export const loadingSpinner = makeComponent(function loadingSpinner(props/*: Ico
   this.append(icon("progress_activity", props));
 });
 /*export type ProgressProps = {
+  color?: string;
   fraction?: number;
 } & BaseProps;*/
 export const progress = makeComponent(function progress(props/*: ProgressProps*/ = {}) {
-  const {fraction} = props;
+  const {color, fraction} = props;
+  if (color) this.baseProps.style.color = `var(--${color})`;
   const wrapper = this.append(div({}));
   wrapper.append(div(fraction == null
     ? {className: 'progress-bar progress-bar-indeterminate'}
@@ -1484,7 +1486,7 @@ export function generateColorCssVars(colors/*: StringMap<string>*/ = BASE_COLORS
 }
 setTimeout(() => {
   //console.log(generateFontSizeCssVars());
-  console.log(generateColorCssVars());
+  //console.log(generateColorCssVars());
 })
 /* notFoundPage.mts */
 export const notFoundPage = makeComponent(function notFoundPage() {
@@ -1678,17 +1680,19 @@ const iconSection = makeComponent(function iconSection() {
 const spinnerSection = makeComponent(function spinnerSection() {
   // loading spinner
   let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
-  for (let size of Object.values(SIZES)) row.append(loadingSpinner({size}));
-  // linear progress
-  row = this.append(div({className: "wide-display-row", style: {marginTop: 0}}));
-  row.append(progress());
-  const state = this.useState({ progress: 0.5 });
-  row = this.append(div({className: "wide-display-row", style: {marginTop: 0}}));
-  row.append(progress({fraction: state.progress}));
-  row = this.append(coloredButton("progress = (progress + 0.15) % 1", {
+  for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
+  // linear progress indeterminate
+  row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+  row.append(progress({color: 'secondary-0'}));
+  // linear progress determinate
+  const state = this.useState({ progress: 0.0 });
+  row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+  row.append(progress({fraction: state.progress, color: 'secondary-0'}));
+  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
     color: "secondary",
     onClick: () => {
-      state.progress = (state.progress + 0.15) % 1;
+      state.progress = (state.progress + 0.2) % 1.2;
       this.rerender();
     }
   }));

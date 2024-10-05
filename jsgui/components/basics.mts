@@ -128,9 +128,9 @@ export const span = makeComponent(function _span(text: string | number | null | 
   if (download) attribute.download = download;
   if (size) attribute.dataSize = size;
   if (iconName) className.push("material-symbols-outlined");
-  if (color) style.color = `var(--${color})`; // TODO: remove style?
+  if (color) style.color = `var(--${color})`;
   if (singleLine) className.push("ellipsis");
-  if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`; // TODO: remove style?
+  if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
   if (isLink) (e as HTMLAnchorElement).href = href;
   navigate = (navigate ?? this.useNavigate().pushRoute);
   if (onClick || href) {
