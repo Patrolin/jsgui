@@ -159,7 +159,7 @@ export const popupWrapper = makeComponent(function popupWrapper(props: PopupWrap
   }
   if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
-      state.mouse = { x: event.clientX, y: event.clientY }; // TODO: useGlobalMouse() and recheck bounds on scroll?
+      state.mouse = {x: event.clientX, y: event.clientY};
       movePopup();
     }
   }
