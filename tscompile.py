@@ -124,7 +124,7 @@ def tsCompile(accTs: str) -> str:
     (r"`[^`]*`", ignoreString, "backstring"),
     (r'"[^"]*"', ignoreString, "string"),
     (r"'[^']*'", ignoreString, "quotestring"),
-    #(r"/(?:\\/|[^/])*/", ignoreString, "regex"), # TODO: rewrite actual compiler
+    (r"/[^/\d ]+/", ignoreString, "regex"), # TODO: rewrite as actual compiler?
     (r"^\s*(?:export )?type ", replaceTypeStatement, "type_statement"),
     (r" as ", replaceValue, "as_operator"),
     (r"^\s*(?:export )?(?:var|let|const) [^:={]+:", replaceColon, "var_decl"),

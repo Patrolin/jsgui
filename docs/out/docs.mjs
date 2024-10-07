@@ -1,7 +1,6 @@
 /* jsgui.mts */
 /* dateUtils.mts */
-/* TODO
-export type DateParts = {
+/*export type DateParts = {
   year?: number;
   month?: number;
   date?: number;
@@ -9,8 +8,8 @@ export type DateParts = {
   minutes?: number;
   seconds?: number;
   millis?: number;
-};
-function reparseDate(date: Date, country: string = "GMT"): Required<DateParts> {
+};*/
+function reparseDate(date/*: Date*/, country/*: string*/ = "GMT")/*: Required<DateParts>*/ {
   const localeString = date.toLocaleString("en-GB", {
     year: "numeric",
     month: "2-digit",
@@ -33,21 +32,24 @@ function reparseDate(date: Date, country: string = "GMT"): Required<DateParts> {
   };
 }
 export class CountryDate {
-  countryIsoString: string;
-  country: string;
-  constructor(countryIsoString: string, country: string = "GMT") {
-    this.countryIsoString = countryIsoString;
+  _countryUTCDate/*: Date*/;
+  country/*: string*/;
+  constructor(_countryUTCDate/*: Date*/, country/*: string*/ = "GMT") {
+    this._countryUTCDate = _countryUTCDate;
     this.country = country;
   }
+  get countryUTCString() {
+    return this._countryUTCDate.toISOString();
+  }
   /** https://en.wikipedia.org/wiki/List_of_tz_database_time_zones - e.g. "Europe/Prague" */
-/* TODO
-  static fromIsoString(isoString: string, country: string = "GMT"): CountryDate {
+  static fromIsoString(isoString/*: string*/, country/*: string*/ = "GMT")/*: CountryDate*/ {
     const match = isoString.match(/^(\d+)-(\d+)-(\d+)(?:T(\d+):(\d+):(\d+)(?:\.(\d+))?)?(?:([\-+\d]+):(\d+))?/);
     if (match === null) throw new Error(`Invalid isoString: '${isoString}'`);
     const [_, year, month, day, hour, minute, second, milli, tzOffsetHours, tzOffsetMinutes] = match;
     const date = new Date(Date.UTC(+year, +month, +day, +(hour ?? 0), +(minute ?? 0), +(second ?? 0), +(milli ?? 0)));
-    const tzOffset = +(tzOffsetHours ?? 0) + +(tzOffsetMinutes ?? 0)*60;
-    date.setHours(date.getHours() - tzOffset);
+    const tzOffset = +(tzOffsetHours ?? 0)*60 + +(tzOffsetMinutes ?? 0);
+    console.log(tzOffsetHours, tzOffsetMinutes, tzOffset)
+    date.setMinutes(date.getMinutes() - tzOffset);
     const parts = reparseDate(date, country);
     const countryYear = String(parts.year).padStart(4, "0");
     const countryMonth = String(parts.month).padStart(2, "0");
@@ -56,15 +58,11 @@ export class CountryDate {
     const countryMinutes = String(parts.minutes).padStart(2, "0");
     const countrySeconds = String(parts.seconds).padStart(2, "0");
     const countryMillis = String(parts.millis).padStart(3, "0");
-    return new CountryDate(`${countryYear}-${countryMonth}-${countryDate}T${countryHours}:${countryMinutes}:${countrySeconds}.${countryMillis}`, country);
+    const _countryUTCDate = new Date(Date.UTC(+countryYear, +countryMonth-1, +countryDate, +countryHours, +countryMinutes, +countrySeconds, +countryMillis));
+    return new CountryDate(_countryUTCDate, country);
   }
-  _toCountryUTCDate(): Date {
-    const [year, month, day, hour, minute, second, milli] = this.countryIsoString.split(/\D+/);
-    console.log('ayaya.toDate', [year, month, day, hour, minute, second, milli]);
-    return new Date(Date.UTC(+year, +month-1, +day, +hour, +minute, +second, +milli));
-  }
-  add(offset: DateParts): CountryDate {
-    const date = this._toCountryUTCDate();
+  add(offset/*: DateParts*/)/*: CountryDate*/ {
+    const date = this._countryUTCDate;
     date.setUTCFullYear(date.getUTCFullYear() + (offset.year ?? 0));
     date.setUTCMonth(date.getUTCMonth() + (offset.month ?? 0));
     date.setUTCDate(date.getUTCDate() + (offset.date ?? 0));
@@ -72,10 +70,10 @@ export class CountryDate {
     date.setUTCMinutes(date.getUTCMinutes() + (offset.minutes ?? 0));
     date.setUTCSeconds(date.getUTCSeconds() + (offset.seconds ?? 0));
     date.setUTCMilliseconds(date.getUTCMilliseconds() + (offset.millis ?? 0));
-    return new CountryDate(date.toISOString(), this.country);
+    return new CountryDate(date, this.country);
   }
-  with(parts: DateParts, country?: string): CountryDate {
-    const date = this._toCountryUTCDate();
+  with(parts/*: DateParts*/, country/*: : string*/)/*: CountryDate*/ {
+    const date = new Date(this._countryUTCDate);
     if (parts.year) date.setUTCFullYear(parts.year);
     if (parts.month) date.setUTCMonth(parts.month);
     if (parts.date) date.setUTCDate(parts.date);
@@ -83,21 +81,24 @@ export class CountryDate {
     if (parts.minutes) date.setUTCMinutes(parts.minutes);
     if (parts.seconds) date.setUTCSeconds(parts.seconds);
     if (parts.millis) date.setUTCMilliseconds(parts.millis);
-    return new CountryDate(date.toISOString(), country ?? this.country);
+    return new CountryDate(date, country ?? this.country);
   }
   /** https://www.unicode.org/cldr/charts/45/supplemental/language_territory_information.html - e.g. "cs-CZ" */
-/* TODO
-  toLocaleString(format: string, options: Omit<Intl.DateTimeFormatOptions, "timeZone"> = {}): string {
-    return this._toCountryUTCDate().toLocaleString(format, {...options, timeZone: "GMT"});
+  toLocaleString(format/*: string*/ = "cs", options/*: Omit<Intl.DateTimeFormatOptions, "timeZone">*/ = {})/*: string*/ {
+    return this._countryUTCDate.toLocaleString(format, {...options, timeZone: "GMT"});
   }
-  toIsoString(): string {
+  toIsoString()/*: string*/ {
     return ""; // TODO: search for iso string matching this date
   }
 }
 setTimeout(() => {
-  console.log("ayaya.dateUtil", CountryDate.fromIsoString("2022-03-01T00:00:00Z"))
+  let a = CountryDate.fromIsoString("2022-03-01T00:00:00Z");
+  console.log("ayaya.date", a);
+  console.log('ayaya.dateString', a.toLocaleString());
+  a = CountryDate.fromIsoString("2022-03-01T00:00:00+01:00", "Europe/Prague");
+  console.log("ayaya.date", a);
+  console.log('ayaya.dateString', a.toLocaleString());
 })
-*/
 /* jsgui.mts */
 // utils
 export const JSGUI_VERSION = "v0.14";
@@ -742,6 +743,7 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+// TODO: useParams()?
 /* basics.mts */
 // basic components
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
@@ -1276,7 +1278,7 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
   }
   if (_direction === "mouse") {
     wrapper.onmousemove = (event) => {
-      state.mouse = { x: event.clientX, y: event.clientY }; // TODO: useGlobalMouse() and recheck bounds on scroll?
+      state.mouse = {x: event.clientX, y: event.clientY};
       movePopup();
     }
   }
