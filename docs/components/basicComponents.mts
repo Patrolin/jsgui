@@ -86,7 +86,7 @@ const spinnerSection = makeComponent(function spinnerSection() {
       this.rerender();
     }
   }));
-})
+});
 const dialogSection = makeComponent(function dialogSection() {
   const row = this.append(div({className: "display-row"}));
   const state = this.useState({dialogOpen: false});
@@ -190,4 +190,4 @@ export const BASIC_COMPONENT_SECTIONS: MainPageSection[] = [
     id: "mediaQuery",
     component: mediaQuerySection,
   },
-]
+];
