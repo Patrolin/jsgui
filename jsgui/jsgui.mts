@@ -625,6 +625,7 @@ export const BASE_COLORS: Record<BaseColor, string> = {
   gray: "0, 0, 0",
   secondary: "20, 80, 160", // TODO: find a better secondary color
   red: "200, 50, 50",
+  // TODO: yellow, green
 };
 export const COLOR_SHADES = ["0", "1", "2", "3", "4", "5", "6"];
 
