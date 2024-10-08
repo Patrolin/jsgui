@@ -7,6 +7,7 @@ export function parseJsonOrNull(jsonString: string): JSONValue {
     return null;
   }
 }
+// TODO!: sortBy(), groupBy()
 export function camelCaseToKebabCase(key: string) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
@@ -223,6 +224,10 @@ export class Component {
     }
     return [value, setValue, setValueAndDispatch];
   }
+  /* TODO!: rewrite as actual compiler
+  useParams<T = Record<string, string>>(): T {
+    return this._.root.routeParams as T;
+  } */
   // TODO: useParams()?
   // TODO: useLocation()?
   useLocationHash(): string {
@@ -410,12 +415,14 @@ export class ComponentMetadata {
 export class RootComponentMetadata extends ComponentMetadata {
   component: Component;
   parentNode: ParentNodeType;
+  routeParams: Record<string, string>;
   willRerenderNextFrame: boolean = false;
   constructor(component: Component, parentNode: ParentNodeType) {
     super(null);
     this.root = this;
     this.component = component;
     this.parentNode = parentNode;
+    this.routeParams = {};
   }
 }
 

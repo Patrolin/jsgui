@@ -46,7 +46,6 @@ export class CountryDate {
     const [_, year, month, day, hour, minute, second, milli, tzOffsetHours, tzOffsetMinutes] = match;
     const date = new Date(Date.UTC(+year, +month, +day, +(hour ?? 0), +(minute ?? 0), +(second ?? 0), +(milli ?? 0)));
     const tzOffset = +(tzOffsetHours ?? 0)*60 + +(tzOffsetMinutes ?? 0);
-    console.log(tzOffsetHours, tzOffsetMinutes, tzOffset)
     date.setMinutes(date.getMinutes() - tzOffset);
     const parts = reparseDate(date, country);
     const countryYear = String(parts.year).padStart(4, "0");

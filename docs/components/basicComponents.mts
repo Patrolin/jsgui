@@ -3,21 +3,28 @@ import {getSizeLabel, MainPageSection} from '../utils/utils.mts';
 
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "display-column", style: {gap: 4}}));
-  column.append(span("span"));
-  column.append(input({attribute: {placeholder: "input"}}));
-  const someButton = column.append(button("Button", {style: {fontSize: "14px"}}));
+  let row = column.append(div({className: "display-row"}));
+  row.append(span("span"));
+  row.append(input({
+    style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
+    attribute: {placeholder: "input"}},
+  ));
+  const someButton = row.append(button("button", {
+    style: {height: 'var(--size-normal)', fontSize: "14px"},
+  }));
   someButton.append(svg(`
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: "1em", height: "1em"}}));
-  column.append(img("assets/test_image.bmp", {style: {width: 24}}));
-  column.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
+  row.append(img("assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
+  row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
     controls: true,
+    title: "audio",
   }}));
   column.append(video([
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-  ], {style: {height: 240}, attribute: {controls: true}}));
+  ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined]) {

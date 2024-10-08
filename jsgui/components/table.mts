@@ -19,6 +19,7 @@ export type TableProps = {
 } & BaseProps;
 export const table = makeComponent(function table(props: TableProps & BaseProps) {
   // TODO: actions, filters, search, paging, selection
+  // TODO: make gray fully opaque?
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
   const tableWrapper = this.append(div({
     attribute: {useMaxHeight, isLoading},

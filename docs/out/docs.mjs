@@ -48,7 +48,6 @@ export class CountryDate {
     const [_, year, month, day, hour, minute, second, milli, tzOffsetHours, tzOffsetMinutes] = match;
     const date = new Date(Date.UTC(+year, +month, +day, +(hour ?? 0), +(minute ?? 0), +(second ?? 0), +(milli ?? 0)));
     const tzOffset = +(tzOffsetHours ?? 0)*60 + +(tzOffsetMinutes ?? 0);
-    console.log(tzOffsetHours, tzOffsetMinutes, tzOffset)
     date.setMinutes(date.getMinutes() - tzOffset);
     const parts = reparseDate(date, country);
     const countryYear = String(parts.year).padStart(4, "0");
@@ -109,6 +108,7 @@ export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
     return null;
   }
 }
+// TODO!: sortBy(), groupBy()
 export function camelCaseToKebabCase(key/*: string*/) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
@@ -325,7 +325,13 @@ export class Component {
     }
     return [value, setValue, setValueAndDispatch];
   }
-  useLocationHash()/*: string*/ { // TODO: add useLocation
+  /* TODO!: rewrite as actual compiler
+  useParams<T = Record<string, string>>(): T {
+    return this._.root.routeParams as T;
+  } */
+  // TODO: useParams()?
+  // TODO: useLocation()?
+  useLocationHash()/*: string*/ {
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
   }
@@ -510,12 +516,14 @@ export class ComponentMetadata {
 export class RootComponentMetadata extends ComponentMetadata {
   component/*: Component*/;
   parentNode/*: ParentNodeType*/;
+  routeParams/*: Record<string, string>*/;
   willRerenderNextFrame/*: boolean*/ = false;
   constructor(component/*: Component*/, parentNode/*: ParentNodeType*/) {
     super(null);
     this.root = this;
     this.component = component;
     this.parentNode = parentNode;
+    this.routeParams = {};
   }
 }
 
@@ -743,7 +751,6 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-// TODO: useParams()?
 /* basics.mts */
 // basic components
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
@@ -1243,7 +1250,7 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
   const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
   const movePopup = () => {
     if (!state.open) return;
     const popupNode = popup._.prevNode/* as HTMLDivElement*/;
@@ -1351,12 +1358,16 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
   } = props;
   let currentPath = location.pathname;
   if (currentPath.endsWith("/index.html")) currentPath = currentPath.slice(0, -10);
-  let currentRoute/*: Route | null*/ = null, params = {}; // TODO: save params in rootComponent?
+  const currentPathWithHash = `${currentPath}${location.hash}`
+  let currentRoute/*: Route | null*/ = null; // TODO: save params in rootComponent?
+  let currentRouteParams/*: Record<string, string>*/ = {};
   for (let route of routes) {
-    const regex = route.path.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
-    const match = currentPath.match(new RegExp(`^${regex}$`));
+    const regex = new RegExp(`^${
+      route.path.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`)
+    }$`);
+    const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
     if (match != null) {
-      params = match.groups ?? {};
+      currentRouteParams = match.groups ?? {};
       const roles = route.roles ?? [];
       const needSomeRole = (roles.length > 0);
       const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
@@ -1375,13 +1386,12 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     console.warn(`Route '${currentPath}' not found.`);
     currentRoute = { path: ".*", ...notFoundRoute};
   }
-  if (currentRoute) {
-    if (currentRoute.wrapper ?? true) {
-      this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
-    } else {
-      const contentWrapper = this.append(contentWrapperComponent());
-      contentWrapper.append(currentRoute.component());
-    }
+  this._.root.routeParams = currentRouteParams;
+  if (currentRoute.wrapper ?? true) {
+    this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
+  } else {
+    const contentWrapper = this.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component());
   }
 });
 /* spinners.mts */
@@ -1418,8 +1428,8 @@ export const progress = makeComponent(function progress(props/*: ProgressProps*/
   useMaxHeight?: boolean;
 } & BaseProps;*/
 export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
-  // TODO: set minHeight to fit N rows
   // TODO: actions, filters, search, paging, selection
+  // TODO: make gray fully opaque?
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
   const tableWrapper = this.append(div({
     attribute: {useMaxHeight, isLoading},
@@ -1615,21 +1625,28 @@ export function getSizeLabel(size/*: string*/) {
 /* basicComponents.mts */
 const htmlSection = makeComponent(function htmlSection() {
   let column = this.append(div({className: "display-column", style: {gap: 4}}));
-  column.append(span("span"));
-  column.append(input({attribute: {placeholder: "input"}}));
-  const someButton = column.append(button("Button", {style: {fontSize: "14px"}}));
+  let row = column.append(div({className: "display-row"}));
+  row.append(span("span"));
+  row.append(input({
+    style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
+    attribute: {placeholder: "input"}},
+  ));
+  const someButton = row.append(button("button", {
+    style: {height: 'var(--size-normal)', fontSize: "14px"},
+  }));
   someButton.append(svg(`
     <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <circle cx="50" cy="50" r="50" />
     </svg>`, {style: {width: "1em", height: "1em"}}));
-  column.append(img("assets/test_image.bmp", {style: {width: 24}}));
-  column.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
+  row.append(img("assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
+  row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
     controls: true,
+    title: "audio",
   }}));
   column.append(video([
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
     "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-  ], {style: {height: 240}, attribute: {controls: true}}));
+  ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
 const spanSection = makeComponent(function spanSection() {
   for (let href of [undefined]) {
@@ -1698,7 +1715,7 @@ const spinnerSection = makeComponent(function spinnerSection() {
       this.rerender();
     }
   }));
-})
+});
 const dialogSection = makeComponent(function dialogSection() {
   const row = this.append(div({className: "display-row"}));
   const state = this.useState({dialogOpen: false});
@@ -1802,7 +1819,7 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
     id: "mediaQuery",
     component: mediaQuerySection,
   },
-]
+];
 /* inputs.mts */
 const textInputSection = makeComponent(function textInputSection() {
   const state = this.useState({username: ""});
@@ -1913,7 +1930,6 @@ export const mainPage = makeComponent(function mainPage() {
       style: {display: "flex", flexDirection: "column", alignItems: "flex-start"},
     })
   );
-  wrapper.append(span(`version: ${JSGUI_VERSION}`, {size: "small", selfLink: "version"}));
   for (let section of MAIN_PAGE_SECTIONS) {
     wrapper.append(span(section.label, {size: "big", selfLink: section.id}));
     const component = section.component()
@@ -1962,6 +1978,7 @@ export const root = makeComponent(function root() {
 });
 export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapperProps*/) {
   const {routes, currentRoute, contentWrapperComponent} = props;
+  // TODO: have router support routes including hash, and take longest matching route
   const isGithubPages = window.location.pathname.startsWith("/jsgui");
   const githubPagesPrefix = isGithubPages ? `/jsgui` : "";
   const wrapper = this.append(div({
@@ -1971,10 +1988,13 @@ export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapp
       alignItems: "stretch",
     },
   }));
+  // TODO!: show version
+  // TODO!: highlight routes
   const navigation = wrapper.append(div({
     className: "nav-menu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
+  navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
   const appendRoute = (route/*: Route*/) => {
     if (route.showInNavigation) {
       navigation.append(span(route.label, { href: `${githubPagesPrefix}${route.defaultPath ?? route.path}` }));

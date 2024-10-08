@@ -1,4 +1,4 @@
-import { div, divider, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
+import { div, divider, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
 import {MAIN_PAGE_SECTIONS, mainPage} from './mainPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
@@ -35,6 +35,7 @@ export const root = makeComponent(function root() {
 });
 export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
   const {routes, currentRoute, contentWrapperComponent} = props;
+  // TODO: have router support routes including hash, and take longest matching route
   const isGithubPages = window.location.pathname.startsWith("/jsgui");
   const githubPagesPrefix = isGithubPages ? `/jsgui` : "";
   const wrapper = this.append(div({
@@ -44,10 +45,13 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
       alignItems: "stretch",
     },
   }));
+  // TODO!: show version
+  // TODO!: highlight routes
   const navigation = wrapper.append(div({
     className: "nav-menu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
+  navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
   const appendRoute = (route: Route) => {
     if (route.showInNavigation) {
       navigation.append(span(route.label, { href: `${githubPagesPrefix}${route.defaultPath ?? route.path}` }));

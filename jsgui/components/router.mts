@@ -40,12 +40,16 @@ export const router = makeComponent(function router(props: RouterProps) {
   } = props;
   let currentPath = location.pathname;
   if (currentPath.endsWith("/index.html")) currentPath = currentPath.slice(0, -10);
-  let currentRoute: Route | null = null, params = {}; // TODO: save params in rootComponent?
+  const currentPathWithHash = `${currentPath}${location.hash}`
+  let currentRoute: Route | null = null; // TODO: save params in rootComponent?
+  let currentRouteParams: Record<string, string> = {};
   for (let route of routes) {
-    const regex = route.path.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`);
-    const match = currentPath.match(new RegExp(`^${regex}$`));
+    const regex = new RegExp(`^${
+      route.path.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`)
+    }$`);
+    const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
     if (match != null) {
-      params = match.groups ?? {};
+      currentRouteParams = match.groups ?? {};
       const roles = route.roles ?? [];
       const needSomeRole = (roles.length > 0);
       const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
@@ -64,12 +68,11 @@ export const router = makeComponent(function router(props: RouterProps) {
     console.warn(`Route '${currentPath}' not found.`);
     currentRoute = { path: ".*", ...notFoundRoute};
   }
-  if (currentRoute) {
-    if (currentRoute.wrapper ?? true) {
-      this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
-    } else {
-      const contentWrapper = this.append(contentWrapperComponent());
-      contentWrapper.append(currentRoute.component());
-    }
+  this._.root.routeParams = currentRouteParams;
+  if (currentRoute.wrapper ?? true) {
+    this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
+  } else {
+    const contentWrapper = this.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component());
   }
 });
