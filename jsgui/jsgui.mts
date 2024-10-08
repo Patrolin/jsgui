@@ -223,7 +223,9 @@ export class Component {
     }
     return [value, setValue, setValueAndDispatch];
   }
-  useLocationHash(): string { // TODO: add useLocation
+  // TODO: useParams()?
+  // TODO: useLocation()?
+  useLocationHash(): string {
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
   }
@@ -641,4 +643,3 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-// TODO: useParams()?

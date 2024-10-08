@@ -124,7 +124,7 @@ export const popupWrapper = makeComponent(function popupWrapper(props: PopupWrap
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
   const movePopup = () => {
     if (!state.open) return;
     const popupNode = popup._.prevNode as HTMLDivElement;

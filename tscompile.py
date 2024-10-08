@@ -218,4 +218,3 @@ const foo = 13;""")
     `hello world`;
     const incrementValue = (by/*: number*/) => {};
   """.strip())
-# TODO: make a proper compiler, since this fails on division

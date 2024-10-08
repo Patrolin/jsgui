@@ -18,7 +18,6 @@ export type TableProps = {
   useMaxHeight?: boolean;
 } & BaseProps;
 export const table = makeComponent(function table(props: TableProps & BaseProps) {
-  // TODO: set minHeight to fit N rows
   // TODO: actions, filters, search, paging, selection
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
   const tableWrapper = this.append(div({
