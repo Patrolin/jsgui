@@ -80,10 +80,11 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
+    displayRow.append(testKeysComponent({}));
+    //displayRow.append(testKeysComponent({key: "testKeysComponent"}));
   }
 });
-const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps) {
+const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps = {}) {
   this.append(span(""));
 });
 

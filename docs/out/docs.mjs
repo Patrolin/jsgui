@@ -90,6 +90,7 @@ export class CountryDate {
     return ""; // TODO: search for iso string matching this date
   }
 }
+/*
 setTimeout(() => {
   let a = CountryDate.fromIsoString("2022-03-01T00:00:00Z");
   console.log("ayaya.date", a);
@@ -98,6 +99,35 @@ setTimeout(() => {
   console.log("ayaya.date", a);
   console.log('ayaya.dateString', a.toLocaleString());
 })
+*/
+/* stringUtils.mts */
+/** Return stringified JSON with extra undefineds */
+export function stringifyJs(v/*: any*/)/*: string*/ {
+  if (v === undefined) return "undefined";
+  return JSON.stringify(v); // TODO: also handle nested nulls
+}
+/** Return stringified JSON */
+export function stringifyJson(v/*: any*/)/*: string*/ {
+  return JSON.stringify(v);
+}
+export function parseJson(v/*: string*/)/*: any*/ {
+  return JSON.parse(v);
+}
+/** Return stringified JSON with object keys and arrays sorted */
+export function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
+  const replacer = (_key/*: string*/, value/*: any*/) =>
+    value instanceof Object
+      ? value instanceof Array
+        ? [...value].sort()
+        : Object.keys(value)
+            .sort()
+            .reduce((sorted/*: Record<string, any>*/, key) => {
+              sorted[key] = value[key];
+              return sorted;
+            }, {})
+      : value;
+  return JSON.stringify(data, replacer);
+}
 /* jsgui.mts */
 // utils
 export const JSGUI_VERSION = "v0.14";
@@ -108,7 +138,7 @@ export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
     return null;
   }
 }
-// TODO!: sortBy(), groupBy()
+// TODO!: sortBy(), groupBy(), asArray()
 export function camelCaseToKebabCase(key/*: string*/) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
@@ -223,9 +253,9 @@ export function _setChildKey(component/*: Component*/, child/*: Component*/) {
   let key = child.baseProps.key;
   if (key == null) {
     if (name === "text") {
-      key = `text-${component.indexedTextCount++}`;
+      key = `auto_${component.indexedTextCount++}_text`;
     } else {
-      key = `${name}-${component.indexedChildCount++}`;
+      key = `auto_${component.indexedChildCount++}_${name}`;
     }
   }
   child.key = key;
@@ -382,6 +412,10 @@ export function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderF
     }
     const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {})/* as BaseProps & StringMap*/;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {}/* as EventsMap*/, ...props} = propsAndBaseProps;
+    if (('key' in propsAndBaseProps) && !key) {
+      const name = options.name ?? onRender.name;
+      console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
+    }
     const baseProps/*: RenderedBaseProps*/ = {
       key: (key != null) ? String(key) : undefined,
       style,
@@ -505,9 +539,10 @@ export class ComponentMetadata {
   prevBeforeNode/*: NodeType | null*/ = null;
   prevComponent/*: Component | null*/ = null;
   keyToChild/*: StringMap<ComponentMetadata>*/ = {};
-  prevIndexedChildCount/*: number | null*/ = null;
   parent/*: ComponentMetadata | RootComponentMetadata | null*/;
   root/*: RootComponentMetadata*/;
+  // debug
+  prevIndexedChildCount/*: number | null*/ = null;
   constructor(parent/*: ComponentMetadata | RootComponentMetadata | null*/) {
     this.parent = parent;
     this.root = parent?.root ?? null/* as any*/;
@@ -569,14 +604,10 @@ export const _START_BASE_PROPS/*: InheritedBaseProps*/ = {
 // TODO: make this non-recursive for cleaner console errors
 export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/, beforeNodeStack/*: (NodeType | null)[]*/ = [], _inheritedBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
+  const {_, name, args, baseProps, props, onRender} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
-  const {node, children} = component; // NOTE: get node and children after render
-  // warn if missing keys
+  const {node, children, indexedChildCount} = component; // NOTE: get after render
   const prevIndexedChildCount = _.prevIndexedChildCount;
-  if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
-    console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, _.prevComponent, component);
-  }
   // inherit
   let inheritedBaseProps = {
     attribute: {..._inheritedBaseProps.attribute, ...baseProps.attribute},
@@ -686,9 +717,14 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
   _.prevNode = node;
   _.prevIndexedChildCount = indexedChildCount;
   _.prevState = {..._.state};
+  const prevComponent = _.prevComponent;
   _.prevComponent = component;
   if (onMount) onMount();
   if (onUnmount) _.onUnmount = onUnmount;
+  // warn if missing keys
+  if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
+    console.warn(`Added/removed children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, prevComponent, component);
+  }
 }
 
 // rerender
@@ -726,6 +762,7 @@ export const BASE_COLORS/*: Record<BaseColor, string>*/ = {
   gray: "0, 0, 0",
   secondary: "20, 80, 160", // TODO: find a better secondary color
   red: "200, 50, 50",
+  // TODO: yellow, green
 };
 export const COLOR_SHADES = ["0", "1", "2", "3", "4", "5", "6"];
 
@@ -1500,6 +1537,24 @@ setTimeout(() => {
   //console.log(generateFontSizeCssVars());
   //console.log(generateColorCssVars());
 })
+/* debugKeysPage.mts */
+export const debugKeysPage = makeComponent(function debugKeysPage() {
+  const state = this.useState({
+    toggle: false,
+  });
+  this.append(button("Toggle", {events: {
+    click: () => {
+      state.toggle = !state.toggle;
+      this.rerender();
+    }
+  }}));
+  if (state.toggle) {
+    //this.append(span("wow"));
+    this.append(span("wow", {key: undefined}));
+    //this.append(span("wow", {key: null}));
+    //this.append(span("wow", {key: ''}));
+  }
+});
 /* notFoundPage.mts */
 export const notFoundPage = makeComponent(function notFoundPage() {
   this.append(span("Page not found"));
@@ -1900,10 +1955,11 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
+    displayRow.append(testKeysComponent({}));
+    //displayRow.append(testKeysComponent({key: "testKeysComponent"}));
   }
 });
-const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/) {
+const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
   this.append(span(""));
 });
 
@@ -1964,6 +2020,14 @@ export const ROUTES = [
     showInNavigation: true,
     label: "Theme creator",
   },
+  {
+    path: `${GITHUB_PAGES_PREFIX}/debugKeys`,
+    defaultPath: "/debugKeys",
+    component: () => debugKeysPage(),
+    wrapper: false,
+    showInNavigation: false,
+    label: "Theme creator",
+  }
 ];
 export const root = makeComponent(function root() {
   this.append(

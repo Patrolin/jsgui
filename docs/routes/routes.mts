@@ -21,6 +21,14 @@ export const ROUTES = [
     showInNavigation: true,
     label: "Theme creator",
   },
+  {
+    path: `${GITHUB_PAGES_PREFIX}/debugKeys`,
+    defaultPath: "/debugKeys",
+    component: () => debugKeysPage(),
+    wrapper: false,
+    showInNavigation: false,
+    label: "Theme creator",
+  }
 ];
 export const root = makeComponent(function root() {
   this.append(

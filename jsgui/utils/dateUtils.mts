@@ -88,6 +88,7 @@ export class CountryDate {
     return ""; // TODO: search for iso string matching this date
   }
 }
+/*
 setTimeout(() => {
   let a = CountryDate.fromIsoString("2022-03-01T00:00:00Z");
   console.log("ayaya.date", a);
@@ -96,3 +97,4 @@ setTimeout(() => {
   console.log("ayaya.date", a);
   console.log('ayaya.dateString', a.toLocaleString());
 })
+*/

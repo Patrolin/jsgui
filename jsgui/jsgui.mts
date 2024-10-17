@@ -1,5 +1,7 @@
+import { stringifyJs } from "./utils/stringUtils.mts";
+
 // utils
-export const JSGUI_VERSION = "v0.14";
+export const JSGUI_VERSION = "v0.15";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -7,7 +9,7 @@ export function parseJsonOrNull(jsonString: string): JSONValue {
     return null;
   }
 }
-// TODO!: sortBy(), groupBy()
+// TODO!: sortBy(), groupBy(), asArray()
 export function camelCaseToKebabCase(key: string) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
@@ -122,9 +124,9 @@ export function _setChildKey(component: Component, child: Component) {
   let key = child.baseProps.key;
   if (key == null) {
     if (name === "text") {
-      key = `text-${component.indexedTextCount++}`;
+      key = `auto_${component.indexedTextCount++}_text`;
     } else {
-      key = `${name}-${component.indexedChildCount++}`;
+      key = `auto_${component.indexedChildCount++}_${name}`;
     }
   }
   child.key = key;
@@ -281,6 +283,10 @@ export function makeComponent<A extends Parameters<any>>(onRender: RenderFunctio
     }
     const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {}) as BaseProps & StringMap;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} as EventsMap, ...props} = propsAndBaseProps;
+    if (('key' in propsAndBaseProps) && !key) {
+      const name = options.name ?? onRender.name;
+      console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
+    }
     const baseProps: RenderedBaseProps = {
       key: (key != null) ? String(key) : undefined,
       style,
@@ -404,9 +410,10 @@ export class ComponentMetadata {
   prevBeforeNode: NodeType | null = null;
   prevComponent: Component | null = null;
   keyToChild: StringMap<ComponentMetadata> = {};
-  prevIndexedChildCount: number | null = null;
   parent: ComponentMetadata | RootComponentMetadata | null;
   root: RootComponentMetadata;
+  // debug
+  prevIndexedChildCount: number | null = null;
   constructor(parent: ComponentMetadata | RootComponentMetadata | null) {
     this.parent = parent;
     this.root = parent?.root ?? null as any;
@@ -468,14 +475,10 @@ export const _START_BASE_PROPS: InheritedBaseProps = {
 // TODO: make this non-recursive for cleaner console errors
 export function _render(component: Component, parentNode: ParentNodeType, beforeNodeStack: (NodeType | null)[] = [], _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender, indexedChildCount} = component;
+  const {_, name, args, baseProps, props, onRender} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
-  const {node, children} = component; // NOTE: get node and children after render
-  // warn if missing keys
+  const {node, children, indexedChildCount} = component; // NOTE: get after render
   const prevIndexedChildCount = _.prevIndexedChildCount;
-  if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
-    console.warn(`Varying children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, _.prevComponent, component);
-  }
   // inherit
   let inheritedBaseProps = {
     attribute: {..._inheritedBaseProps.attribute, ...baseProps.attribute},
@@ -585,9 +588,14 @@ export function _render(component: Component, parentNode: ParentNodeType, before
   _.prevNode = node;
   _.prevIndexedChildCount = indexedChildCount;
   _.prevState = {..._.state};
+  const prevComponent = _.prevComponent;
   _.prevComponent = component;
   if (onMount) onMount();
   if (onUnmount) _.onUnmount = onUnmount;
+  // warn if missing keys
+  if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
+    console.warn(`Added/removed children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, prevComponent, component);
+  }
 }
 
 // rerender
