@@ -594,7 +594,7 @@ export function _render(component: Component, parentNode: ParentNodeType, before
   if (onUnmount) _.onUnmount = onUnmount;
   // warn if missing keys
   if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
-    console.warn(`Added/removed children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, prevComponent, component);
+    console.warn(`Newly added/removed children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, prevComponent, component);
   }
 }
 
