@@ -130,7 +130,7 @@ export function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
 }
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "wtf-v0.15";
+export const JSGUI_VERSION = "v0.16-dev";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -723,7 +723,7 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
   if (onUnmount) _.onUnmount = onUnmount;
   // warn if missing keys
   if (prevIndexedChildCount !== null && (indexedChildCount !== prevIndexedChildCount)) {
-    console.warn(`Added/removed children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, prevComponent, component);
+    console.warn(`Newly added/removed children should have a "key" prop. (${prevIndexedChildCount} -> ${indexedChildCount})`, prevComponent, component);
   }
 }
 
@@ -1500,6 +1500,89 @@ export const table = makeComponent(function table(props/*: TableProps & BaseProp
     }
   }
 });
+/* webgpu.mts */
+/*
+declare global {
+  interface Window {
+    GPUBufferUsage: {
+      COPY_DST: number;
+      COPY_SRC: number;
+      INDEX: number;
+      INDIRECT: number;
+      MAP_READ: number;
+      MAP_WRITE: number;
+      QUERY_RESOLVE: number;
+      STORAGE: number;
+      UNIFORM: number;
+      VERTEX: number;
+    }
+  }
+}
+*/
+
+/*type ContextType = any;*/
+/*type WebgpuRenderProps = {
+  context: ContextType;
+  device: any;
+  shaderModule: any;
+};*/
+/*type WebgpuProps = {
+  width: number;
+  height: number;
+  shaderCode: string;
+  render: (renderProps: WebgpuRenderProps) => void
+} & BaseProps;*/
+export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
+  const {width, height, shaderCode, render} = props;
+  const state = this.useState({
+    _isDeviceInitialized: false,
+    context: null/* as ContextType | null*/,
+    device: null/* as any*/,
+    shaderModule: null/* as any*/,
+  });
+  const node = this.useNode(() => document.createElement("canvas"));
+  node.width = width;
+  node.height = height;
+  this.baseProps.style.width = width;
+  this.baseProps.style.height = height;
+  // WebGPU
+  const renderIfNeeded = () => {
+    if (!state.context && state.device) {
+      state.context = node.getContext("webgpu");
+      (state.context/* as any*/).configure({
+        device: state.device,
+        format: navigator['gpu'].getPreferredCanvasFormat(),
+        alphaMode: 'premultiplied',
+      });
+    }
+    if (state.context && state.device && state.shaderModule) render({context: state.context, device: state.device, shaderModule: state.shaderModule});
+  };
+  if (!state._isDeviceInitialized) {
+    state._isDeviceInitialized = true;
+    const gpu = navigator['gpu']/* as any*/;
+    if (!gpu) {
+      console.error("WebGPU is not supported in this browser.")
+      return;
+    }
+    gpu.requestAdapter().then(adapter => {
+      if (!adapter) {
+        console.error("Couldn't request WebGPU adapter.");
+        return;
+      }
+      adapter.requestDevice().then(device => {
+        state.device = device;
+        // TODO: create/delete shaders dynamically (device.destroy()?)?
+        state.shaderModule = device.createShaderModule({code: shaderCode});
+        renderIfNeeded();
+      });
+    });
+  }
+  return {
+    onMount: () => {
+      renderIfNeeded();
+    }
+  }
+});
 /* generateFontVars.mts */
 export function generateFontSizeCssVars(names/*: string[]*/ = Object.values(SIZES)) {
   /*type SizeDef = {
@@ -1975,10 +2058,129 @@ export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
     component: tableSection,
   },
 ];
+/* webgpuSection.mts */
+const webgpuSection = makeComponent(function buttonSection() {
+  let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  const shaderCode = `
+    struct VertexOut {
+      @builtin(position) position : vec4f,
+      @location(0) color : vec4f
+    }
+
+    @vertex
+    fn vertex_main(
+      @location(0) position: vec4f,
+      @location(1) color: vec4f
+    ) -> VertexOut {
+      var output : VertexOut;
+      output.position = position;
+      output.color = color;
+      return output;
+    }
+
+    @fragment
+    fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
+      return fragData.color;
+    }
+  `;
+  row.append(webgpu({
+    width: 64,
+    height: 64,
+    shaderCode,
+    render: ({context, device, shaderModule}) => {
+      const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
+      // Vertex data for triangle
+      // Each vertex has 8 values representing position and color: X Y Z W R G B A
+      const vertices = new Float32Array([
+        0.0,  0.6, 0, 1, 1, 0, 0, 1,
+       -0.5, -0.6, 0, 1, 0, 1, 0, 1,
+        0.5, -0.6, 0, 1, 0, 0, 1, 1
+      ]);
+      // NOTE: copy paste from MDN
+      const vertexBuffer = device.createBuffer({
+        size: vertices.byteLength, // make it big enough to store vertices in
+        usage: window['GPUBufferUsage'].VERTEX | window['GPUBufferUsage'].COPY_DST,
+      });
+
+      // Copy the vertex data over to the GPUBuffer using the writeBuffer() utility function
+      device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length);
+
+      // 5: Create a GPUVertexBufferLayout and GPURenderPipelineDescriptor to provide a definition of our render pipline
+      const vertexBuffers = [{
+        attributes: [{
+          shaderLocation: 0, // position
+          offset: 0,
+          format: 'float32x4'
+        }, {
+          shaderLocation: 1, // color
+          offset: 16,
+          format: 'float32x4'
+        }],
+        arrayStride: 32,
+        stepMode: 'vertex'
+      }];
+
+      const pipelineDescriptor = {
+        vertex: {
+          module: shaderModule,
+          entryPoint: 'vertex_main',
+          buffers: vertexBuffers
+        },
+        fragment: {
+          module: shaderModule,
+          entryPoint: 'fragment_main',
+          targets: [{
+            format: navigator['gpu'].getPreferredCanvasFormat()
+          }]
+        },
+        primitive: {
+          topology: 'triangle-list'
+        },
+        layout: 'auto'
+      };
+
+      // 6: Create the actual render pipeline
+      const renderPipeline = device.createRenderPipeline(pipelineDescriptor); // TODO: can we store the descriptors and pipeline?
+
+      // 7: Create GPUCommandEncoder to issue commands to the GPU
+      // Note: render pass descriptor, command encoder, etc. are destroyed after use, fresh one needed for each frame.
+      const commandEncoder = device.createCommandEncoder();
+
+      // 8: Create GPURenderPassDescriptor to tell WebGPU which texture to draw into, then initiate render pass
+      const renderPassDescriptor = {
+        colorAttachments: [{
+          clearValue: clearColor,
+          loadOp: 'clear',
+          storeOp: 'store',
+          view: context.getCurrentTexture().createView(),
+        }]
+      };
+
+      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+      // 9: Draw the triangle
+      passEncoder.setPipeline(renderPipeline);
+      passEncoder.setVertexBuffer(0, vertexBuffer);
+      passEncoder.draw(3);
+
+      // End the render pass
+      passEncoder.end();
+
+      // 10: End frame by passing array of command buffers to command queue for execution
+      device.queue.submit([commandEncoder.finish()]);
+    }
+  }))
+});
+export const WEBGPU_SECTION/*: MainPageSection*/ = {
+  id: 'webgpuSection',
+  label: 'WebGPU',
+  component: webgpuSection,
+}
 /* mainPage.mts */
 export const MAIN_PAGE_SECTIONS/*: MainPageSection[]*/ = [
   ...BASIC_COMPONENT_SECTIONS,
   ...INPUT_SECTIONS,
+  WEBGPU_SECTION,
 ];
 export const mainPage = makeComponent(function mainPage() {
   const wrapper = this.append(

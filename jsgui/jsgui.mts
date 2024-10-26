@@ -1,7 +1,7 @@
 import { stringifyJs } from "./utils/stringUtils.mts";
 
 // utils
-export const JSGUI_VERSION = "v0.15";
+export const JSGUI_VERSION = "v0.16-dev";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);

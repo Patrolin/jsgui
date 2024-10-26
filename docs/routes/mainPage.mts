@@ -1,11 +1,13 @@
 import { code, div, makeComponent, span } from '../../jsgui/out/jsgui.mts';
 import { BASIC_COMPONENT_SECTIONS } from '../components/basicComponents.mts';
 import { INPUT_SECTIONS } from '../components/inputs.mts';
+import { WEBGPU_SECTION } from '../components/webgpuSection.mts';
 import {MainPageSection} from '../utils/utils.mts';
 
 export const MAIN_PAGE_SECTIONS: MainPageSection[] = [
   ...BASIC_COMPONENT_SECTIONS,
   ...INPUT_SECTIONS,
+  WEBGPU_SECTION,
 ];
 export const mainPage = makeComponent(function mainPage() {
   const wrapper = this.append(

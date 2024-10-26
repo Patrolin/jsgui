@@ -1,5 +1,5 @@
 {
-  "include": ["**.mts", "components/popup.mts", "utils/dateUtils.mts", "utils/stringUtils.mts"],
+  "include": ["**.mts", "jsgui.mts", "generateFontVars.mts", "utils/dateUtils.mts", "utils/stringUtils.mts"],
   "compilerOptions": {
     "target": "ES6",
     "lib": ["dom", "dom.iterable", "esnext"],
