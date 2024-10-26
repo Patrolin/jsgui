@@ -1,9 +1,9 @@
 {
-  "include": ["**.mts", "../jsgui/out/jsgui.mts"],
+  "include": ["**/*.mts", "../jsgui/out/jsgui.mts"],
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "module": "ES6",
+    "module": "ESNext",
     "moduleResolution": "Bundler",
     "emitDeclarationOnly": true,
     "declaration": true,

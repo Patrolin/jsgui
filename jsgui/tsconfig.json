@@ -1,9 +1,9 @@
 {
-  "include": ["**.mts", "jsgui.mts", "generateFontVars.mts", "utils/dateUtils.mts", "utils/stringUtils.mts"],
+  "include": ["**/*.mts"],
   "compilerOptions": {
-    "target": "ES6",
+    "target": "ESNext",
     "lib": ["dom", "dom.iterable", "esnext"],
-    "module": "ES6",
+    "module": "ESNext",
     "moduleResolution": "Bundler",
     "emitDeclarationOnly": true,
     "declaration": true,

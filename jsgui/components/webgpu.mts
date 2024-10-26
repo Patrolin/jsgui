@@ -1,7 +1,17 @@
 import { BaseProps, makeComponent } from "../jsgui.mts";
 
-/*
-declare global {
+type GPUType = {
+  requestAdapter(): Promise<AdapterType>;
+  getPreferredCanvasFormat(): any;
+};
+type AdapterType = {
+  requestDevice(): Promise<DeviceType>;
+};
+type DeviceType = {
+  createShaderModule(options: {code: string}): ShaderModuleType;
+};
+type ShaderModuleType = {};
+/*declare global {
   interface Window {
     GPUBufferUsage: {
       COPY_DST: number;
@@ -16,8 +26,10 @@ declare global {
       VERTEX: number;
     }
   }
-}
-*/
+  interface Navigator {
+    gpu: GPUType | undefined;
+  }
+}*/
 
 type ContextType = any;
 type WebgpuRenderProps = {
@@ -36,7 +48,7 @@ export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
   const state = this.useState({
     _isDeviceInitialized: false,
     context: null as ContextType | null,
-    device: null as any,
+    device: null as DeviceType | null,
     shaderModule: null as any,
   });
   const node = this.useNode(() => document.createElement("canvas"));
@@ -50,7 +62,7 @@ export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
       state.context = node.getContext("webgpu");
       (state.context as any).configure({
         device: state.device,
-        format: navigator['gpu'].getPreferredCanvasFormat(),
+        format: navigator.gpu?.getPreferredCanvasFormat(),
         alphaMode: 'premultiplied',
       });
     }
@@ -58,7 +70,7 @@ export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
   };
   if (!state._isDeviceInitialized) {
     state._isDeviceInitialized = true;
-    const gpu = navigator['gpu'] as any;
+    const gpu = navigator.gpu;
     if (!gpu) {
       console.error("WebGPU is not supported in this browser.")
       return;
