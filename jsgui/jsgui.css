@@ -158,6 +158,19 @@ code {
 .icon[clickable="true"] {
   cursor: pointer;
 }
+.textarea {
+  width: 168px;
+  border: 1px solid var(--gray-3);
+  padding: 3px 2px;
+  line-height: 1;
+  position: relative;
+}
+.textarea:empty::after {
+  position: relative;
+  content: attr(placeholder);
+  color: var(--gray-4);
+  cursor: text;
+}
 dialog {
   outline: none;
   border: none;

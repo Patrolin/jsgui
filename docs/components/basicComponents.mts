@@ -13,6 +13,10 @@ const htmlSection = makeComponent(function htmlSection() {
     style: {height: 'var(--size-normal)'},
     attribute: {placeholder: "textarea"}},
   ));
+  row.append(textarea({
+    autoresize: true,
+    attribute: {placeholder: "textarea +autoresize"}},
+  ));
   const someButton = row.append(button("button", {
     style: {height: 'var(--size-normal)', fontSize: "14px"},
   }));

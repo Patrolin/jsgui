@@ -64,8 +64,11 @@ export const button = makeComponent(function button(text: string, _props: BasePr
 export const input = makeComponent(function input(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("input"));
 });
-export const textarea = makeComponent(function input(_props: BaseProps = {}) {
-  this.useNode(() => document.createElement("textarea"));
+export type TextAreaProps = BaseProps & {autoresize?: boolean};
+export const textarea = makeComponent(function textarea(props: TextAreaProps = {}) {
+  const {autoresize} = props;
+  const node = this.useNode(() => document.createElement(autoresize ? "span" : "textarea"), autoresize);
+  if (autoresize) node.contentEditable = "true";
 });
 export const img = makeComponent(function img(src: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("img"));

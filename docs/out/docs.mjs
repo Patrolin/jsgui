@@ -867,8 +867,11 @@ export const button = makeComponent(function button(text/*: string*/, _props/*: 
 export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("input"));
 });
-export const textarea = makeComponent(function input(_props/*: BaseProps*/ = {}) {
-  this.useNode(() => document.createElement("textarea"));
+/*export type TextAreaProps = BaseProps & {autoresize?: boolean};*/
+export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/ = {}) {
+  const {autoresize} = props;
+  const node = this.useNode(() => document.createElement(autoresize ? "span" : "textarea"), autoresize);
+  if (autoresize) node.contentEditable = "true";
 });
 export const img = makeComponent(function img(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("img"));
@@ -1798,6 +1801,10 @@ const htmlSection = makeComponent(function htmlSection() {
   row.append(textarea({
     style: {height: 'var(--size-normal)'},
     attribute: {placeholder: "textarea"}},
+  ));
+  row.append(textarea({
+    autoresize: true,
+    attribute: {placeholder: "textarea +autoresize"}},
   ));
   const someButton = row.append(button("button", {
     style: {height: 'var(--size-normal)', fontSize: "14px"},
