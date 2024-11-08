@@ -2,7 +2,7 @@ import {BaseProps, clamp, div, makeComponent, numberInput, span, table, textInpu
 import {MainPageSection} from '../utils/utils.mts';
 
 const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({username: ""});
+  const [state, setState] = this.useState({username: ""});
   // username
   let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
   row.append(
@@ -10,8 +10,7 @@ const textInputSection = makeComponent(function textInputSection() {
       label: "Username",
       value: state.username,
       onInput: (event) => {
-        state.username = event.target.value;
-        this.rerender();
+        setState({username: event.target.value});
       },
       //autoFocus: true,
     })
@@ -29,7 +28,6 @@ const textInputSection = makeComponent(function textInputSection() {
       onInput: (event) => {
         const newCount = event.target.value;
         setCount(newCount === "" ? null : +newCount);
-        this.rerender();
       },
       min: 0,
       clearable: false,
@@ -80,8 +78,7 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({}));
-    //displayRow.append(testKeysComponent({key: "testKeysComponent"}));
+    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
   }
 });
 const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps = {}) {

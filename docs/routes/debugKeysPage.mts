@@ -1,13 +1,12 @@
 import { button, makeComponent, span } from "../../jsgui/out/jsgui.mts";
 
 export const debugKeysPage = makeComponent(function debugKeysPage() {
-  const state = this.useState({
+  const [state, setState] = this.useState({
     toggle: false,
   });
   this.append(button("Toggle", {events: {
     click: () => {
-      state.toggle = !state.toggle;
-      this.rerender();
+      setState({toggle: !state.toggle});
     }
   }}));
   if (state.toggle) {

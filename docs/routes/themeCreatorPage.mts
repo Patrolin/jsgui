@@ -1,7 +1,7 @@
 import { BaseProps, div, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput } from "../../jsgui/out/jsgui.mts";
 
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const state = this.useState({
+  const [state, setState] = this.useState({
     color: '#1450a0',
     count: 7,
   });
@@ -11,8 +11,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
       if (value.match("#[0-9a-zA-Z]{6}")) return value;
     },
     onInput: (event) => {
-      state.color = event.target.value;
-      this.rerender();
+      setState({color: event.target.value});
     },
     label: 'Color',
   }));
@@ -20,8 +19,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
     value: state.count,
     min: 0,
     onInput: (event) => {
-      state.count = +event.target.value;
-      this.rerender();
+      setState({count: +event.target.value});
     },
     label: 'Count',
   }));

@@ -234,6 +234,8 @@ export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*
   onUnmount?: () => void,
 };*/
 /*export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;*/
+/*export type SetState<T> = (newValue: T) => void;*/
+/*export type UseNodeState = {nodeDependOn?: any};*/
 /*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;*/
 /*export type NavigateFunction = (url: string) => void;*/
 /*export type UseNavigate = {
@@ -294,10 +296,11 @@ export class Component {
     this.indexedTextCount = 0;
   }
   useNode/*<T extends NodeType>*/(getNode/*: () => T*/, nodeDependOn/*: : any*/)/*: T*/ {
-    const state = this.useState({})/* as {nodeDependOn?: any}*/;
+    const [state] = this.useState/*<UseNodeState>*/({});
     let node = this.getNode();
     if (state.nodeDependOn !== nodeDependOn) {
       node = getNode();
+      state.nodeDependOn = nodeDependOn;
     } else if (node == null) {
       node = getNode();
     }
@@ -312,13 +315,21 @@ export class Component {
     _setChildKey(this, child);
     return child;
   }
-  useState/*<T extends object>*/(defaultState/*: T*/)/*: T*/ {
+  /** `return [value, setValueAndDispatch, setValue]` */
+  useState/*<T extends object>*/(defaultState/*: T*/)/*: [T, SetState<Partial<T>>, SetState<Partial<T>>]*/ {
     const {_} = this;
     if (!_.stateIsInitialized) {
       _.state = defaultState;
       _.stateIsInitialized = true;
     }
-    return _.state/* as T*/;
+    const setState = (newValue/*: Partial<T>*/) => {
+      _.state = {..._.state, ...newValue};
+    };
+    const setStateAndRerender = (newValue/*: Partial<T>*/) => {
+      setState(newValue);
+      this.rerender();
+    }
+    return [_.state/* as T*/, setStateAndRerender, setState];
   }
   useValidate/*<K extends string>*/(getErrors/*: GetErrorsFunction<K>*/) {
     return () => {
@@ -341,19 +352,22 @@ export class Component {
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
   }
-  useLocalStorage/*<T>*/(key/*: string*/, defaultValue/*: T*/)/*: [T, (newValue: T) => void, (newValue: T) => void]*/ {
+  /** `return [value, setValueAndDispatch, setValue]` */
+  useLocalStorage/*<T>*/(key/*: string*/, defaultValue/*: T*/)/*: [T, SetState<T>, SetState<T>]*/ {
     _dispatchTargets.localStorage.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key])/* as [T] | null*/)?.[0] ?? defaultValue;
     const setValue = (newValue/*: T*/) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
     }
     const setValueAndDispatch = (newValue/*: T*/) => {
+      const prevValue = localStorage[key];
       setValue(newValue);
-      if (JSON.stringify([newValue]) !== localStorage[key]) {
+      if (JSON.stringify([newValue]) !== prevValue) {
         _dispatchTargets.localStorage.dispatch();
+        this.rerender();
       }
     }
-    return [value, setValue, setValueAndDispatch];
+    return [value, setValueAndDispatch, setValue];
   }
   /* TODO!: rewrite as actual compiler
   useParams<T = Record<string, string>>(): T {
@@ -428,7 +442,7 @@ export function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderF
   }
 }
 export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ = {}) {
-  const state = this.useState({prevStr: ""});
+  const [state] = this.useState({prevStr: ""});
   const e = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
     state.prevStr = str;
@@ -985,7 +999,7 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
     allowDisplayString = () => true,
     allowString = (value) => value,
   } = props;
-  const state = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
+  const [state] = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
   state.prevAllowedString = String(value ?? '');
   const e = this.useNode(() => document.createElement('input'));
   e.type = type;
@@ -1172,7 +1186,7 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
 });*/
 export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
   const {open, onClose, closeOnClickBackdrop} = props;
-  const state = this.useState({ prevOpen: false });
+  const [state] = this.useState({ prevOpen: false });
   const e = this.useNode(() => document.createElement("dialog"));
   e.onclick = (event) => {
     if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
@@ -1285,7 +1299,7 @@ export function _getPopupLeftTopWithFlipAndClamp(props/*: {
 };*/
 export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
   const {content, direction: _direction = "up", open, interactable = false} = props;
-  const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
+  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
   const wrapper = this.useNode(() => document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
   const movePopup = () => {
@@ -1546,7 +1560,7 @@ export const table = makeComponent(function table(props/*: TableProps & BaseProp
 } & BaseProps;*/
 export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
   const {width, height, shaderCode, render} = props;
-  const state = this.useState({
+  const [state] = this.useState({
     _isDeviceInitialized: false,
     context: null/* as ContextType | null*/,
     device: null/* as DeviceType | null*/,
@@ -1563,7 +1577,7 @@ export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
       state.context = node.getContext("webgpu");
       (state.context/* as any*/).configure({
         device: state.device,
-        format: navigator.gpu?.getPreferredCanvasFormat(),
+        format: (navigator/* as any*/).gpu?.getPreferredCanvasFormat(),
         alphaMode: 'premultiplied',
       });
     }
@@ -1571,17 +1585,17 @@ export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
   };
   if (!state._isDeviceInitialized) {
     state._isDeviceInitialized = true;
-    const gpu = navigator.gpu;
+    const gpu = (navigator/* as any*/).gpu;
     if (!gpu) {
       console.error("WebGPU is not supported in this browser.")
       return;
     }
-    gpu.requestAdapter().then(adapter => {
+    gpu.requestAdapter().then((adapter/*: any*/) => {
       if (!adapter) {
         console.error("Couldn't request WebGPU adapter.");
         return;
       }
-      adapter.requestDevice().then(device => {
+      adapter.requestDevice().then((device/*: any*/) => {
         state.device = device;
         // TODO: create/delete shaders dynamically (device.destroy()?)?
         state.shaderModule = device.createShaderModule({code: shaderCode});
@@ -1634,13 +1648,12 @@ setTimeout(() => {
 })
 /* debugKeysPage.mts */
 export const debugKeysPage = makeComponent(function debugKeysPage() {
-  const state = this.useState({
+  const [state, setState] = this.useState({
     toggle: false,
   });
   this.append(button("Toggle", {events: {
     click: () => {
-      state.toggle = !state.toggle;
-      this.rerender();
+      setState({toggle: !state.toggle});
     }
   }}));
   if (state.toggle) {
@@ -1656,7 +1669,7 @@ export const notFoundPage = makeComponent(function notFoundPage() {
 });
 /* themeCreatorPage.mts */
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const state = this.useState({
+  const [state, setState] = this.useState({
     color: '#1450a0',
     count: 7,
   });
@@ -1666,8 +1679,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
       if (value.match("#[0-9a-zA-Z]{6}")) return value;
     },
     onInput: (event) => {
-      state.color = event.target.value;
-      this.rerender();
+      setState({color: event.target.value});
     },
     label: 'Color',
   }));
@@ -1675,8 +1687,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
     value: state.count,
     min: 0,
     onInput: (event) => {
-      state.count = +event.target.value;
-      this.rerender();
+      setState({count: +event.target.value});
     },
     label: 'Count',
   }));
@@ -1854,29 +1865,22 @@ const spinnerSection = makeComponent(function spinnerSection() {
   row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
   row.append(progress({color: 'secondary-0'}));
   // linear progress determinate
-  const state = this.useState({ progress: 0.0 });
+  const [state, setState] = this.useState({ progress: 0.0 });
   row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
   row.append(progress({fraction: state.progress, color: 'secondary-0'}));
   row = this.append(div({className: "display-row", style: {marginTop: 0}}));
   row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
     color: "secondary",
     onClick: () => {
-      state.progress = (state.progress + 0.2) % 1.2;
-      this.rerender();
+      setState({progress: (state.progress + 0.2) % 1.2});
     }
   }));
 });
 const dialogSection = makeComponent(function dialogSection() {
   const row = this.append(div({className: "display-row"}));
-  const state = this.useState({dialogOpen: false});
-  const openDialog = () => {
-    state.dialogOpen = true;
-    this.rerender();
-  };
-  const closeDialog = () => {
-    state.dialogOpen = false;
-    this.rerender();
-  };
+  const [state, setState] = this.useState({dialogOpen: false});
+  const openDialog = () => setState({dialogOpen: true});
+  const closeDialog = () => setState({dialogOpen: false});
   row.append(coloredButton("Open dialog", {color: "secondary", onClick: openDialog}));
   const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
   dialogWrapper.append(span("Hello world"));
@@ -1897,7 +1901,7 @@ const popupSection = makeComponent(function popupSection() {
     }));
     rightPopup.append(span(`direction: "${direction}"`));
   }
-  const state = this.useState({buttonPopupOpen: false});
+  const [state, setState] = this.useState({buttonPopupOpen: false});
   const row = this.append(div({className: "wide-display-row"}));
   const popup = row.append(popupWrapper({
     content: span("Tiny"),
@@ -1907,8 +1911,7 @@ const popupSection = makeComponent(function popupSection() {
   }));
   popup.append(coloredButton(`Toggle popup`, {
     onClick: () => {
-      state.buttonPopupOpen = !state.buttonPopupOpen;
-      this.rerender();
+      setState({buttonPopupOpen: !state.buttonPopupOpen});
     },
   }));
 });
@@ -1972,7 +1975,7 @@ export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
 ];
 /* inputs.mts */
 const textInputSection = makeComponent(function textInputSection() {
-  const state = this.useState({username: ""});
+  const [state, setState] = this.useState({username: ""});
   // username
   let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
   row.append(
@@ -1980,8 +1983,7 @@ const textInputSection = makeComponent(function textInputSection() {
       label: "Username",
       value: state.username,
       onInput: (event) => {
-        state.username = event.target.value;
-        this.rerender();
+        setState({username: event.target.value});
       },
       //autoFocus: true,
     })
@@ -1999,7 +2001,6 @@ const textInputSection = makeComponent(function textInputSection() {
       onInput: (event) => {
         const newCount = event.target.value;
         setCount(newCount === "" ? null : +newCount);
-        this.rerender();
       },
       min: 0,
       clearable: false,
@@ -2050,8 +2051,7 @@ const tableSection = makeComponent(function tableSection() {
     })
   );
   if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({}));
-    //displayRow.append(testKeysComponent({key: "testKeysComponent"}));
+    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
   }
 });
 const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {

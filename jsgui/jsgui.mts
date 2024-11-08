@@ -105,6 +105,8 @@ export type RenderReturn = void | {
   onUnmount?: () => void,
 };
 export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
+export type SetState<T> = (newValue: T) => void;
+export type UseNodeState = {nodeDependOn?: any};
 export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 export type NavigateFunction = (url: string) => void;
 export type UseNavigate = {
@@ -165,10 +167,11 @@ export class Component {
     this.indexedTextCount = 0;
   }
   useNode<T extends NodeType>(getNode: () => T, nodeDependOn?: any): T {
-    const state = this.useState({}) as {nodeDependOn?: any};
+    const [state] = this.useState<UseNodeState>({});
     let node = this.getNode();
     if (state.nodeDependOn !== nodeDependOn) {
       node = getNode();
+      state.nodeDependOn = nodeDependOn;
     } else if (node == null) {
       node = getNode();
     }
@@ -183,13 +186,21 @@ export class Component {
     _setChildKey(this, child);
     return child;
   }
-  useState<T extends object>(defaultState: T): T {
+  /** `return [value, setValueAndDispatch, setValue]` */
+  useState<T extends object>(defaultState: T): [T, SetState<Partial<T>>, SetState<Partial<T>>] {
     const {_} = this;
     if (!_.stateIsInitialized) {
       _.state = defaultState;
       _.stateIsInitialized = true;
     }
-    return _.state as T;
+    const setState = (newValue: Partial<T>) => {
+      _.state = {..._.state, ...newValue};
+    };
+    const setStateAndRerender = (newValue: Partial<T>) => {
+      setState(newValue);
+      this.rerender();
+    }
+    return [_.state as T, setStateAndRerender, setState];
   }
   useValidate<K extends string>(getErrors: GetErrorsFunction<K>) {
     return () => {
@@ -212,19 +223,22 @@ export class Component {
     dispatchTarget.addComponent(this);
     return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
   }
-  useLocalStorage<T>(key: string, defaultValue: T): [T, (newValue: T) => void, (newValue: T) => void] {
+  /** `return [value, setValueAndDispatch, setValue]` */
+  useLocalStorage<T>(key: string, defaultValue: T): [T, SetState<T>, SetState<T>] {
     _dispatchTargets.localStorage.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
     const setValue = (newValue: T) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
     }
     const setValueAndDispatch = (newValue: T) => {
+      const prevValue = localStorage[key];
       setValue(newValue);
-      if (JSON.stringify([newValue]) !== localStorage[key]) {
+      if (JSON.stringify([newValue]) !== prevValue) {
         _dispatchTargets.localStorage.dispatch();
+        this.rerender();
       }
     }
-    return [value, setValue, setValueAndDispatch];
+    return [value, setValueAndDispatch, setValue];
   }
   /* TODO!: rewrite as actual compiler
   useParams<T = Record<string, string>>(): T {
@@ -299,7 +313,7 @@ export function makeComponent<A extends Parameters<any>>(onRender: RenderFunctio
   }
 }
 export const text = makeComponent(function text(str: string, _props: {} = {}) {
-  const state = this.useState({prevStr: ""});
+  const [state] = this.useState({prevStr: ""});
   const e = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
     state.prevStr = str;

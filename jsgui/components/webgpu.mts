@@ -45,7 +45,7 @@ type WebgpuProps = {
 } & BaseProps;
 export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
   const {width, height, shaderCode, render} = props;
-  const state = this.useState({
+  const [state] = this.useState({
     _isDeviceInitialized: false,
     context: null as ContextType | null,
     device: null as DeviceType | null,
@@ -62,7 +62,7 @@ export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
       state.context = node.getContext("webgpu");
       (state.context as any).configure({
         device: state.device,
-        format: navigator.gpu?.getPreferredCanvasFormat(),
+        format: (navigator as any).gpu?.getPreferredCanvasFormat(),
         alphaMode: 'premultiplied',
       });
     }
@@ -70,17 +70,17 @@ export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
   };
   if (!state._isDeviceInitialized) {
     state._isDeviceInitialized = true;
-    const gpu = navigator.gpu;
+    const gpu = (navigator as any).gpu;
     if (!gpu) {
       console.error("WebGPU is not supported in this browser.")
       return;
     }
-    gpu.requestAdapter().then(adapter => {
+    gpu.requestAdapter().then((adapter: any) => {
       if (!adapter) {
         console.error("Couldn't request WebGPU adapter.");
         return;
       }
-      adapter.requestDevice().then(device => {
+      adapter.requestDevice().then((device: any) => {
         state.device = device;
         // TODO: create/delete shaders dynamically (device.destroy()?)?
         state.shaderModule = device.createShaderModule({code: shaderCode});

@@ -41,7 +41,7 @@ export const controlledInput = makeComponent(function controlledInput(props: Inp
     allowDisplayString = () => true,
     allowString = (value) => value,
   } = props;
-  const state = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
+  const [state] = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
   state.prevAllowedString = String(value ?? '');
   const e = this.useNode(() => document.createElement('input'));
   e.type = type;

@@ -9,7 +9,7 @@ export type DialogProps = BaseProps & ({
 });
 export const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
   const {open, onClose, closeOnClickBackdrop} = props;
-  const state = this.useState({ prevOpen: false });
+  const [state] = this.useState({ prevOpen: false });
   const e = this.useNode(() => document.createElement("dialog"));
   e.onclick = (event) => {
     if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
@@ -122,7 +122,7 @@ export type PopupWrapperProps = {
 };
 export const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
   const {content, direction: _direction = "up", open, interactable = false} = props;
-  const state = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null as EventListener | null});
+  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(() => document.createElement("div"));
   const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
   const movePopup = () => {

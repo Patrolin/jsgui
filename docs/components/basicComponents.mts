@@ -82,29 +82,22 @@ const spinnerSection = makeComponent(function spinnerSection() {
   row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
   row.append(progress({color: 'secondary-0'}));
   // linear progress determinate
-  const state = this.useState({ progress: 0.0 });
+  const [state, setState] = this.useState({ progress: 0.0 });
   row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
   row.append(progress({fraction: state.progress, color: 'secondary-0'}));
   row = this.append(div({className: "display-row", style: {marginTop: 0}}));
   row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
     color: "secondary",
     onClick: () => {
-      state.progress = (state.progress + 0.2) % 1.2;
-      this.rerender();
+      setState({progress: (state.progress + 0.2) % 1.2});
     }
   }));
 });
 const dialogSection = makeComponent(function dialogSection() {
   const row = this.append(div({className: "display-row"}));
-  const state = this.useState({dialogOpen: false});
-  const openDialog = () => {
-    state.dialogOpen = true;
-    this.rerender();
-  };
-  const closeDialog = () => {
-    state.dialogOpen = false;
-    this.rerender();
-  };
+  const [state, setState] = this.useState({dialogOpen: false});
+  const openDialog = () => setState({dialogOpen: true});
+  const closeDialog = () => setState({dialogOpen: false});
   row.append(coloredButton("Open dialog", {color: "secondary", onClick: openDialog}));
   const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
   dialogWrapper.append(span("Hello world"));
@@ -125,7 +118,7 @@ const popupSection = makeComponent(function popupSection() {
     }));
     rightPopup.append(span(`direction: "${direction}"`));
   }
-  const state = this.useState({buttonPopupOpen: false});
+  const [state, setState] = this.useState({buttonPopupOpen: false});
   const row = this.append(div({className: "wide-display-row"}));
   const popup = row.append(popupWrapper({
     content: span("Tiny"),
@@ -135,8 +128,7 @@ const popupSection = makeComponent(function popupSection() {
   }));
   popup.append(coloredButton(`Toggle popup`, {
     onClick: () => {
-      state.buttonPopupOpen = !state.buttonPopupOpen;
-      this.rerender();
+      setState({buttonPopupOpen: !state.buttonPopupOpen});
     },
   }));
 });
