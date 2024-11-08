@@ -130,7 +130,7 @@ export function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
 }
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.16";
+export const JSGUI_VERSION = "v0.17";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
