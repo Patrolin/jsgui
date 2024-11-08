@@ -64,6 +64,9 @@ export const button = makeComponent(function button(text: string, _props: BasePr
 export const input = makeComponent(function input(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("input"));
 });
+export const textarea = makeComponent(function input(_props: BaseProps = {}) {
+  this.useNode(() => document.createElement("textarea"));
+});
 export const img = makeComponent(function img(src: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("img"));
   this.baseProps.attribute.src = src;

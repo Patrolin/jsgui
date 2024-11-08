@@ -1,4 +1,4 @@
-import {audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, img, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, progress, SIZES, span, svg, video} from '../../jsgui/out/jsgui.mts';
+import {audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, dialog, div, icon, img, input, loadingSpinner, makeComponent, PopupDirection, popupWrapper, progress, SIZES, span, svg, textarea, video} from '../../jsgui/out/jsgui.mts';
 import {getSizeLabel, MainPageSection} from '../utils/utils.mts';
 
 const htmlSection = makeComponent(function htmlSection() {
@@ -8,6 +8,10 @@ const htmlSection = makeComponent(function htmlSection() {
   row.append(input({
     style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
     attribute: {placeholder: "input"}},
+  ));
+  row.append(textarea({
+    style: {height: 'var(--size-normal)'},
+    attribute: {placeholder: "textarea"}},
   ));
   const someButton = row.append(button("button", {
     style: {height: 'var(--size-normal)', fontSize: "14px"},

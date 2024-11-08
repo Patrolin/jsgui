@@ -867,6 +867,9 @@ export const button = makeComponent(function button(text/*: string*/, _props/*: 
 export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("input"));
 });
+export const textarea = makeComponent(function input(_props/*: BaseProps*/ = {}) {
+  this.useNode(() => document.createElement("textarea"));
+});
 export const img = makeComponent(function img(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("img"));
   this.baseProps.attribute.src = src;
@@ -1791,6 +1794,10 @@ const htmlSection = makeComponent(function htmlSection() {
   row.append(input({
     style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
     attribute: {placeholder: "input"}},
+  ));
+  row.append(textarea({
+    style: {height: 'var(--size-normal)'},
+    attribute: {placeholder: "textarea"}},
   ));
   const someButton = row.append(button("button", {
     style: {height: 'var(--size-normal)', fontSize: "14px"},
