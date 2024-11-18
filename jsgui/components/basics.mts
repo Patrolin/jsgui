@@ -64,11 +64,30 @@ export const button = makeComponent(function button(text: string, _props: BasePr
 export const input = makeComponent(function input(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("input"));
 });
-export type TextAreaProps = BaseProps & {autoresize?: boolean};
+export type TextAreaProps = BaseProps & {
+  onPaste?: (event: ClipboardEvent, clipboardData: DataTransfer) => string;
+};
 export const textarea = makeComponent(function textarea(props: TextAreaProps = {}) {
-  const {autoresize} = props;
-  const node = this.useNode(() => document.createElement(autoresize ? "span" : "textarea"), autoresize);
-  if (autoresize) node.contentEditable = "true";
+  const {onPaste = (_event, clipboardData) => {
+    return clipboardData.getData("Text");
+  }} = props;
+  const node = this.useNode(() => document.createElement("span"));
+  node.contentEditable = "true";
+  this.baseProps.events.paste = (event) => {
+    event.preventDefault();
+    const replaceString = onPaste(event, event.clipboardData as DataTransfer)
+    const selection = window.getSelection() as Selection;
+    const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
+    const selectionStart = Math.min(selectionA, selectionB);
+    const selectionEnd = Math.max(selectionA, selectionB);
+    const prevValue = node.innerText;
+    const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
+    node.innerText = newValue;
+    const newSelectionRange = document.createRange();
+    newSelectionRange.setStart(node.childNodes[0], selectionStart + replaceString.length);
+    selection.removeAllRanges();
+    selection.addRange(newSelectionRange);
+  }
 });
 export const img = makeComponent(function img(src: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("img"));

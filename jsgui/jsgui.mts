@@ -50,6 +50,7 @@ export type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mouse
   & Record<"beforeinput" | "input", _EventListener<InputEventWithTarget>>
   & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
   & Record<"change", _EventListener<ChangeEventWithTarget>>
+  & Record<"paste", _EventListener<ClipboardEvent>>
   & Record<string, _EventListener>>;
 export type UndoPartial<T> = T extends Partial<infer R> ? R : T;
 export type Diff<T> = {

@@ -179,6 +179,7 @@ export function rgbFromHexString(hexString/*: string*/)/*: string*/ {
   & Record<"beforeinput" | "input", _EventListener<InputEventWithTarget>>
   & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
   & Record<"change", _EventListener<ChangeEventWithTarget>>
+  & Record<"paste", _EventListener<ClipboardEvent>>
   & Record<string, _EventListener>>;*/
 /*export type UndoPartial<T> = T extends Partial<infer R> ? R : T;*/
 /*export type Diff<T> = {
@@ -867,11 +868,32 @@ export const button = makeComponent(function button(text/*: string*/, _props/*: 
 export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("input"));
 });
-/*export type TextAreaProps = BaseProps & {autoresize?: boolean};*/
+/*export type TextAreaProps = BaseProps & {
+  onPaste?: (event: ClipboardEvent, clipboardData: DataTransfer) => string;
+};*/
 export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/ = {}) {
-  const {autoresize} = props;
-  const node = this.useNode(() => document.createElement(autoresize ? "span" : "textarea"), autoresize);
-  if (autoresize) node.contentEditable = "true";
+  const {onPaste = (_event, clipboardData) => {
+    return clipboardData.getData("Text");
+  }} = props;
+  const node = this.useNode(() => document.createElement("span"));
+  node.contentEditable = "true";
+  this.baseProps.events.paste = (event) => {
+    event.preventDefault();
+    const replaceString = onPaste(event, event.clipboardData/* as DataTransfer*/)
+    const selection = window.getSelection()/* as Selection*/;
+    const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
+    const selectionStart = Math.min(selectionA, selectionB);
+    const selectionEnd = Math.max(selectionA, selectionB);
+    const prevValue = node.innerText;
+    const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
+    node.innerText = newValue;
+    const newSelectionRange = document.createRange();
+    //newSelectionRange.selectNodeContents(node);
+    //newSelectionRange.
+    newSelectionRange.setStart(node.childNodes[0], selectionStart + replaceString.length);
+    selection.removeAllRanges();
+    selection.addRange(newSelectionRange);
+  }
 });
 export const img = makeComponent(function img(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("img"));
@@ -1801,10 +1823,6 @@ const htmlSection = makeComponent(function htmlSection() {
   row.append(textarea({
     style: {height: 'var(--size-normal)'},
     attribute: {placeholder: "textarea"}},
-  ));
-  row.append(textarea({
-    autoresize: true,
-    attribute: {placeholder: "textarea +autoresize"}},
   ));
   const someButton = row.append(button("button", {
     style: {height: 'var(--size-normal)', fontSize: "14px"},
