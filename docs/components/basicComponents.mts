@@ -10,7 +10,6 @@ const htmlSection = makeComponent(function htmlSection() {
     attribute: {placeholder: "input"}},
   ));
   row.append(textarea({
-    style: {height: 'var(--size-normal)'},
     attribute: {placeholder: "textarea"}},
   ));
   const someButton = row.append(button("button", {

@@ -83,10 +83,8 @@ export const textarea = makeComponent(function textarea(props: TextAreaProps = {
     const prevValue = node.innerText;
     const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
     node.innerText = newValue;
-    const newSelectionRange = document.createRange();
-    newSelectionRange.setStart(node.childNodes[0], selectionStart + replaceString.length);
-    selection.removeAllRanges();
-    selection.addRange(newSelectionRange);
+    const newSelectionEnd = selectionStart + replaceString.length;
+    selection.setPosition(node.childNodes[0], newSelectionEnd);
   }
 });
 export const img = makeComponent(function img(src: string, _props: BaseProps = {}) {
