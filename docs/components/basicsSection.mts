@@ -1,7 +1,7 @@
 import { audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, div, icon, img, input, makeComponent, SIZES, span, svg, textarea, video } from "../../jsgui/out/jsgui.mts";
 import { DocsSection, getSizeLabel } from "../utils/utils.mts";
 
-const htmlInputsPage = makeComponent(function htmlInputsPage() {
+const htmlPage = makeComponent(function htmlPage() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
     row.append(input({
@@ -81,7 +81,7 @@ export const BASICS_SECTION: DocsSection = {
     id: "basics",
     label: "Basics",
     pages: [
-        {id: "html", label: "HTML", component: htmlInputsPage},
+        {id: "html", label: "HTML", component: htmlPage},
         {id: "span", label: "Span", component: spanPage},
         {id: "anchor", label: "Anchor", component: anchorPage},
         {id: "button", label: "Button", component: buttonPage},

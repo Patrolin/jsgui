@@ -2,12 +2,14 @@ import { code, div, makeComponent, tabs } from '../../jsgui/out/jsgui.mts';
 import { DISPLAYS_SECTION } from '../components/displaysSection.mts';
 import { BASICS_SECTION } from '../components/basicsSection.mts';
 import {DocsSection, getGithubPrefix} from '../utils/utils.mts';
-import { INPUTS_SECTION } from '../components/inputs.mts';
+import { INPUTS_SECTION } from '../components/inputsSection.mts';
+import { WEBGPU_SECTION } from '../components/webgpuSection.mts';
 
 export const DOCS_SECTIONS: DocsSection[] = [
   BASICS_SECTION,
   DISPLAYS_SECTION,
   INPUTS_SECTION,
+  WEBGPU_SECTION,
 ];
 
 export const docsPage = makeComponent(function docsPage() {

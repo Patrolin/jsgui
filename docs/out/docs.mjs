@@ -1846,7 +1846,7 @@ export function getGithubPrefix()/*: string*/ {
   return window.location.pathname.startsWith(githubPrefix) ? githubPrefix : "";
 }
 /* basicsSection.mts */
-const htmlInputsPage = makeComponent(function htmlInputsPage() {
+const htmlPage = makeComponent(function htmlPage() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
     row.append(input({
@@ -1926,7 +1926,7 @@ export const BASICS_SECTION/*: DocsSection*/ = {
     id: "basics",
     label: "Basics",
     pages: [
-        {id: "html", label: "HTML", component: htmlInputsPage},
+        {id: "html", label: "HTML", component: htmlPage},
         {id: "span", label: "Span", component: spanPage},
         {id: "anchor", label: "Anchor", component: anchorPage},
         {id: "button", label: "Button", component: buttonPage},
@@ -2032,7 +2032,7 @@ export const DISPLAYS_SECTION/*: DocsSection*/ = {
         {id: "tabs", label: "Tabs", component: tabsPage},
     ],
 };
-/* inputs.mts */
+/* inputsSection.mts */
 const textInputPage = makeComponent(function textInputPage() {
   const [state, setState] = this.useState({username: ""});
   // username
@@ -2125,7 +2125,7 @@ export const INPUTS_SECTION/*: DocsSection*/ = {
   ],
 };
 /* webgpuSection.mts */
-const webgpuSection = makeComponent(function buttonSection() {
+const trianglePage = makeComponent(function trianglePage() {
   let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
   const shaderCode = `
     struct VertexOut {
@@ -2237,16 +2237,19 @@ const webgpuSection = makeComponent(function buttonSection() {
     }
   }))
 });
-export const WEBGPU_SECTION/*: MainPageSection*/ = {
-  id: 'webgpuSection',
-  label: 'WebGPU',
-  component: webgpuSection,
-}
+export const WEBGPU_SECTION/*: DocsSection*/ = {
+    id: "webgpu",
+    label: "WebGPU",
+    pages: [
+        {id: "triangle", label: "Triangle", component: trianglePage},
+    ],
+};
 /* docsPage.mts */
 export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   BASICS_SECTION,
   DISPLAYS_SECTION,
   INPUTS_SECTION,
+  WEBGPU_SECTION,
 ];
 
 export const docsPage = makeComponent(function docsPage() {
