@@ -1,5 +1,5 @@
-import { BaseProps, Component, ComponentFunction, makeComponent } from "../jsgui.mts";
-import { div, icon, IconProps, span } from "./basics.mts";
+import { BaseProps, makeComponent } from "../../jsgui.mts";
+import { div, icon, IconProps, span } from "../basics.mts";
 
 // spinners
 export const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {

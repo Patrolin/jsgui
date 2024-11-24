@@ -109,7 +109,7 @@ export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: 
 export type SetState<T> = (newValue: T) => void;
 export type UseNodeState = {nodeDependOn?: any};
 export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
-export type NavigateFunction = (url: string) => void;
+export type NavigateFunction = (url: string) => void; // TODO: split url into origin, pathname and query
 export type UseNavigate = {
   /** add url to history and reload page */
   pushRoute: NavigateFunction;
@@ -297,7 +297,7 @@ export function makeComponent<A extends Parameters<any>>(onRender: RenderFunctio
     }
     const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {}) as BaseProps & StringMap;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} as EventsMap, ...props} = propsAndBaseProps;
-    if (('key' in propsAndBaseProps) && !key) {
+    if (('key' in propsAndBaseProps) && ((key == null) || (key === ""))) {
       const name = options.name ?? onRender.name;
       console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
     }

@@ -1,15 +1,38 @@
 import { code, div, makeComponent, tabs } from '../../jsgui/out/jsgui.mts';
-import { DISPLAYS_SECTION } from '../components/displaysSection.mts';
 import { BASICS_SECTION } from '../components/basicsSection.mts';
 import {DocsSection, getGithubPrefix} from '../utils/utils.mts';
-import { INPUTS_SECTION } from '../components/inputsSection.mts';
-import { WEBGPU_SECTION } from '../components/webgpuSection.mts';
+import { textInputPage } from '../components/inputs/textInputPage.mts';
+import { dialogPage } from '../components/displays/dialogPage.mts';
+import { progressPage } from '../components/displays/progressPage.mts';
+import { popupPage } from '../components/displays/popupPage.mts';
+import { mediaQueryPage } from '../components/displays/mediaQueryPage.mts';
+import { tablePage } from '../components/displays/tablePage.mts';
+import { tabsPage } from '../components/displays/tabsPage.mts';
+import { webgpuPage } from '../components/displays/webgpuPage.mts';
 
 export const DOCS_SECTIONS: DocsSection[] = [
   BASICS_SECTION,
-  DISPLAYS_SECTION,
-  INPUTS_SECTION,
-  WEBGPU_SECTION,
+  {
+    id: "displays",
+    label: "Displays",
+    pages: [
+        {id: "dialog", label: "Dialog", component: dialogPage},
+        {id: "popup", label: "Popup", component: popupPage},
+        {id: "progress", label: "Progress", component: progressPage},
+        {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
+        // TODO: document router
+        {id: "table", label: "Table", component: tablePage},
+        {id: "tabs", label: "Tabs", component: tabsPage},
+        {id: "webgpu", label: "WebGPU", component: webgpuPage},
+    ],
+  },
+  {
+    id: "inputs",
+    label: "Inputs",
+    pages: [
+      {id: "textInput", label: "Text input", component: textInputPage},
+    ]
+  },
 ];
 
 export const docsPage = makeComponent(function docsPage() {

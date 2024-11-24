@@ -1,6 +1,6 @@
-import { BaseProps, ComponentFunction, makeComponent } from "../jsgui.mts";
-import { div, span } from "./basics.mts";
-import { loadingSpinner } from "./displays.mts";
+import { BaseProps, ComponentFunction, makeComponent } from "../../jsgui.mts";
+import { div, span } from "../basics.mts";
+import { loadingSpinner } from "../displays/displays.mts";
 
 export type TableColumn = {
   label: string;

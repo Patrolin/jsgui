@@ -238,7 +238,7 @@ export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*
 /*export type SetState<T> = (newValue: T) => void;*/
 /*export type UseNodeState = {nodeDependOn?: any};*/
 /*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;*/
-/*export type NavigateFunction = (url: string) => void;*/
+/*export type NavigateFunction = (url: string) => void;*/ // TODO: split url into origin, pathname and query
 /*export type UseNavigate = {
   /** add url to history and reload page *//*
   pushRoute: NavigateFunction;
@@ -426,7 +426,7 @@ export function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderF
     }
     const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {})/* as BaseProps & StringMap*/;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {}/* as EventsMap*/, ...props} = propsAndBaseProps;
-    if (('key' in propsAndBaseProps) && !key) {
+    if (('key' in propsAndBaseProps) && ((key == null) || (key === ""))) {
       const name = options.name ?? onRender.name;
       console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
     }
@@ -1028,225 +1028,6 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
     }));
   });
 });
-/* inputs.mts */
-/*export type ButtonProps = {
-  size?: Size;
-  color?: BaseColor;
-  onClick?: () => void;
-  disabled?: boolean;
-}*/
-// inputs
-export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
-  const {size, color, onClick, disabled} = props;
-  const e = this.useNode(() => document.createElement("button"));
-  if (text) this.append(span(text));
-  const {attribute} = this.baseProps;
-  if (size) attribute.dataSize = size;
-  if (color) attribute.dataColor = color;
-  if (disabled) attribute.disabled = "true";
-  else if (onClick) {
-    e.onmousedown = () => {
-      requestAnimationFrame(onClick);
-    }
-  }
-});
-/*export type InputProps = {
-  type?: "text";
-  placeholder?: string;
-  value: string | number | null | undefined;
-  autoFocus?: boolean;
-  onFocus?: (event: FocusEvent) => void;
-  onBlur?: (event: FocusEvent) => void;
-  onKeyDown?: (event: KeyboardEvent) => void;
-  onRawInput?: (event: InputEventWithTarget) => void;
-  onInput?: (event: InputEventWithTarget) => void;
-  onChange?: (event: ChangeEventWithTarget) => void;
-  allowDisplayString?: (value: string) => boolean;
-  allowString?: (value: string) => string | undefined;
-} & BaseProps;*/
-export const controlledInput = makeComponent(function controlledInput(props/*: InputProps*/) {
-  const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onRawInput, onInput, onChange,
-    allowDisplayString = () => true,
-    allowString = (value) => value,
-  } = props;
-  const [state] = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
-  state.prevAllowedString = String(value ?? '');
-  const e = this.useNode(() => document.createElement('input'));
-  e.type = type;
-  if (placeholder) e.placeholder = placeholder;
-  if (autoFocus) e.autofocus = true;
-  if (value != null) e.value = String(value);
-  e.onfocus = onFocus/* as _EventListener*/;
-  e.onblur = onBlur/* as _EventListener*/;
-  e.onkeydown = onKeyDown/* as _EventListener*/;
-  e.oninput = (_event) => {
-    const event = _event/* as InputEventWithTarget*/;
-    if (event.data != null && !allowDisplayString(e.value)) {
-      event.preventDefault();
-      event.stopPropagation();
-      e.value = state.prevAllowedDisplayString;
-      return;
-    }
-    state.prevAllowedDisplayString = e.value;
-    if (onRawInput) onRawInput(event);
-    const allowedString = allowString(e.value);
-    if (allowedString === e.value && onInput) onInput(event);
-  }
-  e.onchange = (_event) => { // NOTE: called only on blur
-    const event = _event/* as ChangeEventWithTarget*/;
-    const allowedString = allowString(e.value) ?? state.prevAllowedString;
-    state.prevAllowedString = allowedString;
-    if (e.value !== allowedString) {
-      e.value = allowedString;
-      const target = event.target;
-      if (onRawInput) onRawInput({target}/* as InputEventWithTarget*/);
-      if (onInput) onInput({target}/* as InputEventWithTarget*/);
-    }
-    if (onChange) onChange(event);
-  };
-});
-/*export type LabeledInputProps = {
-  label?: string;
-  leftComponent?: Component;
-  inputComponent: Component;
-  rightComponent?: Component;
-} & BaseProps;*/
-export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
-  const {label = " ", leftComponent, inputComponent, rightComponent} = props;
-  const fieldset = this.useNode(() => document.createElement("fieldset"));
-  fieldset.onmousedown = (_event/*: any*/) => {
-    const event = _event/* as MouseEvent*/;
-    if (event.target !== inputComponent._.prevNode) {
-      event.preventDefault();
-    }
-  }
-  fieldset.onclick = (_event/*: any*/) => {
-    const event = _event/* as MouseEvent*/;
-    const prevNode = inputComponent._.prevNode/* as ParentNodeType*/;
-    if (prevNode && (event.target !== prevNode)) {
-      prevNode.focus();
-    }
-  };
-  this.append(legend(label))
-  if (leftComponent) this.append(leftComponent);
-  this.append(inputComponent);
-  if (rightComponent) this.append(rightComponent);
-});
-export const errorMessage = makeComponent(function errorMessage(error/*: string*/, props/*: SpanProps*/ = {}) {
-  this.append(span(error, {color: "red", size: "small", ...props}));
-});
-/*export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
-  error?: string,
-  value: string | null | undefined;
-};*/
-export const textInput = makeComponent(function textInput(props/*: TextInputProps*/) {
-  const {label, leftComponent, rightComponent, error, ...extraProps} = props;
-  this.append(labeledInput({
-    label,
-    leftComponent,
-    inputComponent: controlledInput(extraProps),
-    rightComponent,
-  }));
-  if (error) this.append(errorMessage(error));
-});
-/*export type NumberArrowProps = {
-  onClickUp?: (event: MouseEvent) => void;
-  onClickDown?: (event: MouseEvent) => void;
-} & BaseProps;*/
-export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
-  const { onClickUp, onClickDown } = props;
-  this.useNode(() => document.createElement("div"));
-  this.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
-  this.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
-});
-/*export type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
-  error?: string,
-  min?: number,
-  max?: number,
-  step?: number,
-  stepPrecision?: number,
-  clearable?: boolean,
-  onRawInput?: ((event: InputEventWithTarget) => void);
-  onInput?: ((event: InputEventWithTarget) => void);
-  onChange?: ((event: ChangeEventWithTarget) => void)
-};*/
-export const numberInput = makeComponent(function numberInput(props/*: NumberInputProps*/) {
-  const {
-    label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
-    value, min, max, step, stepPrecision, clearable = true, onKeyDown, onRawInput, onInput, onChange, ...extraProps // numberInput
-  } = props;
-  const stepAndClamp = (number/*: number*/) => {
-    if (step) {
-      const stepOffset = min ?? max ?? 0;
-      number = stepOffset + Math.round((number - stepOffset) / step) * step;
-    }
-    number = Math.min(number, max ?? 1/0);
-    number = Math.max(min ?? -1/0, number);
-    const defaultStepPrecision = String(step).split(".")[1]?.length ?? 0;
-    return number.toFixed(stepPrecision ?? defaultStepPrecision);
-  };
-  const incrementValue = (by/*: number*/) => {
-    const number = stepAndClamp(+(value ?? 0) + by);
-    const newValue = String(number);
-    const target = inputComponent._.prevNode/* as HTMLInputElement*/;
-    target.value = newValue;
-    if (onRawInput) onRawInput({target}/* as unknown as InputEventWithTarget*/);
-    if (onInput) onInput({target}/* as unknown as InputEventWithTarget*/);
-    if (onChange) onChange({target}/* as ChangeEventWithTarget*/);
-  };
-  const inputComponent = controlledInput({
-    value,
-    onKeyDown: (event/*: KeyboardEvent*/) => {
-      switch (event.key) {
-        case "ArrowUp":
-          incrementValue(step ?? 1);
-          event.preventDefault();
-          break;
-        case "ArrowDown":
-          incrementValue(-(step ?? 1));
-          event.preventDefault();
-          break;
-      }
-      if (onKeyDown) onKeyDown(event);
-    },
-    onRawInput,
-    onInput,
-    onChange,
-    ...extraProps,
-    allowDisplayString: (value) => value.split("").every((c, i) => {
-      if (c === "-" && i === 0) return true;
-      if (c === "." && ((step ?? 1) % 1) !== 0) return true;
-      return "0123456789".includes(c);
-    }),
-    allowString: (value) => {
-      const isAllowed = (value === "") ? clearable : !isNaN(+value);
-      if (isAllowed) {
-        return String(stepAndClamp(+value));
-      }
-    }
-  });
-  const rightComponent = fragment();
-  if (customRightComponent) rightComponent.append(customRightComponent);
-  rightComponent.append(numberArrows({
-    onClickUp: (_event/*: MouseEvent*/) => {
-      incrementValue(step ?? 1);
-      inputComponent._.state.needFocus = true;
-      inputComponent.rerender();
-    },
-    onClickDown: (_event/*: MouseEvent*/) => {
-      incrementValue(-(step ?? 1));
-      inputComponent._.state.needFocus = true;
-      inputComponent.rerender();
-    },
-  }));
-  this.append(labeledInput({
-    label,
-    leftComponent,
-    inputComponent,
-    rightComponent: rightComponent,
-  }));
-  if (error) this.append(errorMessage(error));
-});
 /* popup.mts */
 // dialog
 /*export type DialogProps = BaseProps & ({
@@ -1466,6 +1247,8 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
   currentRoute: Route;
   contentWrapperComponent: ComponentFunction<any>,
 };*/
+// TODO: colon params
+// TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
 export const router = makeComponent(function router(props/*: RouterProps*/) {
   const {
     routes,
@@ -1662,6 +1445,225 @@ export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
     }
   }
 });
+/* inputs.mts */
+/*export type ButtonProps = {
+  size?: Size;
+  color?: BaseColor;
+  onClick?: () => void;
+  disabled?: boolean;
+}*/
+// inputs
+export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
+  const {size, color, onClick, disabled} = props;
+  const e = this.useNode(() => document.createElement("button"));
+  if (text) this.append(span(text));
+  const {attribute} = this.baseProps;
+  if (size) attribute.dataSize = size;
+  if (color) attribute.dataColor = color;
+  if (disabled) attribute.disabled = "true";
+  else if (onClick) {
+    e.onmousedown = () => {
+      requestAnimationFrame(onClick);
+    }
+  }
+});
+/*export type InputProps = {
+  type?: "text";
+  placeholder?: string;
+  value: string | number | null | undefined;
+  autoFocus?: boolean;
+  onFocus?: (event: FocusEvent) => void;
+  onBlur?: (event: FocusEvent) => void;
+  onKeyDown?: (event: KeyboardEvent) => void;
+  onRawInput?: (event: InputEventWithTarget) => void;
+  onInput?: (event: InputEventWithTarget) => void;
+  onChange?: (event: ChangeEventWithTarget) => void;
+  allowDisplayString?: (value: string) => boolean;
+  allowString?: (value: string) => string | undefined;
+} & BaseProps;*/
+export const controlledInput = makeComponent(function controlledInput(props/*: InputProps*/) {
+  const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onRawInput, onInput, onChange,
+    allowDisplayString = () => true,
+    allowString = (value) => value,
+  } = props;
+  const [state] = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
+  state.prevAllowedString = String(value ?? '');
+  const e = this.useNode(() => document.createElement('input'));
+  e.type = type;
+  if (placeholder) e.placeholder = placeholder;
+  if (autoFocus) e.autofocus = true;
+  if (value != null) e.value = String(value);
+  e.onfocus = onFocus/* as _EventListener*/;
+  e.onblur = onBlur/* as _EventListener*/;
+  e.onkeydown = onKeyDown/* as _EventListener*/;
+  e.oninput = (_event) => {
+    const event = _event/* as InputEventWithTarget*/;
+    if (event.data != null && !allowDisplayString(e.value)) {
+      event.preventDefault();
+      event.stopPropagation();
+      e.value = state.prevAllowedDisplayString;
+      return;
+    }
+    state.prevAllowedDisplayString = e.value;
+    if (onRawInput) onRawInput(event);
+    const allowedString = allowString(e.value);
+    if (allowedString === e.value && onInput) onInput(event);
+  }
+  e.onchange = (_event) => { // NOTE: called only on blur
+    const event = _event/* as ChangeEventWithTarget*/;
+    const allowedString = allowString(e.value) ?? state.prevAllowedString;
+    state.prevAllowedString = allowedString;
+    if (e.value !== allowedString) {
+      e.value = allowedString;
+      const target = event.target;
+      if (onRawInput) onRawInput({target}/* as InputEventWithTarget*/);
+      if (onInput) onInput({target}/* as InputEventWithTarget*/);
+    }
+    if (onChange) onChange(event);
+  };
+});
+/*export type LabeledInputProps = {
+  label?: string;
+  leftComponent?: Component;
+  inputComponent: Component;
+  rightComponent?: Component;
+} & BaseProps;*/
+export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
+  const {label = " ", leftComponent, inputComponent, rightComponent} = props;
+  const fieldset = this.useNode(() => document.createElement("fieldset"));
+  fieldset.onmousedown = (_event/*: any*/) => {
+    const event = _event/* as MouseEvent*/;
+    if (event.target !== inputComponent._.prevNode) {
+      event.preventDefault();
+    }
+  }
+  fieldset.onclick = (_event/*: any*/) => {
+    const event = _event/* as MouseEvent*/;
+    const prevNode = inputComponent._.prevNode/* as ParentNodeType*/;
+    if (prevNode && (event.target !== prevNode)) {
+      prevNode.focus();
+    }
+  };
+  this.append(legend(label))
+  if (leftComponent) this.append(leftComponent);
+  this.append(inputComponent);
+  if (rightComponent) this.append(rightComponent);
+});
+export const errorMessage = makeComponent(function errorMessage(error/*: string*/, props/*: SpanProps*/ = {}) {
+  this.append(span(error, {color: "red", size: "small", ...props}));
+});
+/*export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
+  error?: string,
+  value: string | null | undefined;
+};*/
+export const textInput = makeComponent(function textInput(props/*: TextInputProps*/) {
+  const {label, leftComponent, rightComponent, error, ...extraProps} = props;
+  this.append(labeledInput({
+    label,
+    leftComponent,
+    inputComponent: controlledInput(extraProps),
+    rightComponent,
+  }));
+  if (error) this.append(errorMessage(error));
+});
+/*export type NumberArrowProps = {
+  onClickUp?: (event: MouseEvent) => void;
+  onClickDown?: (event: MouseEvent) => void;
+} & BaseProps;*/
+export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
+  const { onClickUp, onClickDown } = props;
+  this.useNode(() => document.createElement("div"));
+  this.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
+  this.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
+});
+/*export type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
+  error?: string,
+  min?: number,
+  max?: number,
+  step?: number,
+  stepPrecision?: number,
+  clearable?: boolean,
+  onRawInput?: ((event: InputEventWithTarget) => void);
+  onInput?: ((event: InputEventWithTarget) => void);
+  onChange?: ((event: ChangeEventWithTarget) => void)
+};*/
+export const numberInput = makeComponent(function numberInput(props/*: NumberInputProps*/) {
+  const {
+    label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
+    value, min, max, step, stepPrecision, clearable = true, onKeyDown, onRawInput, onInput, onChange, ...extraProps // numberInput
+  } = props;
+  const stepAndClamp = (number/*: number*/) => {
+    if (step) {
+      const stepOffset = min ?? max ?? 0;
+      number = stepOffset + Math.round((number - stepOffset) / step) * step;
+    }
+    number = Math.min(number, max ?? 1/0);
+    number = Math.max(min ?? -1/0, number);
+    const defaultStepPrecision = String(step).split(".")[1]?.length ?? 0;
+    return number.toFixed(stepPrecision ?? defaultStepPrecision);
+  };
+  const incrementValue = (by/*: number*/) => {
+    const number = stepAndClamp(+(value ?? 0) + by);
+    const newValue = String(number);
+    const target = inputComponent._.prevNode/* as HTMLInputElement*/;
+    target.value = newValue;
+    if (onRawInput) onRawInput({target}/* as unknown as InputEventWithTarget*/);
+    if (onInput) onInput({target}/* as unknown as InputEventWithTarget*/);
+    if (onChange) onChange({target}/* as ChangeEventWithTarget*/);
+  };
+  const inputComponent = controlledInput({
+    value,
+    onKeyDown: (event/*: KeyboardEvent*/) => {
+      switch (event.key) {
+        case "ArrowUp":
+          incrementValue(step ?? 1);
+          event.preventDefault();
+          break;
+        case "ArrowDown":
+          incrementValue(-(step ?? 1));
+          event.preventDefault();
+          break;
+      }
+      if (onKeyDown) onKeyDown(event);
+    },
+    onRawInput,
+    onInput,
+    onChange,
+    ...extraProps,
+    allowDisplayString: (value) => value.split("").every((c, i) => {
+      if (c === "-" && i === 0) return true;
+      if (c === "." && ((step ?? 1) % 1) !== 0) return true;
+      return "0123456789".includes(c);
+    }),
+    allowString: (value) => {
+      const isAllowed = (value === "") ? clearable : !isNaN(+value);
+      if (isAllowed) {
+        return String(stepAndClamp(+value));
+      }
+    }
+  });
+  const rightComponent = fragment();
+  if (customRightComponent) rightComponent.append(customRightComponent);
+  rightComponent.append(numberArrows({
+    onClickUp: (_event/*: MouseEvent*/) => {
+      incrementValue(step ?? 1);
+      inputComponent._.state.needFocus = true;
+      inputComponent.rerender();
+    },
+    onClickDown: (_event/*: MouseEvent*/) => {
+      incrementValue(-(step ?? 1));
+      inputComponent._.state.needFocus = true;
+      inputComponent.rerender();
+    },
+  }));
+  this.append(labeledInput({
+    label,
+    leftComponent,
+    inputComponent,
+    rightComponent: rightComponent,
+  }));
+  if (error) this.append(errorMessage(error));
+});
 /* generateFontVars.mts */
 export function generateFontSizeCssVars(names/*: string[]*/ = Object.values(SIZES)) {
   /*type SizeDef = {
@@ -1699,6 +1701,293 @@ setTimeout(() => {
   //console.log(generateFontSizeCssVars());
   //console.log(generateColorCssVars());
 })
+/* dialogPage.mts */
+export const dialogPage = makeComponent(function dialogPage() {
+    const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
+    const [state, setState] = this.useState({dialogOpen: false});
+    const openDialog = () => setState({dialogOpen: true});
+    const closeDialog = () => setState({dialogOpen: false});
+    row.append(coloredButton("Open dialog", {color: "secondary", onClick: openDialog}));
+    const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
+    dialogWrapper.append(span("Hello world"));
+});
+/* mediaQueryPage.mts */
+export const mediaQueryPage = makeComponent(function mediaQueryPage() {
+    const smOrBigger = this.useMedia({minWidth: 600});
+    const mdOrBigger = this.useMedia({minWidth: 900});
+    const lgOrBigger = this.useMedia({minWidth: 1200});
+    const xlOrBigger = this.useMedia({minWidth: 1500});
+    const column = this.append(div({className: "display-column"}));
+    column.append(span(`smOrBigger: ${smOrBigger}`));
+    column.append(span(`mdOrBigger: ${mdOrBigger}`));
+    column.append(span(`lgOrBigger: ${lgOrBigger}`));
+    column.append(span(`xlOrBigger: ${xlOrBigger}`));
+});
+/* popupPage.mts */
+export const popupPage = makeComponent(function popupPage() {
+    for (let direction of ["up", "right", "down", "left", "mouse"]/* as PopupDirection[]*/) {
+        const row = this.append(div({className: "wide-display-row"}));
+        const leftPopup = row.append(popupWrapper({
+            content: span("Tiny"),
+            direction,
+            interactable: direction !== "mouse",
+        }));
+        leftPopup.append(span(`direction: "${direction}"`));
+        const rightPopup = row.append(popupWrapper({
+            content: span("I can be too big to naively fit on the screen!"),
+            direction,
+            interactable: direction !== "mouse",
+        }));
+        rightPopup.append(span(`direction: "${direction}"`));
+    }
+    const [state, setState] = this.useState({buttonPopupOpen: false});
+    const row = this.append(div({className: "wide-display-row"}));
+    const popup = row.append(popupWrapper({
+        content: span("Tiny"),
+        direction: "down",
+        open: state.buttonPopupOpen,
+        interactable: true,
+    }));
+    popup.append(coloredButton(`Toggle popup`, {
+        onClick: () => {
+            setState({buttonPopupOpen: !state.buttonPopupOpen});
+        },
+    }));
+});
+/* progressPage.mts */
+export const progressPage = makeComponent(function progressPage() {
+    // loading spinner
+    let row = this.append(div({className: "display-row"}));
+    for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
+    // linear progress indeterminate
+    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+    row.append(progress({color: 'secondary-0'}));
+    // linear progress determinate
+    const [state, setState] = this.useState({ progress: 0.0 });
+    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+    row.append(progress({fraction: state.progress, color: 'secondary-0'}));
+    row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+    row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
+        color: "secondary",
+        onClick: () => {
+            setState({progress: (state.progress + 0.2) % 1.2});
+        }
+    }));
+});
+/* tablePage.mts */
+export const tablePage = makeComponent(function tablePage() {
+    const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
+    this.append(
+      numberInput({
+        label: "Count",
+        value: count,
+        onInput: (event) => {
+          const newCount = event.target.value;
+          setCount(newCount === "" ? null : +newCount);
+          this.rerender();
+        },
+        min: 0,
+        clearable: false,
+      })
+    );
+    const rows = Array(clamp(+(count ?? 0), 0, 100))
+      .fill(0)
+      .map((_, i) => i);
+    this.append(
+      table({
+        label: "Stuff",
+        rows,
+        columns: [
+          {
+            label: "#",
+            render: (props) => span(props.rowIndex + 1),
+          },
+          {
+            label: "Name",
+            render: (props) => span(`foo ${props.row}`),
+          },
+          {
+            label: "Count",
+            render: (props) => span(props.row),
+          },
+        ],
+      })
+    );
+    if ((count ?? 0) % 2 === 0) {
+      this.append(testKeysComponent({key: "testKeysComponent"}));
+    }
+  });
+  const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
+    this.append(span(""));
+  });
+/* tabsPage.mts */
+export const tabsPage = makeComponent(function tabsPage() {
+    const [state, setState] = this.useState({selectedTab: 0/* as string | number*/});
+    const tabOptions/*: TabsOption[]*/ = [
+        {label: "foo"},
+        {label: "bar"},
+        {id: "customId", label: "zoo"},
+    ];
+    this.append(tabs({
+        options: tabOptions,
+        selectedId: state.selectedTab,
+        setSelectedId: (newId) => setState({selectedTab: newId}),
+    }));
+    const selectedTab = tabOptions.find((option, i) => (option.id ?? i) === state.selectedTab);
+    if (selectedTab) {
+        this.append(span(selectedTab.label, {key: state.selectedTab}))
+    }
+});
+/* webgpuPage.mts */
+export const webgpuPage = makeComponent(function webgpuPage() {
+  let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+  const shaderCode = `
+    struct VertexOut {
+      @builtin(position) position : vec4f,
+      @location(0) color : vec4f
+    }
+
+    @vertex
+    fn vertex_main(
+      @location(0) position: vec4f,
+      @location(1) color: vec4f
+    ) -> VertexOut {
+      var output : VertexOut;
+      output.position = position;
+      output.color = color;
+      return output;
+    }
+
+    @fragment
+    fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
+      return fragData.color;
+    }
+  `;
+  row.append(webgpu({
+    width: 64,
+    height: 64,
+    shaderCode,
+    render: ({context, device, shaderModule}) => {
+      const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
+      // Vertex data for triangle
+      // Each vertex has 8 values representing position and color: X Y Z W R G B A
+      const vertices = new Float32Array([
+        0.0,  0.6, 0, 1, 1, 0, 0, 1,
+       -0.5, -0.6, 0, 1, 0, 1, 0, 1,
+        0.5, -0.6, 0, 1, 0, 0, 1, 1
+      ]);
+      // NOTE: copy paste from MDN
+      const vertexBuffer = device.createBuffer({
+        size: vertices.byteLength, // make it big enough to store vertices in
+        usage: window['GPUBufferUsage'].VERTEX | window['GPUBufferUsage'].COPY_DST,
+      });
+
+      // Copy the vertex data over to the GPUBuffer using the writeBuffer() utility function
+      device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length);
+
+      // 5: Create a GPUVertexBufferLayout and GPURenderPipelineDescriptor to provide a definition of our render pipline
+      const vertexBuffers = [{
+        attributes: [{
+          shaderLocation: 0, // position
+          offset: 0,
+          format: 'float32x4'
+        }, {
+          shaderLocation: 1, // color
+          offset: 16,
+          format: 'float32x4'
+        }],
+        arrayStride: 32,
+        stepMode: 'vertex'
+      }];
+
+      const pipelineDescriptor = {
+        vertex: {
+          module: shaderModule,
+          entryPoint: 'vertex_main',
+          buffers: vertexBuffers
+        },
+        fragment: {
+          module: shaderModule,
+          entryPoint: 'fragment_main',
+          targets: [{
+            format: navigator['gpu'].getPreferredCanvasFormat()
+          }]
+        },
+        primitive: {
+          topology: 'triangle-list'
+        },
+        layout: 'auto'
+      };
+
+      // 6: Create the actual render pipeline
+      const renderPipeline = device.createRenderPipeline(pipelineDescriptor); // TODO: can we store the descriptors and pipeline?
+
+      // 7: Create GPUCommandEncoder to issue commands to the GPU
+      // Note: render pass descriptor, command encoder, etc. are destroyed after use, fresh one needed for each frame.
+      const commandEncoder = device.createCommandEncoder();
+
+      // 8: Create GPURenderPassDescriptor to tell WebGPU which texture to draw into, then initiate render pass
+      const renderPassDescriptor = {
+        colorAttachments: [{
+          clearValue: clearColor,
+          loadOp: 'clear',
+          storeOp: 'store',
+          view: context.getCurrentTexture().createView(),
+        }]
+      };
+
+      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+
+      // 9: Draw the triangle
+      passEncoder.setPipeline(renderPipeline);
+      passEncoder.setVertexBuffer(0, vertexBuffer);
+      passEncoder.draw(3);
+
+      // End the render pass
+      passEncoder.end();
+
+      // 10: End frame by passing array of command buffers to command queue for execution
+      device.queue.submit([commandEncoder.finish()]);
+    }
+  }))
+});
+/* textInputPage.mts */
+export const textInputPage = makeComponent(function textInputPage() {
+  const [state, setState] = this.useState({username: ""});
+  // username
+  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
+  row.append(
+    textInput({
+      label: "Username",
+      value: state.username,
+      onInput: (event) => {
+        setState({username: event.target.value});
+      },
+      //autoFocus: true,
+    })
+  );
+  row.append(span("This input is stored in the component state."));
+  row = this.append(div({className: "display-row"}));
+  row.append(span(`state: ${JSON.stringify(state)}`));
+  // count
+  row = this.append(div({className: "display-row"}));
+  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
+  row.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (event) => {
+        const newCount = event.target.value;
+        setCount(newCount === "" ? null : +newCount);
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  row.append(span("This input is stored in local storage (synced across tabs and components)."));
+  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
+  row.append(span(`count: ${count}`));
+});
 /* debugKeysPage.mts */
 export const debugKeysPage = makeComponent(function debugKeysPage() {
   const [state, setState] = this.useState({
@@ -1933,323 +2222,30 @@ export const BASICS_SECTION/*: DocsSection*/ = {
         {id: "icon", label: "Icon", component: iconPage},
     ],
 };
-/* displaysSection.mts */
-const spinnerPage = makeComponent(function spinnerPage() {
-  // loading spinner
-  let row = this.append(div({className: "display-row"}));
-  for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
-  // linear progress indeterminate
-  row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
-  row.append(progress({color: 'secondary-0'}));
-  // linear progress determinate
-  const [state, setState] = this.useState({ progress: 0.0 });
-  row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
-  row.append(progress({fraction: state.progress, color: 'secondary-0'}));
-  row = this.append(div({className: "display-row", style: {marginTop: 0}}));
-  row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
-    color: "secondary",
-    onClick: () => {
-      setState({progress: (state.progress + 0.2) % 1.2});
-    }
-  }));
-});
-const dialogPage = makeComponent(function dialogPage() {
-  const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
-  const [state, setState] = this.useState({dialogOpen: false});
-  const openDialog = () => setState({dialogOpen: true});
-  const closeDialog = () => setState({dialogOpen: false});
-  row.append(coloredButton("Open dialog", {color: "secondary", onClick: openDialog}));
-  const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
-  dialogWrapper.append(span("Hello world"));
-});
-const popupPage = makeComponent(function popupPage() {
-  for (let direction of ["up", "right", "down", "left", "mouse"]/* as PopupDirection[]*/) {
-    const row = this.append(div({className: "wide-display-row"}));
-    const leftPopup = row.append(popupWrapper({
-      content: span("Tiny"),
-      direction,
-      interactable: direction !== "mouse",
-    }));
-    leftPopup.append(span(`direction: "${direction}"`));
-    const rightPopup = row.append(popupWrapper({
-      content: span("I can be too big to naively fit on the screen!"),
-      direction,
-      interactable: direction !== "mouse",
-    }));
-    rightPopup.append(span(`direction: "${direction}"`));
-  }
-  const [state, setState] = this.useState({buttonPopupOpen: false});
-  const row = this.append(div({className: "wide-display-row"}));
-  const popup = row.append(popupWrapper({
-    content: span("Tiny"),
-    direction: "down",
-    open: state.buttonPopupOpen,
-    interactable: true,
-  }));
-  popup.append(coloredButton(`Toggle popup`, {
-    onClick: () => {
-      setState({buttonPopupOpen: !state.buttonPopupOpen});
-    },
-  }));
-});
-const mediaQueryPage = makeComponent(function mediaQueryPage() {
-  const smOrBigger = this.useMedia({minWidth: 600});
-  const mdOrBigger = this.useMedia({minWidth: 900});
-  const lgOrBigger = this.useMedia({minWidth: 1200});
-  const xlOrBigger = this.useMedia({minWidth: 1500});
-  const column = this.append(div({className: "display-column"}));
-  column.append(span(`smOrBigger: ${smOrBigger}`));
-  column.append(span(`mdOrBigger: ${mdOrBigger}`));
-  column.append(span(`lgOrBigger: ${lgOrBigger}`));
-  column.append(span(`xlOrBigger: ${xlOrBigger}`));
-});
-const tabsPage = makeComponent(function tabsPage() {
-  const [state, setState] = this.useState({selectedTab: 0/* as string | number*/});
-  const tabOptions/*: TabsOption[]*/ = [
-    {label: "foo"},
-    {label: "bar"},
-    {id: "customId", label: "zoo"},
-  ];
-  this.append(tabs({
-    options: tabOptions,
-    selectedId: state.selectedTab,
-    setSelectedId: (newId) => setState({selectedTab: newId}),
-  }));
-  const selectedTab = tabOptions.find((option, i) => (option.id ?? i) === state.selectedTab);
-  if (selectedTab) {
-    this.append(span(selectedTab.label, {key: state.selectedTab}))
-  }
-});
-
-export const DISPLAYS_SECTION/*: DocsSection*/ = {
-    id: "displays",
-    label: "Displays",
-    pages: [
-        {id: "spinner", label: "Spinner", component: spinnerPage},
-        {id: "dialog", label: "Dialog", component: dialogPage},
-        {id: "popup", label: "Popup", component: popupPage},
-        {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
-        {id: "tabs", label: "Tabs", component: tabsPage},
-    ],
-};
-/* inputsSection.mts */
-const textInputPage = makeComponent(function textInputPage() {
-  const [state, setState] = this.useState({username: ""});
-  // username
-  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
-  row.append(
-    textInput({
-      label: "Username",
-      value: state.username,
-      onInput: (event) => {
-        setState({username: event.target.value});
-      },
-      //autoFocus: true,
-    })
-  );
-  row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "display-row"}));
-  row.append(span(`state: ${JSON.stringify(state)}`));
-  // count
-  row = this.append(div({className: "display-row"}));
-  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-  row.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (event) => {
-        const newCount = event.target.value;
-        setCount(newCount === "" ? null : +newCount);
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
-  row.append(span(`count: ${count}`));
-});
-const tablePage = makeComponent(function tablePage() {
-  const displayRow = this.append(div({className: "wide-display-column"}));
-  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-  displayRow.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (event) => {
-        const newCount = event.target.value;
-        setCount(newCount === "" ? null : +newCount);
-        this.rerender();
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  const rows = Array(clamp(+(count ?? 0), 0, 100))
-    .fill(0)
-    .map((_, i) => i);
-  displayRow.append(
-    table({
-      label: "Stuff",
-      rows,
-      columns: [
-        {
-          label: "#",
-          render: (props) => span(props.rowIndex + 1),
-        },
-        {
-          label: "Name",
-          render: (props) => span(`foo ${props.row}`),
-        },
-        {
-          label: "Count",
-          render: (props) => span(props.row),
-        },
-      ],
-    })
-  );
-  if ((count ?? 0) % 2 === 0) {
-    displayRow.append(testKeysComponent({key: "testKeysComponent"}));
-  }
-});
-const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
-  this.append(span(""));
-});
-
-export const INPUTS_SECTION/*: DocsSection*/ = {
-  id: "inputs",
-  label: "Inputs",
-  pages: [
-    {id: "textInput", label: "Text Input", component: textInputPage},
-    {id: "table", label: "Table", component: tablePage},
-  ],
-};
-/* webgpuSection.mts */
-const trianglePage = makeComponent(function trianglePage() {
-  let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
-  const shaderCode = `
-    struct VertexOut {
-      @builtin(position) position : vec4f,
-      @location(0) color : vec4f
-    }
-
-    @vertex
-    fn vertex_main(
-      @location(0) position: vec4f,
-      @location(1) color: vec4f
-    ) -> VertexOut {
-      var output : VertexOut;
-      output.position = position;
-      output.color = color;
-      return output;
-    }
-
-    @fragment
-    fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
-      return fragData.color;
-    }
-  `;
-  row.append(webgpu({
-    width: 64,
-    height: 64,
-    shaderCode,
-    render: ({context, device, shaderModule}) => {
-      const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
-      // Vertex data for triangle
-      // Each vertex has 8 values representing position and color: X Y Z W R G B A
-      const vertices = new Float32Array([
-        0.0,  0.6, 0, 1, 1, 0, 0, 1,
-       -0.5, -0.6, 0, 1, 0, 1, 0, 1,
-        0.5, -0.6, 0, 1, 0, 0, 1, 1
-      ]);
-      // NOTE: copy paste from MDN
-      const vertexBuffer = device.createBuffer({
-        size: vertices.byteLength, // make it big enough to store vertices in
-        usage: window['GPUBufferUsage'].VERTEX | window['GPUBufferUsage'].COPY_DST,
-      });
-
-      // Copy the vertex data over to the GPUBuffer using the writeBuffer() utility function
-      device.queue.writeBuffer(vertexBuffer, 0, vertices, 0, vertices.length);
-
-      // 5: Create a GPUVertexBufferLayout and GPURenderPipelineDescriptor to provide a definition of our render pipline
-      const vertexBuffers = [{
-        attributes: [{
-          shaderLocation: 0, // position
-          offset: 0,
-          format: 'float32x4'
-        }, {
-          shaderLocation: 1, // color
-          offset: 16,
-          format: 'float32x4'
-        }],
-        arrayStride: 32,
-        stepMode: 'vertex'
-      }];
-
-      const pipelineDescriptor = {
-        vertex: {
-          module: shaderModule,
-          entryPoint: 'vertex_main',
-          buffers: vertexBuffers
-        },
-        fragment: {
-          module: shaderModule,
-          entryPoint: 'fragment_main',
-          targets: [{
-            format: navigator['gpu'].getPreferredCanvasFormat()
-          }]
-        },
-        primitive: {
-          topology: 'triangle-list'
-        },
-        layout: 'auto'
-      };
-
-      // 6: Create the actual render pipeline
-      const renderPipeline = device.createRenderPipeline(pipelineDescriptor); // TODO: can we store the descriptors and pipeline?
-
-      // 7: Create GPUCommandEncoder to issue commands to the GPU
-      // Note: render pass descriptor, command encoder, etc. are destroyed after use, fresh one needed for each frame.
-      const commandEncoder = device.createCommandEncoder();
-
-      // 8: Create GPURenderPassDescriptor to tell WebGPU which texture to draw into, then initiate render pass
-      const renderPassDescriptor = {
-        colorAttachments: [{
-          clearValue: clearColor,
-          loadOp: 'clear',
-          storeOp: 'store',
-          view: context.getCurrentTexture().createView(),
-        }]
-      };
-
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
-
-      // 9: Draw the triangle
-      passEncoder.setPipeline(renderPipeline);
-      passEncoder.setVertexBuffer(0, vertexBuffer);
-      passEncoder.draw(3);
-
-      // End the render pass
-      passEncoder.end();
-
-      // 10: End frame by passing array of command buffers to command queue for execution
-      device.queue.submit([commandEncoder.finish()]);
-    }
-  }))
-});
-export const WEBGPU_SECTION/*: DocsSection*/ = {
-    id: "webgpu",
-    label: "WebGPU",
-    pages: [
-        {id: "triangle", label: "Triangle", component: trianglePage},
-    ],
-};
 /* docsPage.mts */
 export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   BASICS_SECTION,
-  DISPLAYS_SECTION,
-  INPUTS_SECTION,
-  WEBGPU_SECTION,
+  {
+    id: "displays",
+    label: "Displays",
+    pages: [
+        {id: "dialog", label: "Dialog", component: dialogPage},
+        {id: "popup", label: "Popup", component: popupPage},
+        {id: "progress", label: "Progress", component: progressPage},
+        {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
+        // TODO: document router
+        {id: "table", label: "Table", component: tablePage},
+        {id: "tabs", label: "Tabs", component: tabsPage},
+        {id: "webgpu", label: "WebGPU", component: webgpuPage},
+    ],
+  },
+  {
+    id: "inputs",
+    label: "Inputs",
+    pages: [
+      {id: "textInput", label: "Text input", component: textInputPage},
+    ]
+  },
 ];
 
 export const docsPage = makeComponent(function docsPage() {

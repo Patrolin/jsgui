@@ -1,4 +1,4 @@
-import { BaseProps, makeComponent } from "../jsgui.mts";
+import { BaseProps, makeComponent } from "../../jsgui.mts";
 
 type GPUType = {
   requestAdapter(): Promise<AdapterType>;

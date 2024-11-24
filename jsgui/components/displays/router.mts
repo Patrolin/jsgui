@@ -1,5 +1,5 @@
-import { BaseProps, Component, ComponentFunction, makeComponent } from "../jsgui.mts";
-import { div, fragment, span } from "./basics.mts";
+import { BaseProps, Component, ComponentFunction, makeComponent } from "../../jsgui.mts";
+import { div, fragment, span } from "../basics.mts";
 
 export type Route = {
   path: string;
@@ -27,6 +27,8 @@ export type PageWrapperProps = {
   currentRoute: Route;
   contentWrapperComponent: ComponentFunction<any>,
 };
+// TODO: colon params
+// TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
 export const router = makeComponent(function router(props: RouterProps) {
   const {
     routes,

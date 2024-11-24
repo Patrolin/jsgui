@@ -323,7 +323,7 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   color: var(--gray-3);
-  --numberArrowPadding: calc(var(--size-x) - var(--iconSize-x));
+  --numberArtableRowPadding: calc(var(--size-x) - var(--iconSize-x));
 }
 .number-arrows .icon {
   padding-left: calc(0.5*(var(--size-x) - var(--iconSize-x)) - 1px);
@@ -356,12 +356,12 @@ dialog::backdrop {
   align-items: flex-start;
   border: var(--tableBorder);
   border-radius: 4px;
-  color: var(--lightGray);
+  color: var(--gray-0);
   --tableBorder: 1px solid var(--gray-4);
-  --labelColor: var(--lightGray);
-  --labelPadding: 8px 0 2px 16px;
-  --rowPadding: 2px 0 2px 18px;
-  --cellPadding: 0 14px 0 0;
+  --tableRowBorder: 1px solid var(--gray-4);
+  --tableLabelPadding: 8px 0 2px 16px;
+  --tableRowPadding: 2px 0 2px 18px;
+  --tableCellPadding: 0 14px 0 0;
 }
 .table[use-max-height="true"] {
   height: 100%;
@@ -371,9 +371,9 @@ dialog::backdrop {
   align-items: center;
 }
 .table-label {
-  padding: var(--labelPadding);
+  padding: var(--tableLabelPadding);
   font-size: var(--fontSize-bigger);
-  color: var(--labelColor);
+  color: var(--tableLabel);
 }
 .table-row {
   width: 100%;
@@ -381,8 +381,10 @@ dialog::backdrop {
   flex-direction: row;
   justify-content: flex-start;
   align-items: stretch;
-  border-bottom: var(--tableBorder);
-  padding: var(--rowPadding);
+  padding: var(--tableRowPadding);
+}
+.table-header, .table-row:not(:last-child) {
+  border-bottom: var(--tableRowBorder);
 }
 .table-row.table-body {
   font-family: var(--fontFamily-serif);
@@ -390,8 +392,8 @@ dialog::backdrop {
 }
 .table-cell {
   flex: 1;
-  padding: var(--cellPadding);
-  color: var(--cellColor);
+  padding: var(--tableCellPadding);
+  color: var(--tableCellColor);
 }
 .page-content {
   padding: 8px 16px;

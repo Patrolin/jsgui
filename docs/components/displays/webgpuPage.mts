@@ -1,7 +1,6 @@
-import { div, makeComponent, webgpu } from "../../jsgui/out/jsgui.mts";
-import { DocsSection } from "../utils/utils.mts";
+import { div, makeComponent, webgpu } from "../../../jsgui/out/jsgui.mts";
 
-const trianglePage = makeComponent(function trianglePage() {
+export const webgpuPage = makeComponent(function webgpuPage() {
   let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
   const shaderCode = `
     struct VertexOut {
@@ -113,10 +112,3 @@ const trianglePage = makeComponent(function trianglePage() {
     }
   }))
 });
-export const WEBGPU_SECTION: DocsSection = {
-    id: "webgpu",
-    label: "WebGPU",
-    pages: [
-        {id: "triangle", label: "Triangle", component: trianglePage},
-    ],
-};
