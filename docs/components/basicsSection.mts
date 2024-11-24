@@ -18,7 +18,7 @@ const htmlInputsPage = makeComponent(function htmlInputsPage() {
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <circle cx="50" cy="50" r="50" />
       </svg>`, {style: {width: "1em", height: "1em"}}));
-    row.append(img("assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
+    row.append(img("/assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
     row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
       controls: true,
       title: "audio",
