@@ -1,4 +1,5 @@
 import { div, divider, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
+import { debugKeysPage } from './debugKeysPage.mts';
 import {MAIN_PAGE_SECTIONS, mainPage} from './mainPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
@@ -60,21 +61,11 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
     style: {display: "flex", flexDirection: "column"},
   }));
   navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
-  const appendRoute = (route: Route) => {
+  ROUTES.forEach((route, i) => {
     if (route.showInNavigation) {
       navigation.append(span(route.label, { href: `${githubPagesPrefix}${route.defaultPath ?? route.path}` }));
     }
-  }
-  const docsRoute = ROUTES[0];
-  appendRoute(docsRoute);
-  navigation.append(divider());
-  for (let section of MAIN_PAGE_SECTIONS) {
-    navigation.append(span(section.label, {href: `${githubPagesPrefix}/#${section.id}`}));
-  }
-  navigation.append(divider());
-  for (let route of routes.slice(1)) {
-    appendRoute(route);
-  }
+  });
   const contentWrapper = wrapper.append(contentWrapperComponent())
   contentWrapper.append(currentRoute.component());
 })

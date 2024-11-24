@@ -122,7 +122,7 @@ export type UseNavigate = {
 };
 export type UseWindowResize = { windowBottom: number, windowRight: number };
 // component
-export function _setChildKey(component: Component, child: Component) {
+export function _setDefaultChildKey(component: Component, child: Component) {
   const name = child.name;
   let key = child.baseProps.key;
   if (key == null) {
@@ -184,7 +184,6 @@ export class Component {
   append(childOrString: string | Component): Component {
     const child = (childOrString instanceof Component) ? childOrString : text(childOrString);
     this.children.push(child);
-    _setChildKey(this, child);
     return child;
   }
   /** `return [value, setValueAndDispatch, setValue]` */
@@ -586,6 +585,7 @@ export function _render(component: Component, parentNode: ParentNodeType, before
   if (node) beforeNodeStack.push(null);
   for (let i = 0; i < children.length; i++) {
     const child = children[i];
+    _setDefaultChildKey(component, child);
     const key = child.key;
     if (usedKeys.has(key)) console.warn(`Duplicate key: '${key}'`, component);
     usedKeys.add(key);
