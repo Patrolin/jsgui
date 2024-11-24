@@ -4,14 +4,22 @@ import {docsPage} from './docsPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
 
-export const GITHUB_PAGES_PREFIX = "(/jsgui)?";
+export const GITHUB_PAGES_PREFIX = "/jsgui";
 export const ROUTES = [
+  {
+    path: `${GITHUB_PAGES_PREFIX}/`,
+    defaultPath: "/",
+    component: () => docsPage(),
+    wrapper: true,
+    showInNavigation: true,
+    label: "Docs",
+  },
   {
     path: `${GITHUB_PAGES_PREFIX}/([^/]*)/([^/]*)`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,
-    showInNavigation: true,
+    showInNavigation: false,
     label: "Docs",
   },
   {

@@ -130,7 +130,7 @@ export function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
 }
 /* jsgui.mts */
 // utils
-export const JSGUI_VERSION = "v0.18";
+export const JSGUI_VERSION = "v0.18-dev";
 export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -2289,14 +2289,22 @@ export const docsPage = makeComponent(function docsPage() {
   replaceHistory(`${window.location.origin}${getGithubPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`);
 });
 /* routes.mts */
-export const GITHUB_PAGES_PREFIX = "(/jsgui)?";
+export const GITHUB_PAGES_PREFIX = "/jsgui";
 export const ROUTES = [
+  {
+    path: `${GITHUB_PAGES_PREFIX}/`,
+    defaultPath: "/",
+    component: () => docsPage(),
+    wrapper: true,
+    showInNavigation: true,
+    label: "Docs",
+  },
   {
     path: `${GITHUB_PAGES_PREFIX}/([^/]*)/([^/]*)`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,
-    showInNavigation: true,
+    showInNavigation: false,
     label: "Docs",
   },
   {
