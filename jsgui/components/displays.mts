@@ -19,11 +19,11 @@ export const progress = makeComponent(function progress(props: ProgressProps = {
   ));
 });
 // tabs
+export type TabsOptionComponentProps = {key: string, className: string};
 export type TabsOption = {
   id?: string | number;
   label: string;
   href?: string;
-  component: ComponentFunction<[props: {key: string}]>;
 };
 export type TabsProps = {
   options: TabsOption[];
@@ -34,22 +34,15 @@ export const tabs = makeComponent(function tabs(props: TabsProps) {
   const {options, setSelectedId} = props;
   let {selectedId} = props;
   if (selectedId == null) selectedId = options[0].id ?? 0;
-  this.useNode(() => document.createElement("div"));
   const tabsHeader = this.append(div({className: "tabs-header"}));
-  let optionsMap: Record<string | number, TabsOption> = {};
   options.forEach((option, i) => {
     const optionId = option.id ?? i;
-    optionsMap[optionId] = option;
     tabsHeader.append(span(option.label, {
       key: optionId,
       href: option.href,
       className: "tabs-option",
-      attribute: {dataSelected: optionId === selectedId},
+      attribute: {dataSelected: optionId === selectedId, title: option.label},
       events: {click: () => setSelectedId(optionId)},
     }));
   });
-  const selectedOption: TabsOption | undefined = optionsMap[selectedId];
-  if (selectedOption) {
-    this.append(selectedOption.component({key: String(selectedId)}));
-  }
 });

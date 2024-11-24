@@ -1,15 +1,15 @@
-import { div, divider, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
+import { div, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, router, span } from '../../jsgui/out/jsgui.mts';
 import { debugKeysPage } from './debugKeysPage.mts';
-import {MAIN_PAGE_SECTIONS, mainPage} from './mainPage.mts';
+import {docsPage} from './docsPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
 
 export const GITHUB_PAGES_PREFIX = "(/jsgui)?";
 export const ROUTES = [
   {
-    path: `${GITHUB_PAGES_PREFIX}/`,
-    defaultPath: "/#version",
-    component: () => mainPage(),
+    path: `${GITHUB_PAGES_PREFIX}/([^/]*)/([^/]*)`,
+    defaultPath: "/",
+    component: () => docsPage(),
     wrapper: true,
     showInNavigation: true,
     label: "Docs",

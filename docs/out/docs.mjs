@@ -1001,11 +1001,11 @@ export const progress = makeComponent(function progress(props/*: ProgressProps*/
   ));
 });
 // tabs
+/*export type TabsOptionComponentProps = {key: string, className: string};*/
 /*export type TabsOption = {
   id?: string | number;
   label: string;
   href?: string;
-  component: ComponentFunction<[props: {key: string}]>;
 };*/
 /*export type TabsProps = {
   options: TabsOption[];
@@ -1016,24 +1016,17 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
   const {options, setSelectedId} = props;
   let {selectedId} = props;
   if (selectedId == null) selectedId = options[0].id ?? 0;
-  this.useNode(() => document.createElement("div"));
   const tabsHeader = this.append(div({className: "tabs-header"}));
-  let optionsMap/*: Record<string | number, TabsOption>*/ = {};
   options.forEach((option, i) => {
     const optionId = option.id ?? i;
-    optionsMap[optionId] = option;
     tabsHeader.append(span(option.label, {
       key: optionId,
       href: option.href,
       className: "tabs-option",
-      attribute: {dataSelected: optionId === selectedId},
+      attribute: {dataSelected: optionId === selectedId, title: option.label},
       events: {click: () => setSelectedId(optionId)},
     }));
   });
-  const selectedOption/*: TabsOption | undefined*/ = optionsMap[selectedId];
-  if (selectedOption) {
-    this.append(selectedOption.component({key: String(selectedId)}));
-  }
 });
 /* inputs.mts */
 /*export type ButtonProps = {
@@ -1835,46 +1828,54 @@ const colorPalette = makeComponent(function colorPalette(props/*: ColorPalettePr
   appendColorRow("#000000");
 });
 /* utils.mts */
-/*export type MainPageSection = {
-  label: string;
+/*export type DocsSection = {
   id: string;
+  label: string;
+  pages: DocsPage[];
+}*/
+/*export type DocsPage = {
+  id: string;
+  label: string;
   component: ComponentFunction<[]>;
-};*/
+}*/
 export function getSizeLabel(size/*: string*/) {
   return size[0].toUpperCase() + size.slice(1);
 }
-/* basicComponents.mts */
-const htmlSection = makeComponent(function htmlSection() {
-  let column = this.append(div({className: "display-column", style: {gap: 4}}));
-  let row = column.append(div({className: "display-row"}));
-  row.append(span("span"));
-  row.append(input({
-    style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
-    attribute: {placeholder: "input"}},
-  ));
-  row.append(textarea({
-    attribute: {placeholder: "textarea"}},
-  ));
-  const someButton = row.append(button("button", {
-    style: {height: 'var(--size-normal)', fontSize: "14px"},
-  }));
-  someButton.append(svg(`
-    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-      <circle cx="50" cy="50" r="50" />
-    </svg>`, {style: {width: "1em", height: "1em"}}));
-  row.append(img("assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
-  row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
-    controls: true,
-    title: "audio",
-  }}));
-  column.append(video([
-    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
-    "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-  ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
+export function getGithubPrefix()/*: string*/ {
+  const githubPrefix = "/jsgui";
+  return window.location.pathname.startsWith(githubPrefix) ? githubPrefix : "";
+}
+/* basicsSection.mts */
+const htmlInputsPage = makeComponent(function htmlInputsPage() {
+    let row = this.append(div({className: "display-row"}));
+    row.append(span("span"));
+    row.append(input({
+      style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
+      attribute: {placeholder: "input"}},
+    ));
+    row.append(textarea({
+      attribute: {placeholder: "textarea"}},
+    ));
+    const someButton = row.append(button("button", {
+      style: {height: 'var(--size-normal)', fontSize: "14px"},
+    }));
+    someButton.append(svg(`
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="50" />
+      </svg>`, {style: {width: "1em", height: "1em"}}));
+    row.append(img("assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
+    row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
+      controls: true,
+      title: "audio",
+    }}));
+    this.append(video([
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+    ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
-const spanSection = makeComponent(function spanSection() {
+const spanPage = makeComponent(function spanPage() {
   for (let href of [undefined]) {
-    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
@@ -1888,31 +1889,31 @@ const spanSection = makeComponent(function spanSection() {
     }
   }
 });
-const anchorSection = makeComponent(function anchorSection() {
+const anchorPage = makeComponent(function anchorPage() {
   for (let href of ["https://www.google.com"]) {
-    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
   }
   for (let href of ["assets/test_image.bmp"]) {
-    let row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: href ? 4 : 0}}))
+    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
   }
 });
-const buttonSection = makeComponent(function buttonSection() {
-  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+const buttonPage = makeComponent(function buttonPage() {
+  let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {size}));
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   for (let size of Object.values(SIZES)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-const iconSection = makeComponent(function iconSection() {
-  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+const iconPage = makeComponent(function iconPage() {
+  let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(icon("link", {size}));
-  row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) {
     const buttonWrapper = row.append(coloredButton("", {size, color: "secondary"}));
     buttonWrapper.append(icon("link", {size}));
@@ -1920,9 +1921,22 @@ const iconSection = makeComponent(function iconSection() {
   }
   // TODO: circle buttons
 });
-const spinnerSection = makeComponent(function spinnerSection() {
+
+export const BASICS_SECTION/*: DocsSection*/ = {
+    id: "basics",
+    label: "Basics",
+    pages: [
+        {id: "html", label: "HTML", component: htmlInputsPage},
+        {id: "span", label: "Span", component: spanPage},
+        {id: "anchor", label: "Anchor", component: anchorPage},
+        {id: "button", label: "Button", component: buttonPage},
+        {id: "icon", label: "Icon", component: iconPage},
+    ],
+};
+/* displaysSection.mts */
+const spinnerPage = makeComponent(function spinnerPage() {
   // loading spinner
-  let row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
   // linear progress indeterminate
   row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
@@ -1939,8 +1953,8 @@ const spinnerSection = makeComponent(function spinnerSection() {
     }
   }));
 });
-const dialogSection = makeComponent(function dialogSection() {
-  const row = this.append(div({className: "display-row"}));
+const dialogPage = makeComponent(function dialogPage() {
+  const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
   const [state, setState] = this.useState({dialogOpen: false});
   const openDialog = () => setState({dialogOpen: true});
   const closeDialog = () => setState({dialogOpen: false});
@@ -1948,7 +1962,7 @@ const dialogSection = makeComponent(function dialogSection() {
   const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
   dialogWrapper.append(span("Hello world"));
 });
-const popupSection = makeComponent(function popupSection() {
+const popupPage = makeComponent(function popupPage() {
   for (let direction of ["up", "right", "down", "left", "mouse"]/* as PopupDirection[]*/) {
     const row = this.append(div({className: "wide-display-row"}));
     const leftPopup = row.append(popupWrapper({
@@ -1978,7 +1992,7 @@ const popupSection = makeComponent(function popupSection() {
     },
   }));
 });
-const mediaQuerySection = makeComponent(function mediaQuerySection() {
+const mediaQueryPage = makeComponent(function mediaQueryPage() {
   const smOrBigger = this.useMedia({minWidth: 600});
   const mdOrBigger = this.useMedia({minWidth: 900});
   const lgOrBigger = this.useMedia({minWidth: 1200});
@@ -1989,55 +2003,37 @@ const mediaQuerySection = makeComponent(function mediaQuerySection() {
   column.append(span(`lgOrBigger: ${lgOrBigger}`));
   column.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
-export const BASIC_COMPONENT_SECTIONS/*: MainPageSection[]*/ = [
-  {
-    label: "HTML elements",
-    id: "html",
-    component: htmlSection,
-  },
-  {
-    label: "Span",
-    id: "span",
-    component: spanSection,
-  },
-  {
-    label: "Anchor",
-    id: "anchor",
-    component: anchorSection,
-  },
-  {
-    label: "Button",
-    id: "button",
-    component: buttonSection,
-  },
-  {
-    label: "Icon",
-    id: "icon",
-    component: iconSection,
-  },
-  {
-    label: "Spinner",
-    id: "spinner",
-    component: spinnerSection,
-  },
-  {
-    label: "Dialog",
-    id: "dialog",
-    component: dialogSection,
-  },
-  {
-    label: "Popup",
-    id: "popup",
-    component: popupSection,
-  },
-  {
-    label: "Media query",
-    id: "mediaQuery",
-    component: mediaQuerySection,
-  },
-];
+const tabsPage = makeComponent(function tabsPage() {
+  const [state, setState] = this.useState({selectedTab: 0/* as string | number*/});
+  const tabOptions/*: TabsOption[]*/ = [
+    {label: "foo"},
+    {label: "bar"},
+    {id: "customId", label: "zoo"},
+  ];
+  this.append(tabs({
+    options: tabOptions,
+    selectedId: state.selectedTab,
+    setSelectedId: (newId) => setState({selectedTab: newId}),
+  }));
+  const selectedTab = tabOptions.find((option, i) => (option.id ?? i) === state.selectedTab);
+  if (selectedTab) {
+    this.append(span(selectedTab.label, {key: state.selectedTab}))
+  }
+});
+
+export const DISPLAYS_SECTION/*: DocsSection*/ = {
+    id: "displays",
+    label: "Displays",
+    pages: [
+        {id: "spinner", label: "Spinner", component: spinnerPage},
+        {id: "dialog", label: "Dialog", component: dialogPage},
+        {id: "popup", label: "Popup", component: popupPage},
+        {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
+        {id: "tabs", label: "Tabs", component: tabsPage},
+    ],
+};
 /* inputs.mts */
-const textInputSection = makeComponent(function textInputSection() {
+const textInputPage = makeComponent(function textInputPage() {
   const [state, setState] = this.useState({username: ""});
   // username
   let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
@@ -2052,10 +2048,10 @@ const textInputSection = makeComponent(function textInputSection() {
     })
   );
   row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "display-row", style: {marginTop: -4}}));
+  row = this.append(div({className: "display-row"}));
   row.append(span(`state: ${JSON.stringify(state)}`));
   // count
-  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  row = this.append(div({className: "display-row"}));
   const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
   row.append(
     numberInput({
@@ -2070,10 +2066,10 @@ const textInputSection = makeComponent(function textInputSection() {
     })
   );
   row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "display-row", style: {marginTop: -4, marginBottom: 4}}));
+  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
   row.append(span(`count: ${count}`));
 });
-const tableSection = makeComponent(function tableSection() {
+const tablePage = makeComponent(function tablePage() {
   const displayRow = this.append(div({className: "wide-display-column"}));
   const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
   displayRow.append(
@@ -2089,7 +2085,6 @@ const tableSection = makeComponent(function tableSection() {
       clearable: false,
     })
   );
-  ;
   const rows = Array(clamp(+(count ?? 0), 0, 100))
     .fill(0)
     .map((_, i) => i);
@@ -2121,18 +2116,14 @@ const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProp
   this.append(span(""));
 });
 
-export const INPUT_SECTIONS/*: MainPageSection[]*/ = [
-  {
-    label: "Text input",
-    id: "textInput",
-    component: textInputSection,
-  },
-  {
-    label: "Table",
-    id: "table",
-    component: tableSection,
-  },
-];
+export const INPUTS_SECTION/*: DocsSection*/ = {
+  id: "inputs",
+  label: "Inputs",
+  pages: [
+    {id: "textInput", label: "Text Input", component: textInputPage},
+    {id: "table", label: "Table", component: tablePage},
+  ],
+};
 /* webgpuSection.mts */
 const webgpuSection = makeComponent(function buttonSection() {
   let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
@@ -2251,48 +2242,59 @@ export const WEBGPU_SECTION/*: MainPageSection*/ = {
   label: 'WebGPU',
   component: webgpuSection,
 }
-/* mainPage.mts */
-export const MAIN_PAGE_SECTIONS/*: MainPageSection[]*/ = [
-  ...BASIC_COMPONENT_SECTIONS,
-  ...INPUT_SECTIONS,
-  WEBGPU_SECTION,
+/* docsPage.mts */
+export const DOCS_SECTIONS/*: DocsSection[]*/ = [
+  BASICS_SECTION,
+  DISPLAYS_SECTION,
+  INPUTS_SECTION,
 ];
-export const mainPage = makeComponent(function mainPage() {
+
+export const docsPage = makeComponent(function docsPage() {
   const column = this.append(
     div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
   );
   const [state, setState] = this.useState({
-    selectedTab: MAIN_PAGE_SECTIONS[0].id
+    selectedSectionId: DOCS_SECTIONS[0].id,
+    selectedPageId: DOCS_SECTIONS[0].pages[0].id,
   });
-  const tabOptions = MAIN_PAGE_SECTIONS.map(v => ({
-    ...v,
-    component: (props/*: BaseProps*/) => {
-      const divWrapper = div(props);
-      divWrapper.append(v.component());
-      return divWrapper;
-    }
-  }));
+  const {replaceHistory} = this.useNavigate();
   column.append(tabs({
-    options: tabOptions,
-    selectedId: state.selectedTab,
-    setSelectedId: (newId) => setState({selectedTab: newId/* as string*/}),
+    options: DOCS_SECTIONS,
+    selectedId: state.selectedSectionId,
+    setSelectedId: (newId) => setState({selectedSectionId: newId/* as string*/}),
   }));
-  const selectedOnRender = tabOptions.find(v => v.id === state.selectedTab)?.component({}).onRender;
-  const codeString = `const ${selectedOnRender?.name} = makeComponent(${selectedOnRender});`;
-  column.append(code(codeString, {style: {
-    margin: "6px 0px 4px 0px",
-    padding: "4px 8px",
-    background: "rgba(0, 0, 0, 0.1)",
-    borderRadius: 8,
-  }}));
+  const selectedSection = DOCS_SECTIONS.find(v => v.id === state.selectedSectionId);
+  const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.selectedPageId);
+  if (selectedSection && getSelectedPage() == null) { // TODO: restore from local storage
+    state.selectedPageId = selectedSection.pages[0].id;
+  }
+  column.append(tabs({
+    options: selectedSection?.pages ?? [],
+    selectedId: state.selectedPageId,
+    setSelectedId: (newId) => setState({selectedPageId: newId/* as string*/}),
+  }));
+  const tabsContent = column.append(div({className: "display-column", style: {width: "100%", padding: "0 8px"}}));
+  const selectedPageComponent = getSelectedPage()?.component();
+  if (selectedPageComponent) {
+    tabsContent.append(selectedPageComponent);
+    const selectedOnRender = selectedPageComponent.onRender;
+    const codeString = `const ${selectedOnRender?.name} = makeComponent(${selectedOnRender});`;
+    column.append(code(codeString, {style: {
+      marginTop: 8,
+      padding: "4px 8px",
+      background: "rgba(0, 0, 0, 0.1)",
+      borderRadius: 8,
+    }}));
+  }
+  replaceHistory(`${window.location.origin}${getGithubPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`);
 });
 /* routes.mts */
 export const GITHUB_PAGES_PREFIX = "(/jsgui)?";
 export const ROUTES = [
   {
-    path: `${GITHUB_PAGES_PREFIX}/`,
-    defaultPath: "/#version",
-    component: () => mainPage(),
+    path: `${GITHUB_PAGES_PREFIX}/([^/]*)/([^/]*)`,
+    defaultPath: "/",
+    component: () => docsPage(),
     wrapper: true,
     showInNavigation: true,
     label: "Docs",
