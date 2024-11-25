@@ -109,6 +109,7 @@ export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: 
 export type SetState<T> = (newValue: T) => void;
 export type UseNodeState = {nodeDependOn?: any};
 export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
+export type DefaultUseParamsReturn = {[key: string]: string};
 export type NavigateFunction = (url: string) => void; // TODO: split url into origin, pathname and query
 export type UseNavigate = {
   /** add url to history and reload page */
@@ -253,6 +254,9 @@ export class Component {
   useWindowResize(): UseWindowResize {
     _dispatchTargets.windowResize.addComponent(this);
     return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
+  }
+  useParams<T = DefaultUseParamsReturn>(): T {
+    return this._.root.routeParams as T;
   }
   useNavigate(): UseNavigate {
     return {

@@ -15,7 +15,7 @@ export const ROUTES = [
     label: "Docs",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/([^/]*)/([^/]*)`,
+    path: `${GITHUB_PAGES_PREFIX}/:selectedSectionId/:selectedSectionId`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,

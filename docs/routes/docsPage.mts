@@ -36,14 +36,18 @@ export const DOCS_SECTIONS: DocsSection[] = [
 ];
 
 export const docsPage = makeComponent(function docsPage() {
+  const params = this.useParams<{
+    selectedSectionId: string,
+    selectedPageId: string,
+  }>();
+  const [state, setState] = this.useState({
+    selectedSectionId: params.selectedSectionId ?? DOCS_SECTIONS[0].id,
+    selectedPageId: params.selectedPageId ?? DOCS_SECTIONS[0].pages[0].id,
+  });
+  const {replaceHistory} = this.useNavigate();
   const column = this.append(
     div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
   );
-  const [state, setState] = this.useState({
-    selectedSectionId: DOCS_SECTIONS[0].id,
-    selectedPageId: DOCS_SECTIONS[0].pages[0].id,
-  });
-  const {replaceHistory} = this.useNavigate();
   column.append(tabs({
     options: DOCS_SECTIONS,
     selectedId: state.selectedSectionId,
