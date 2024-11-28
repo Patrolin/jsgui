@@ -116,24 +116,94 @@ def tokenize(text: str, debug = False) -> list[str]:
 class Replacement:
   start: int
   end: int
-  replace_with: str
 @dataclass
-class ParserState:
+class Parser:
+  tokens: list[str]
+  pos: int
   inside_multiline_comment: bool
   inside_type: bool
-  pos: int
   replacements: list[Replacement]
-def get_next_token(parser: ParserState, text: str) -> str | None:
-  if parser.pos >= len(text): return None
-  next_char = text[parser.pos]
-  if next_char == "<":
-    pass
+def get_next_token(parser: Parser) -> str | None:
+  return parser.tokens[parser.pos] if parser.pos < len(parser.tokens) else None
+def get_next_token_strict(parser: Parser, *valid_groups: int) -> str | None:
+  if parser.pos < len(parser.tokens): return None
+  next_token = parser.tokens[parser.pos]
+  return next_token if len(valid_groups) == 0 or (getCharGroup(next_token) in valid_groups) else None
+def eat_whitespace(parser: Parser):
+  while get_next_token_strict(parser, CharGroup.WHITESPACE):
+    parser.pos += 1
+def parse_top_level_stuff(parser: Parser):
+  while True:
+    # TODO: just use parse_statements() instead
+    # whitespace
+    eat_whitespace(parser)
+    next_token = get_next_token(parser)
+    # "export"
+    if not next_token: return
+    if next_token == "export":
+      parser.pos += 1
+      next_token = get_next_token(parser)
+    # "function" | "const" | "val" | "let" | statement
+    if not next_token: return
+    parser.pos += 1
+    if next_token == "function":
+      parse_function_declaration(parser)
+    elif next_token in ["const", "val", "let"]:
+      parse_variable_declaration(parser)
+    else:
+      parse_statement(parser)
+def parse_function_declaration(parser: Parser):
+  # (name)
+  eat_whitespace(parser)
+  next_token = get_next_token(parser)
+  if not next_token: return
+  if getCharGroup(next_token) == CharGroup.ALPHANUMERIC:
+    name = next_token
+    parser.pos += 1
+    eat_whitespace(parser)
+  # ("<")
+  if not next_token: return
+  if getCharGroup(next_token) == CharGroup.ANGLE_BRACKET_LEFT:
+    end = find_bracket_end(parser)
+    parser.replacements.append(Replacement(parser.pos, end))
+    parser.pos = end + 1
+    eat_whitespace(parser)
+  # ("(")
+  if not next_token: return
+  if getCharGroup(next_token) == CharGroup.ROUND_BRACKET_LEFT:
+    end = find_bracket_end(parser)
+    parser.replacements.append(Replacement(parser.pos, end))
+    parser.pos = end + 1
+    eat_whitespace(parser)
+  # ("{")
+  if not next_token: return
+  if getCharGroup(next_token) == CharGroup.CURLY_BRACKET_LEFT:
+    parse_statements(parser)
+    if getCharGroup(next_token) == CharGroup.CURLY_BRACKET_RIGHT:
+      parser.pos += 1
+def parse_statements(parser: Parser):
+  assert "TODO"
 
-def parse_next(parser: ParserState, text: str):
-  start = parser.pos
-  get_next_token(parser, text)
-def parse_next_top_level(parser: ParserState, text: str):
-  pass
+def find_bracket_end(parser: Parser):
+  search = parser.pos
+  bracket_count = 1
+  while search < len(parser.tokens):
+    search_token = parser.tokens[search]
+    search_char_group = getCharGroup(search_token)
+    if CharGroup.ROUND_BRACKET_LEFT <= search_char_group <= CharGroup.ANGLE_BRACKET_LEFT:
+      bracket_count += 1
+    elif CharGroup.ROUND_BRACKET_RIGHT <= search_char_group <= CharGroup.ANGLE_BRACKET_RIGHT:
+      bracket_count -= 1
+    if bracket_count == 0:
+      return search
+    search += 1
+  return search
+
+def parse_variable_declaration(parser: Parser):
+  assert "TODO"
+def parse_statement(parser: Parser):
+  assert "TODO"
+
 
 def tsCompile(accTs: str) -> str:
   # transpile typescript to javascript

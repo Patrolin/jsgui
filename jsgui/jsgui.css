@@ -164,6 +164,7 @@ code {
   padding: 3px 2px;
   line-height: 1;
   position: relative;
+  word-break: break-word; /* NOTE: fix for firefox */
 }
 .textarea:empty::after {
   position: relative;
