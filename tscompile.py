@@ -47,7 +47,7 @@ class CharGroup:
       if v == group_id:
         return k.rjust(14)
     return str(group_id)
-def getCharGroup(char: str):
+def get_char_group(char: str):
   if char in WHITESPACE_SYMBOLS:
     return CharGroup.WHITESPACE
   elif char in NEWLINE_SYMBOLS:
@@ -67,7 +67,7 @@ def getCharGroup(char: str):
   elif char in CURLY_BRACKET_LEFT_SYMBOLS:
     return CharGroup.CURLY_BRACKET_LEFT
   elif char in ANGLE_BRACKET_LEFT_SYMBOLS:
-    return CharGroup.ANGLE_BRACKET_RIGHT
+    return CharGroup.ANGLE_BRACKET_LEFT
   elif char in ROUND_BRACKET_RIGHT_SYMBOLS:
     return CharGroup.ROUND_BRACKET_RIGHT
   elif char in SQUARE_BRACKET_RIGHT_SYMBOLS:
@@ -81,19 +81,17 @@ def getCharGroup(char: str):
 def tokenize(text: str, debug = False) -> list[str]:
   acc: list[str] = []
   i = j = 0
-  prev_char_group = CharGroup.WHITESPACE
+  prev_char_group = get_char_group(text[0]) if len(text) > 0 else CharGroup.WHITESPACE
   while j < len(text):
     char1 = text[j]
-    char_group = getCharGroup(char1)
+    char_group = get_char_group(char1)
     if debug:
       print(CharGroup.print(prev_char_group), CharGroup.print(char_group), i, j, repr(text[i:j]))
-    if (char_group != prev_char_group) and (prev_char_group != CharGroup.WHITESPACE):
+    if (char_group != prev_char_group):
       acc.append(text[i:j])
       i = j
     prev_char_group = char_group
-    if char_group == CharGroup.WHITESPACE:
-      i = j = j+1
-    elif char_group == CharGroup.STRING:
+    if char_group == CharGroup.STRING:
       k = j+1
       while k < len(text):
         char2 = text[k]
@@ -116,98 +114,163 @@ def tokenize(text: str, debug = False) -> list[str]:
 class Replacement:
   start: int
   end: int
+  rtype: str
 @dataclass
 class Parser:
   tokens: list[str]
-  pos: int
-  inside_multiline_comment: bool
-  inside_type: bool
   replacements: list[Replacement]
-def get_next_token(parser: Parser) -> str | None:
-  return parser.tokens[parser.pos] if parser.pos < len(parser.tokens) else None
-def get_next_token_strict(parser: Parser, *valid_groups: int) -> str | None:
-  if parser.pos < len(parser.tokens): return None
-  next_token = parser.tokens[parser.pos]
-  return next_token if len(valid_groups) == 0 or (getCharGroup(next_token) in valid_groups) else None
-def eat_whitespace(parser: Parser):
-  while get_next_token_strict(parser, CharGroup.WHITESPACE):
-    parser.pos += 1
-def parse_top_level_stuff(parser: Parser):
+  pos: int = 0
+  inside_multiline_comment: bool = False
+  inside_type: bool = False
+def eat_whitespace(parser: Parser) -> str | None:
+  pos = parser.pos
   while True:
-    # TODO: just use parse_statements() instead
-    # whitespace
-    eat_whitespace(parser)
-    next_token = get_next_token(parser)
-    # "export"
-    if not next_token: return
-    if next_token == "export":
-      parser.pos += 1
-      next_token = get_next_token(parser)
-    # "function" | "const" | "val" | "let" | statement
-    if not next_token: return
-    parser.pos += 1
-    if next_token == "function":
-      parse_function_declaration(parser)
-    elif next_token in ["const", "val", "let"]:
-      parse_variable_declaration(parser)
+    next_token = parser.tokens[pos] if pos < len(parser.tokens) else None
+    if next_token == None: return
+    char_group = get_char_group(next_token)
+    if (char_group == CharGroup.WHITESPACE) or (char_group == CharGroup.NEWLINE):
+      pos += 1
+      continue
+    elif char_group == CharGroup.COMMENT:
+      if next_token == "/*":
+        comment_end = find_first_string(parser, "*/")
+        parser.pos = comment_end + 1
+      else:
+        comment_end = find_first(parser, "\r\n")
+        parser.pos = comment_end + 1
     else:
-      parse_statement(parser)
-def parse_function_declaration(parser: Parser):
-  # (name)
-  eat_whitespace(parser)
-  next_token = get_next_token(parser)
-  if not next_token: return
-  if getCharGroup(next_token) == CharGroup.ALPHANUMERIC:
-    name = next_token
+      parser.pos = pos
+      return next_token
+def parse_top_level_stuff(parser: Parser):
+  while parser.pos < len(parser.tokens):
+    prev_pos = parser.pos
+    parse_statements(parser, top_level=True)
+    print(f"parse_statements: {parser.tokens[prev_pos:parser.pos]}")
+    prev_pos = parser.pos
+    parse_function_declaration(parser, top_level=True)
+    print(f"parse_function: {parser.tokens[prev_pos:parser.pos]}")
+    if parser.pos == prev_pos:
+      print(f"! Parser got stuck at {parser.pos}/{len(parser.tokens)} ('{parser.tokens[parser.pos]}') !")
+      return
+def parse_function_declaration(parser: Parser, top_level = False):
+  # "export" | ...
+  next_token = eat_whitespace(parser)
+  if top_level and next_token == "export":
     parser.pos += 1
-    eat_whitespace(parser)
+    next_token = eat_whitespace(parser)
+  # "function"
+  if (next_token == None) or (next_token != "function"): return
+  parser.pos += 1
+  next_token = eat_whitespace(parser)
+  # (name)
+  if next_token == None: return
+  if get_char_group(next_token) == CharGroup.ALPHANUMERIC:
+    #name = next_token
+    parser.pos += 1
+    next_token = eat_whitespace(parser)
   # ("<")
-  if not next_token: return
-  if getCharGroup(next_token) == CharGroup.ANGLE_BRACKET_LEFT:
+  if next_token == None: return
+  if get_char_group(next_token) == CharGroup.ANGLE_BRACKET_LEFT:
+    parser.pos += 1
     end = find_bracket_end(parser)
-    parser.replacements.append(Replacement(parser.pos, end))
+    parser.replacements.append(Replacement(parser.pos - 1, end, "Generic"))
     parser.pos = end + 1
-    eat_whitespace(parser)
-  # ("(")
-  if not next_token: return
-  if getCharGroup(next_token) == CharGroup.ROUND_BRACKET_LEFT:
+    next_token = eat_whitespace(parser)
+  # "("
+  if next_token == None: return
+  if get_char_group(next_token) == CharGroup.ROUND_BRACKET_LEFT:
+    parser.pos += 1
     end = find_bracket_end(parser)
-    parser.replacements.append(Replacement(parser.pos, end))
+    parser.replacements.append(Replacement(parser.pos - 1, end, "Arguments"))
     parser.pos = end + 1
-    eat_whitespace(parser)
-  # ("{")
-  if not next_token: return
-  if getCharGroup(next_token) == CharGroup.CURLY_BRACKET_LEFT:
+    next_token = eat_whitespace(parser)
+  # "{"
+  if next_token == None: return
+  if get_char_group(next_token) == CharGroup.CURLY_BRACKET_LEFT:
+    parser.pos += 1
+    print("ayaya.curly_bracket_left", parser.pos)
     parse_statements(parser)
-    if getCharGroup(next_token) == CharGroup.CURLY_BRACKET_RIGHT:
+    print("ayaya.statements_end", parser.pos, parser.tokens[parser.pos])
+    # "}"
+    next_token = eat_whitespace(parser)
+    if next_token == None: return
+    if get_char_group(next_token) == CharGroup.CURLY_BRACKET_RIGHT:
       parser.pos += 1
-def parse_statements(parser: Parser):
-  assert "TODO"
+def parse_statements(parser: Parser, top_level = False):
+  while True:
+    # "export" | ...
+    next_token = eat_whitespace(parser)
+    if top_level and next_token == "export":
+      parser.pos += 1
+      next_token = eat_whitespace(parser)
+    # statement
+    if next_token == None: return
+    char_group = get_char_group(next_token)
+    if char_group == CharGroup.STRING:
+      parser.pos += 1
+      continue
+    elif char_group == CharGroup.ALPHANUMERIC:
+      if next_token == "as":
+        expression_end = find_bracket_end(parser, ";\r\n")
+        parser.replacements.append(Replacement(parser.pos, expression_end-1, "As"))
+        parser.pos = expression_end + 1
+      elif next_token == "function":
+        return
+      else:
+        parser.pos += 1
+      continue
+    else:
+      #print(CharGroup.print(char_group), next_token)
+      return
 
-def find_bracket_end(parser: Parser):
+def find_first_string(parser: Parser, stop_string: str):
+  search = parser.pos
+  while search < len(parser.tokens):
+    search_token = parser.tokens[search]
+    if search_token == stop_string:
+      return search
+    search += 1
+  return search
+def find_first(parser: Parser, stop_chars: str):
+  search = parser.pos
+  while search < len(parser.tokens):
+    search_token = parser.tokens[search]
+    if search_token in stop_chars:
+      return search
+    search += 1
+  return search
+def find_bracket_end(parser: Parser, extra_stop_chars: str = ""):
   search = parser.pos
   bracket_count = 1
   while search < len(parser.tokens):
     search_token = parser.tokens[search]
-    search_char_group = getCharGroup(search_token)
+    search_char_group = get_char_group(search_token)
     if CharGroup.ROUND_BRACKET_LEFT <= search_char_group <= CharGroup.ANGLE_BRACKET_LEFT:
       bracket_count += 1
-    elif CharGroup.ROUND_BRACKET_RIGHT <= search_char_group <= CharGroup.ANGLE_BRACKET_RIGHT:
+    elif (CharGroup.ROUND_BRACKET_RIGHT <= search_char_group <= CharGroup.ANGLE_BRACKET_RIGHT) or search_token in extra_stop_chars:
       bracket_count -= 1
     if bracket_count == 0:
       return search
     search += 1
   return search
 
-def parse_variable_declaration(parser: Parser):
-  assert "TODO"
-def parse_statement(parser: Parser):
-  assert "TODO"
-
-
 def tsCompile(accTs: str) -> str:
-  # transpile typescript to javascript
-  return accTs
+  # parse typescript
+  tokens = tokenize(accTs)
+  parser = Parser(tokens, [])
+  parse_top_level_stuff(parser)
+  # comment out types
+  for replacement in parser.replacements:
+    print(replacement.rtype, parser.tokens[replacement.start:replacement.end+1])
+  accJs = ""
+  pos = 0
+  for replacement in parser.replacements:
+    if replacement.rtype == "Arguments": continue
+    # TODO: shift left to include whitespace in some cases
+    accJs += "".join(parser.tokens[pos:replacement.start]) + f"/*{"".join(parser.tokens[replacement.start:replacement.end+1])}*/"
+    pos = replacement.end + 1
+  accJs += "".join(parser.tokens[pos:])
+  return accJs
 
 if __name__ == '__main__':
   # test lib
@@ -229,8 +292,8 @@ if __name__ == '__main__':
   expectEquals("tokenize(string)", tokenize('''
     const a = 'hello\\ world';
     const b = 'foo';
-  '''), ["\n", "const", "a", "=", "'hello\\ world'", ";", "\n",
-         "const", "b", "=", "'foo'", ";", "\n"])
+  '''), ["\n", "    ", "const", " ", "a", " ", "=", " ", "'hello\\ world'", ";", "\n",
+         "    ", "const", " ", "b", " ", "=", " ", "'foo'", ";", "\n"])
   expectEquals("tokenize('function')", tokenize('''
   export function makeArray<T = int>(N: number, map: (v: undefined, i: number) => T): T[] {
     const arr = Array(N);
@@ -238,13 +301,21 @@ if __name__ == '__main__':
       arr[i] = map(undefined, i);
     }
     return arr;
-  }'''), ["\n", "export", "function", "makeArray", "<", "T", "=", "int", ">", "(", "N", ":", "number", ",", "map", ":", "(", "v", ":", "undefined", ",", "i", ":", "number", ")", "=", ">", "T", ")", ":", "T", "[", "]", "{", "\n",
-          "const", "arr", "=", "Array", "(", "N", ")", ";", "\n",
-          "for", "(", "let", "i", "=", "0", ";", "i", "<", "arr.length", ";", "i", "++", ")", "{", "\n",
-          "arr", "[", "i", "]", "=", "map", "(", "undefined", ",", "i", ")", ";", "\n",
-          "}", "\n",
-          "return", "arr", ";", "\n",
-          "}"])
+  }'''), ["\n", "  ", "export", " ", "function", " ", "makeArray", "<", "T", " ", "=", " ", "int", ">", "(", "N", ":", " ", "number", ",", " ", "map", ":", " ", "(", "v", ":", " ", "undefined", ",", " ", "i", ":", " ", "number", ")", " ", "=", ">", " ", "T", ")", ":", " ", "T", "[", "]", " ", "{", "\n",
+          "    ", "const", " ", "arr", " ", "=", " ", "Array", "(", "N", ")", ";", "\n",
+          "    ", "for", " ", "(", "let", " ", "i", " ", "=", " ", "0", ";", " ", "i", " ", "<", " ", "arr.length", ";", " ", "i", "++", ")", " ", "{", "\n",
+          "      ", "arr", "[", "i", "]", " ", "=", " ", "map", "(", "undefined", ",", " ", "i", ")", ";", "\n",
+          "    ", "}", "\n",
+          "    ", "return", " ", "arr", ";", "\n",
+          "  ", "}"])
+  expectEquals(
+    "function",
+    tsCompile("""export function<T>() {
+      return 1 as number
+    }"""),
+    """export function/*<T>*/() {
+      return 1 /*as number*/
+    }""")
   if False:
     # test tsCompile()
     expectEquals("type", tsCompile("""export type Foo = {
