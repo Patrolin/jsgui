@@ -141,19 +141,33 @@ def eat_whitespace(parser: Parser) -> str | None:
     else:
       parser.pos = pos
       return next_token
-def parse_top_level_stuff(parser: Parser):
+def parse_statements(parser: Parser, top_level = False):
   while parser.pos < len(parser.tokens):
-    prev_pos = parser.pos
-    parse_statements(parser, top_level=True)
-    print(f"parse_statements: {parser.tokens[prev_pos:parser.pos]}")
-    prev_pos = parser.pos
-    parse_function_declaration(parser, top_level=True)
-    print(f"parse_function: {parser.tokens[prev_pos:parser.pos]}")
-    if parser.pos == prev_pos:
-      print(f"! Parser got stuck at {parser.pos}/{len(parser.tokens)} ('{parser.tokens[parser.pos]}') !")
+    # ("export")
+    next_token = eat_whitespace(parser)
+    if top_level and next_token == "export":
+      parser.pos += 1
+      next_token = eat_whitespace(parser)
+    # statement
+    if next_token == None: return
+    char_group = get_char_group(next_token)
+    if char_group == CharGroup.CURLY_BRACKET_RIGHT:
       return
-def parse_function_declaration(parser: Parser, top_level = False):
-  # "export" | ...
+    elif char_group == CharGroup.ALPHANUMERIC:
+      if next_token == "as":
+        expression_end = find_bracket_end(parser, ";\r\n")
+        parser.replacements.append(Replacement(parser.pos, expression_end-1, "As"))
+        parser.pos = expression_end + 1
+      elif next_token == "function":
+        #print("parse_function", parser.pos, parser.tokens[parser.pos:parser.pos+2])
+        parse_function(parser, top_level)
+        #print("parse_function.exit", parser.pos, parser.tokens[parser.pos:parser.pos+2])
+      else:
+        parser.pos += 1
+    else:
+      parser.pos += 1
+def parse_function(parser: Parser, top_level = False):
+  # ("export")
   next_token = eat_whitespace(parser)
   if top_level and next_token == "export":
     parser.pos += 1
@@ -168,7 +182,7 @@ def parse_function_declaration(parser: Parser, top_level = False):
     #name = next_token
     parser.pos += 1
     next_token = eat_whitespace(parser)
-  # ("<")
+  # ("<" generic ">")
   if next_token == None: return
   if get_char_group(next_token) == CharGroup.ANGLE_BRACKET_LEFT:
     parser.pos += 1
@@ -176,58 +190,42 @@ def parse_function_declaration(parser: Parser, top_level = False):
     parser.replacements.append(Replacement(parser.pos - 1, end, "Generic"))
     parser.pos = end + 1
     next_token = eat_whitespace(parser)
-  # "("
+  # "(" arguments ")"
   if next_token == None: return
   if get_char_group(next_token) == CharGroup.ROUND_BRACKET_LEFT:
     parser.pos += 1
-    end = find_bracket_end(parser)
-    parser.replacements.append(Replacement(parser.pos - 1, end, "Arguments"))
-    parser.pos = end + 1
+    while parser.pos < len(parser.tokens):
+      search = find_first_string(parser, "?:", ":", ",", ")")
+      search_token = parser.tokens[search]
+      arg_end = find_first(parser, ",)")
+      if search_token in ["?:", ":"]:
+        parser.replacements.append(Replacement(search, arg_end - 1, "Argument"))
+      parser.pos = arg_end + 1
+      if parser.tokens[arg_end] == ")":
+        break
     next_token = eat_whitespace(parser)
-  # "{"
+  # "{" statement[] "}"
   if next_token == None: return
   if get_char_group(next_token) == CharGroup.CURLY_BRACKET_LEFT:
     parser.pos += 1
-    print("ayaya.curly_bracket_left", parser.pos)
+    #print("parse_statements", parser.pos, parser.tokens[parser.pos:parser.pos+2])
     parse_statements(parser)
-    print("ayaya.statements_end", parser.pos, parser.tokens[parser.pos])
-    # "}"
+    #print("parse_statements.exit", parser.pos, parser.tokens[parser.pos:parser.pos+2])
     next_token = eat_whitespace(parser)
     if next_token == None: return
     if get_char_group(next_token) == CharGroup.CURLY_BRACKET_RIGHT:
       parser.pos += 1
-def parse_statements(parser: Parser, top_level = False):
-  while True:
-    # "export" | ...
-    next_token = eat_whitespace(parser)
-    if top_level and next_token == "export":
-      parser.pos += 1
-      next_token = eat_whitespace(parser)
-    # statement
-    if next_token == None: return
-    char_group = get_char_group(next_token)
-    if char_group == CharGroup.STRING:
-      parser.pos += 1
-      continue
-    elif char_group == CharGroup.ALPHANUMERIC:
-      if next_token == "as":
-        expression_end = find_bracket_end(parser, ";\r\n")
-        parser.replacements.append(Replacement(parser.pos, expression_end-1, "As"))
-        parser.pos = expression_end + 1
-      elif next_token == "function":
-        return
-      else:
-        parser.pos += 1
-      continue
-    else:
-      #print(CharGroup.print(char_group), next_token)
-      return
 
-def find_first_string(parser: Parser, stop_string: str):
+def uneat_whitespace(parser: Parser, pos: int):
+  search = pos
+  while pos > 0 and get_char_group(parser.tokens[search - 1]) == CharGroup.WHITESPACE:
+    search -= 1
+  return search
+def find_first_string(parser: Parser, *stop_strings: str):
   search = parser.pos
   while search < len(parser.tokens):
     search_token = parser.tokens[search]
-    if search_token == stop_string:
+    if search_token in stop_strings:
       return search
     search += 1
   return search
@@ -258,15 +256,14 @@ def tsCompile(accTs: str) -> str:
   # parse typescript
   tokens = tokenize(accTs)
   parser = Parser(tokens, [])
-  parse_top_level_stuff(parser)
+  parse_statements(parser, top_level=True)
   # comment out types
   for replacement in parser.replacements:
     print(replacement.rtype, parser.tokens[replacement.start:replacement.end+1])
   accJs = ""
   pos = 0
   for replacement in parser.replacements:
-    if replacement.rtype == "Arguments": continue
-    # TODO: shift left to include whitespace in some cases
+    # TODO: shift left to include whitespace for As expressions
     accJs += "".join(parser.tokens[pos:replacement.start]) + f"/*{"".join(parser.tokens[replacement.start:replacement.end+1])}*/"
     pos = replacement.end + 1
   accJs += "".join(parser.tokens[pos:])
@@ -310,11 +307,13 @@ if __name__ == '__main__':
           "  ", "}"])
   expectEquals(
     "function",
-    tsCompile("""export function<T>() {
-      return 1 as number
+    tsCompile("""export function<T>(a?: T, b, c: T) {
+      const a = function (){};
+      return 1 as number;
     }"""),
-    """export function/*<T>*/() {
-      return 1 /*as number*/
+    """export function/*<T>*/(a/*?: T*/, b, c/*: T*/) {
+      const a = function (){};
+      return 1 /*as number*/;
     }""")
   if False:
     # test tsCompile()
