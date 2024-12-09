@@ -218,7 +218,7 @@ def parse_function(parser: Parser, top_level = False):
 
 def uneat_whitespace(parser: Parser, pos: int):
   search = pos
-  while pos > 0 and get_char_group(parser.tokens[search - 1]) == CharGroup.WHITESPACE:
+  while pos > 0 and (get_char_group(parser.tokens[search - 1]) == CharGroup.WHITESPACE):
     search -= 1
   return search
 def find_first_string(parser: Parser, *stop_strings: str):
@@ -263,8 +263,8 @@ def tsCompile(accTs: str) -> str:
   accJs = ""
   pos = 0
   for replacement in parser.replacements:
-    # TODO: shift left to include whitespace for As expressions
-    accJs += "".join(parser.tokens[pos:replacement.start]) + f"/*{"".join(parser.tokens[replacement.start:replacement.end+1])}*/"
+    replacement_start = uneat_whitespace(parser, replacement.start) if replacement.rtype == "As" else replacement.start
+    accJs += "".join(parser.tokens[pos:replacement_start]) + f"/*{"".join(parser.tokens[replacement_start:replacement.end+1])}*/"
     pos = replacement.end + 1
   accJs += "".join(parser.tokens[pos:])
   return accJs
@@ -313,7 +313,7 @@ if __name__ == '__main__':
     }"""),
     """export function/*<T>*/(a/*?: T*/, b, c/*: T*/) {
       const a = function (){};
-      return 1 /*as number*/;
+      return 1/* as number*/;
     }""")
   if False:
     # test tsCompile()
