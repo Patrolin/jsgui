@@ -152,7 +152,10 @@ def parse_statements(parser: Parser, top_level = False):
     # statement
     if next_token == None: return
     char_group = get_char_group(next_token)
-    if char_group == CharGroup.CURLY_BRACKET_RIGHT:
+    if char_group == CharGroup.CURLY_BRACKET_LEFT:
+        parser.pos += 1
+        parse_statements(parser)
+    elif char_group == CharGroup.CURLY_BRACKET_RIGHT:
       return
     elif char_group == CharGroup.ALPHANUMERIC:
       if next_token == "as":
@@ -305,10 +308,12 @@ if __name__ == '__main__':
   expectEquals(
     "function",
     tsCompile("""export function<T>(a?: T, b, c: T) {
+      {};
       const a = function (){};
       return 1 as number;
     }"""),
     """export function/*<T>*/(a/*?: T*/, b, c/*: T*/) {
+      {};
       const a = function (){};
       return 1/* as number*/;
     }""")
