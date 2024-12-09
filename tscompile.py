@@ -145,6 +145,7 @@ def parse_statements(parser: Parser, top_level = False):
   while parser.pos < len(parser.tokens):
     # ("export")
     next_token = eat_whitespace(parser)
+    #export_pos = parser.pos
     if top_level and next_token == "export":
       parser.pos += 1
       next_token = eat_whitespace(parser)
@@ -167,12 +168,8 @@ def parse_statements(parser: Parser, top_level = False):
     else:
       parser.pos += 1
 def parse_function(parser: Parser, top_level = False):
-  # ("export")
-  next_token = eat_whitespace(parser)
-  if top_level and next_token == "export":
-    parser.pos += 1
-    next_token = eat_whitespace(parser)
   # "function"
+  next_token = eat_whitespace(parser)
   if (next_token == None) or (next_token != "function"): return
   parser.pos += 1
   next_token = eat_whitespace(parser)
