@@ -291,7 +291,7 @@ if __name__ == '__main__':
     const b = 'foo';
   '''), ["\n", "    ", "const", " ", "a", " ", "=", " ", "'hello\\ world'", ";", "\n",
          "    ", "const", " ", "b", " ", "=", " ", "'foo'", ";", "\n"])
-  expectEquals("tokenize('function')", tokenize('''
+  expectEquals("tokenize(function)", tokenize('''
   export function makeArray<T = int>(N: number, map: (v: undefined, i: number) => T): T[] {
     const arr = Array(N);
     for (let i = 0; i < arr.length; i++) {
@@ -306,7 +306,7 @@ if __name__ == '__main__':
           "    ", "return", " ", "arr", ";", "\n",
           "  ", "}"])
   expectEquals(
-    "function",
+    "tscompile(function)",
     tsCompile("""export function<T>(a?: T, b, c: T) {
       {};
       const a = function (){};
