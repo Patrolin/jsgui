@@ -122,7 +122,6 @@ export function minimax(options: MinimaxOptions) {
     }
     if (nodes[extremum.i] === extremum.x) {break}
     nodes[extremum.i] = extremum.x;
-    console.log({nodes, paramValues: coefficients, extremum});
   }
   return coefficients;
 }
