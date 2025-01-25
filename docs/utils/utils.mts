@@ -16,6 +16,7 @@ export function getGithubPrefix(): string {
   const githubPrefix = "/jsgui";
   return window.location.pathname.startsWith(githubPrefix) ? githubPrefix : "";
 }
+// solver utils
 export function solveLinear(rows: number[][]) {
   const width = rows[0].length;
   const height = rows.length;
@@ -53,6 +54,39 @@ export function solveLinear(rows: number[][]) {
   }
   return rows.map(row => row[row.length - 1]);
 }
+const PHI_INV = (Math.sqrt(5) - 1) / 2;
+type GoldenSectionSearchOptions = {
+  f: (v: number) => number;
+  range: [number, number];
+  findMaximum: boolean;
+}
+function goldenSectionSearch(options: GoldenSectionSearchOptions) {
+    const {f, range, findMaximum} = options;
+    let [a, b] = range;
+    if (findMaximum) {
+        while (true) {
+            let c = b - (b - a) * PHI_INV;
+            let d = a + (b - a) * PHI_INV;
+            if (c === a) return a;
+            if (f(c) >= f(d)) {
+                b = d;
+            } else {
+                a = c;
+            }
+        }
+    } else {
+        while (true) {
+            let c = b - (b - a) * PHI_INV;
+            let d = a + (b - a) * PHI_INV;
+            if (c === a) return a;
+            if (f(c) <= f(d)) {
+                b = d;
+            } else {
+                a = c;
+            }
+        }
+    }
+}
 type MinimaxOptions = {
   reference: (x: number) => number;
   range: [number, number];
@@ -61,16 +95,34 @@ type MinimaxOptions = {
 export function minimax(options: MinimaxOptions) {
   const {reference, range, params} = options;
   const nodeCount = params.length + 1;
-  const nodes = makeArray(nodeCount, (i) => lerp((i+1) / (nodeCount+1), range[0], range[1]));
-  // solve
-  const newParams = solveLinear(nodes.map((node, i) =>
-    [...params.map(f => f(node)), (-1)**i, reference(node)]
-  )).slice(0, -1);
-  console.log(newParams);
-  /*
-    [1, x0, x0^2, 1] [a]   [f(x0)]
-    [1, x1, x1^2, 1] [b] = [f(x1)]
-    [1, x2, x2^2, 1] [c]   [f(x2)]
-    [1, x3, x3^2, 1] [h]   [f(x3)]
-  */
+  let nodes = makeArray(nodeCount, (i) => lerp((i+1) / (nodeCount+1), range[0], range[1]));
+  let coefficients: number[] = [];
+  while (true) {
+    // solve
+    coefficients = solveLinear(nodes.map((node, i) =>
+      [...params.map(param => param(node)), (-1)**i, reference(node)]
+    )).slice(0, -1);
+    // exchange nodes with extremum
+    let extremum = {i: -1, x: 0, absError: 0};
+    const f = (v: number) => params.reduce((acc, param, i) => acc + coefficients[i] * param(v), 0);
+    const error = (v: number) => f(v) - reference(v);
+    for (let i = 0; i < nodes.length; i++) {
+      const left = i === 0 ? range[0] : nodes[i-1];
+      const right = i === nodes.length - 1 ? range[1] : nodes[i+1];
+      const findMaximum = i % 2 === 0;
+      const x = goldenSectionSearch({
+        f: error,
+        range: [left, right],
+        findMaximum,
+      });
+      const absError = Math.abs(error(x));
+      if (absError >= extremum.absError) {
+        extremum = {i, x, absError}
+      }
+    }
+    if (nodes[extremum.i] === extremum.x) {break}
+    nodes[extremum.i] = extremum.x;
+    console.log({nodes, paramValues: coefficients, extremum});
+  }
+  return coefficients;
 }
