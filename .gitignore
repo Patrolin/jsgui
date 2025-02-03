@@ -4,3 +4,4 @@ docs/out/**
 !docs/out/docs.mjs
 __pycache__
 patch_notes.md
+*.exe
