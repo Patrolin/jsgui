@@ -6,7 +6,7 @@ import { lerp, makeArray } from "../../jsgui/out/jsgui.mts";
  * @param Y any column after M
  * @returns `X`
  * */
-function solveLinearSystem(rows: number[][]) {
+export function solveLinearSystem(rows: number[][]) {
   const width = rows[0].length;
   const height = rows.length;
   const normalizeRow = (x: number, y: number) => {
@@ -44,12 +44,12 @@ function solveLinearSystem(rows: number[][]) {
   return rows.map(row => row[row.length - 1]);
 }
 const PHI_INV = (Math.sqrt(5) - 1) / 2;
-type GoldenSectionSearchOptions = {
+export type GoldenSectionSearchOptions = {
   f: (x: number) => number;
   range: [number, number];
   findMaximum: boolean;
 };
-function goldenSectionSearch(options: GoldenSectionSearchOptions) {
+export function goldenSectionSearch(options: GoldenSectionSearchOptions) {
     const {f, range, findMaximum} = options;
     let [a, b] = range;
     if (findMaximum) {
@@ -82,14 +82,14 @@ function goldenSectionSearch(options: GoldenSectionSearchOptions) {
     range: [0, Math.PI/4],
     findMaximum: true,
 })*/
-type MinimaxOptions = {
+export type MinimaxOptions = {
   reference: (x: number) => number;
   range: [number, number];
   /** approximation(x) = sum(params.map(x)) */
   params: ((x: number) => number)[];
   matchEnds?: boolean;
 };
-function minimax(options: MinimaxOptions) {
+export function minimax(options: MinimaxOptions) {
   const {reference, range, params, matchEnds = true} = options;
   const nodeCount = params.length + 1;
   let nodes = makeArray(nodeCount, (i) => {
