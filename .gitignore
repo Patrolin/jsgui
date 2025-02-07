@@ -5,3 +5,4 @@ docs/out/**
 __pycache__
 patch_notes.md
 *.exe
+tscompiler/test_file.*

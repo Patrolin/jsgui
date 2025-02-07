@@ -2,7 +2,10 @@ package main
 import "core:fmt"
 
 TokenType :: enum {
+	// expression ends
 	EndOfFile,
+	Comma,
+	Semicolon,
 	// whitespace-like
 	Whitespace,
 	Newline,
@@ -13,7 +16,10 @@ TokenType :: enum {
 	Alphanumeric,
 	// 1 length
 	Math,
-	Separator,
+	QuestionMarkColon,
+	QuestionMark,
+	Colon,
+	Equals,
 	RoundBracketLeft,
 	SquareBracketLeft,
 	CurlyBracketLeft,
@@ -25,7 +31,7 @@ TokenType :: enum {
 }
 
 Parser :: struct {
-	file: string,
+	file: string `fmt:"-"`,
 	i:    int,
 }
 make_parser :: proc(file: string) -> Parser {
@@ -40,8 +46,18 @@ get_next_token :: proc(parser: ^Parser) -> (token_type: TokenType) {
 		return .Whitespace
 	case '+', '-', '*':
 		return .Math
-	case '?', ':', '=', ',', ';':
-		return .Separator
+	case '?':
+		j := parser.i + 1
+		is_question_mark_colon := j < len(parser.file) && (parser.file[parser.i + 1] == ':')
+		return is_question_mark_colon ? .QuestionMarkColon : .QuestionMark
+	case ':':
+		return .Colon
+	case '=':
+		return .Equals
+	case ',':
+		return .Comma
+	case ';':
+		return .Semicolon
 	case '(':
 		return .RoundBracketLeft
 	case ')':
@@ -73,9 +89,12 @@ get_next_token :: proc(parser: ^Parser) -> (token_type: TokenType) {
 		return .Alphanumeric
 	}
 }
-eat_next_token :: proc(parser: ^Parser, token_type: TokenType) -> string {
+eat_next_token :: proc(parser: ^Parser, token_type: TokenType, assert_on_eof := true) -> string {
 	start := parser.i
 	#partial switch token_type {
+	// N length
+	case .QuestionMarkColon:
+		parser.i += 2
 	case .Newline:
 		j := parser.i + 1
 		is_two_char :=
@@ -102,17 +121,31 @@ eat_next_token :: proc(parser: ^Parser, token_type: TokenType) -> string {
 			parser.i += 1
 		}
 	case .EndOfFile:
-		assert(false, "Cannot eat .EndOfFile token")
+		if assert_on_eof {
+			assert(false, "Cannot eat .EndOfFile token")
+		}
+	// 1 length
 	case:
 		parser.i += 1
 	}
 	return parser.file[start:parser.i]
 }
-eat_whitespace :: proc(parser: ^Parser) -> TokenType {
-	token_type := get_next_token(parser)
+eat_whitespace :: proc(
+	parser: ^Parser,
+) -> (
+	token_type: TokenType,
+	token: string,
+	whitespace: string,
+	did_newline: bool,
+) {
+	start := parser.i
+	token_type = get_next_token(parser)
 	for token_type >= .Whitespace && token_type <= .MultiLineComment {
+		did_newline = did_newline && token_type == .Newline
 		eat_next_token(parser, token_type)
 		token_type = get_next_token(parser)
 	}
-	return token_type
+	whitespace = parser.file[start:parser.i]
+	token = eat_next_token(parser, token_type, false)
+	return
 }
