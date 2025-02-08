@@ -5,127 +5,124 @@ import "core:strings"
 
 test_file :: string(#load("test_file.mts"))
 main :: proc() {
-	parser := make_parser(test_file)
+	// TODO: return errors instead of asserting
+	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)string(""))
+	javascript_output := parse_entire_file(test_file)
+	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)javascript_output)
+}
+parse_entire_file :: proc(file: string) -> string {
+	parser := make_parser(file)
 	sb := strings.builder_make_none()
-	for parser.i < len(parser.file) {
-		parse_top_level(&parser, &sb)
-		break
+	for parse_statement(&parser, &sb) {}
+	//fmt.assertf(parser.i == len(file) - 1, "Malformed input: %v", parser) // TODO: uncomment this
+	return strings.to_string(sb)
+}
+parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> bool {
+	if parser.token == "export" {
+		eat_token(parser, sb)
 	}
-}
-assert_token :: proc(
-	condition: bool,
-	token_type: TokenType,
-	token: string,
-	loc := #caller_location,
-) {
-	fmt.assertf(condition, "Invalid token: .%v, '%v'", token_type, token, loc = loc)
-}
-print_token :: proc(prefix: string, token_type: TokenType, token: string) {
-	fmt.printfln("%v, token_type: .%v, token: '%v'", prefix, token_type, token)
-}
-parse_top_level :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	token_type, token, whitespace, did_newline := eat_whitespace(parser)
-	if token_type == .EndOfFile {return}
-	assert_token(token_type == .Alphanumeric, token_type, token)
-	if token == "export" {
-		fmt.sbprint(sb, whitespace)
-		fmt.sbprint(sb, token)
-		token_type, token, whitespace, did_newline = eat_whitespace(parser)
-		assert_token(token_type == .Alphanumeric, token_type, token)
-	}
-	fmt.sbprint(sb, whitespace)
-	switch token {
+	if parser.token_type == .EndOfFile || parser.token_type == .CurlyBracketRight {return false}
+	switch parser.token {
 	case "function":
+		// function_declaration
 		parse_function_declaration(parser, sb)
+	case "var", "let", "const":
+		// variable_declaration
+		fmt.assertf(false, "variable_declaration, %v", parser)
+	case "return":
+		// return
+		fmt.assertf(false, "return, %v", parser)
+	case "throw":
+		// throw
+		fmt.assertf(false, "throw, %v", parser)
 	case:
-		fmt.assertf(false, "Unknown token: '%v'", token)
+		// expression
+		fmt.assertf(false, "expression, %v", parser)
 	}
-	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)strings.to_string(sb^))
+	return false // TODO
 }
 parse_function_declaration :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, "function")
+	eat_token(parser, sb)
 	// function_name
-	token_type, token, whitespace, did_newline := eat_whitespace(parser)
-	assert_token(token_type == .Alphanumeric, token_type, token)
-	fmt.sbprint(sb, whitespace)
-	fmt.sbprint(sb, token)
+	fmt.assertf(parser.token_type == .Alphanumeric, "%v", parser)
+	eat_token(parser, sb)
 	// generic
-	token_type, token, whitespace, did_newline = eat_whitespace(parser)
-	if token_type == .AngleBracketLeft {
+	if parser.token_type == .AngleBracketLeft {
 		fmt.sbprint(sb, "/*")
-		fmt.sbprint(sb, whitespace)
-		fmt.sbprint(sb, token)
 		parse_until_end_of_bracket(parser, sb)
 		fmt.sbprint(sb, "*/")
-		token_type, token, whitespace, did_newline = eat_whitespace(parser)
 	}
 	// arguments
-	assert_token(token_type == .RoundBracketLeft, token_type, token)
-	fmt.sbprint(sb, whitespace)
-	fmt.sbprint(sb, token)
-	for token_type != .RoundBracketRight {
-		token_type, token, whitespace, did_newline = eat_whitespace(parser)
-		assert_token(token_type == .Alphanumeric, token_type, token)
-		fmt.sbprint(sb, whitespace)
-		fmt.sbprint(sb, token)
-		token_type, token, whitespace, did_newline = eat_whitespace(parser)
-		if token_type == .QuestionMarkColon || token_type == .Colon {
-			// NOTE: we ignore whitespace before .Colon
+	fmt.assertf(parser.token_type == .RoundBracketLeft, "%v", parser)
+	eat_token(parser, sb)
+	for {
+		fmt.assertf(parser.token_type == .Alphanumeric, "%v", parser)
+		eat_token(parser, sb)
+		if parser.token_type == .QuestionMarkColon || parser.token_type == .Colon {
 			fmt.sbprint(sb, "/*")
-			fmt.sbprint(sb, token)
-			token_type, token, whitespace, did_newline = parse_until_end_of_expression(parser, sb)
+			eat_token(parser, sb)
+			parse_until_end_of_expression(parser, sb, .Comma)
 			fmt.sbprint(sb, "*/")
-			fmt.sbprint(sb, whitespace)
-			fmt.sbprint(sb, token)
 		}
-		assert_token(token_type == .Comma || token_type == .RoundBracketRight, token_type, token)
+		fmt.println(strings.to_string(sb^))
+		if parser.token_type == .Comma {
+			eat_token(parser, sb)
+		} else if parser.token_type == .RoundBracketRight {
+			eat_token(parser, sb)
+			break
+		} else {
+			fmt.assertf(false, "%v", parser)
+		}
 	}
 	// code block
-	token_type, token, whitespace, did_newline = eat_whitespace(parser)
-	assert_token(token_type == .CurlyBracketLeft, token_type, token)
+	fmt.assertf(parser.token_type == .CurlyBracketLeft, "%v", parser)
+	eat_token(parser, sb)
+	fmt.println(strings.to_string(sb^))
+	/*
+	for parse_statement(parser, sb) {}
+	fmt.assertf(parser.token_type == .CurlyBracketRight, "%v", parser)
 	fmt.sbprint(sb, whitespace)
 	fmt.sbprint(sb, token)
-	// TODO: parse_statements
+	*/
 }
 parse_until_end_of_expression :: proc(
 	parser: ^Parser,
 	sb: ^strings.Builder,
-) -> (
-	token_type: TokenType,
-	token: string,
-	whitespace: string,
-	did_newline: bool,
+	max_end_of_expression: TokenType,
 ) {
 	bracket_count := 0
-	for bracket_count >= 0 {
-		token_type, token, whitespace, did_newline = eat_whitespace(parser)
-		if token_type >= .EndOfFile && token_type <= .Semicolon {
+	for {
+		if parser.token_type >= TokenType.RoundBracketLeft &&
+		   parser.token_type <= TokenType.AngleBracketLeft {
+			bracket_count += 1
+		}
+		if parser.token_type >= TokenType.RoundBracketRight &&
+		   parser.token_type <= TokenType.AngleBracketRight {
+			bracket_count -= 1
+		}
+		if parser.token_type == .EndOfFile ||
+		   (bracket_count < 0) ||
+		   (bracket_count == 0 &&
+				   parser.token_type >= .Semicolon &&
+				   parser.token_type <= max_end_of_expression) {
 			return
 		}
-		fmt.sbprint(sb, whitespace)
-		fmt.sbprint(sb, token)
-		if token_type >= TokenType.RoundBracketLeft && token_type <= TokenType.AngleBracketLeft {
-			bracket_count += 1
-		}
-		if token_type >= TokenType.RoundBracketRight && token_type <= TokenType.AngleBracketRight {
-			bracket_count -= 1
-		}
+		eat_token(parser, sb)
 	}
-	return
 }
 parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	bracket_count := 1
-	for bracket_count > 0 {
-		token_type, token, whitespace, did_newline := eat_whitespace(parser)
-		fmt.sbprint(sb, whitespace)
-		fmt.sbprint(sb, token)
-		if token_type == .EndOfFile {break}
-		if token_type >= TokenType.RoundBracketLeft && token_type <= TokenType.AngleBracketLeft {
+	bracket_count := 0
+	for {
+		if parser.token_type >= TokenType.RoundBracketLeft &&
+		   parser.token_type <= TokenType.AngleBracketLeft {
 			bracket_count += 1
 		}
-		if token_type >= TokenType.RoundBracketRight && token_type <= TokenType.AngleBracketRight {
+		if parser.token_type >= TokenType.RoundBracketRight &&
+		   parser.token_type <= TokenType.AngleBracketRight {
 			bracket_count -= 1
 		}
+		if parser.token_type == .EndOfFile {return}
+		eat_token(parser, sb)
+		if bracket_count <= 0 {return}
 	}
-	return
 }
