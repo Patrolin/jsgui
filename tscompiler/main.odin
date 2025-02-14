@@ -18,26 +18,23 @@ parse_entire_file :: proc(file: string) -> string {
 	return strings.to_string(sb)
 }
 parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> bool {
+	fmt.println(strings.to_string(sb^))
 	if parser.token == "export" {
 		eat_token(parser, sb)
 	}
 	if parser.token_type == .EndOfFile || parser.token_type == .CurlyBracketRight {return false}
 	switch parser.token {
 	case "function":
-		// function_declaration
 		parse_function_declaration(parser, sb)
 	case "var", "let", "const":
-		// variable_declaration
 		fmt.assertf(false, "variable_declaration, %v", parser)
 	case "return":
-		// return
-		fmt.assertf(false, "return, %v", parser)
+		eat_token(parser, sb)
+		parse_expression(parser, sb)
 	case "throw":
-		// throw
 		fmt.assertf(false, "throw, %v", parser)
 	case:
-		// expression
-		fmt.assertf(false, "expression, %v", parser)
+		parse_expression(parser, sb)
 	}
 	return false // TODO
 }
@@ -64,7 +61,6 @@ parse_function_declaration :: proc(parser: ^Parser, sb: ^strings.Builder) {
 			parse_until_end_of_expression(parser, sb, .Comma)
 			fmt.sbprint(sb, "*/")
 		}
-		fmt.println(strings.to_string(sb^))
 		if parser.token_type == .Comma {
 			eat_token(parser, sb)
 		} else if parser.token_type == .RoundBracketRight {
@@ -77,13 +73,19 @@ parse_function_declaration :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	// code block
 	fmt.assertf(parser.token_type == .CurlyBracketLeft, "%v", parser)
 	eat_token(parser, sb)
-	fmt.println(strings.to_string(sb^))
-	/*
 	for parse_statement(parser, sb) {}
 	fmt.assertf(parser.token_type == .CurlyBracketRight, "%v", parser)
-	fmt.sbprint(sb, whitespace)
-	fmt.sbprint(sb, token)
-	*/
+	eat_token(parser, sb)
+}
+parse_expression :: proc(parser: ^Parser, sb: ^strings.Builder) {
+	switch parser.token_type {
+	case .RoundBracketLeft:
+		fmt.assertf(false, "TODO: bracket/lambda")
+	case .SquareBracketLeft:
+
+	}
+	fmt.assertf(false, "todo")
+	//fmt.assertf(parser.token_type != .RoundBracketLeft)
 }
 parse_until_end_of_expression :: proc(
 	parser: ^Parser,
