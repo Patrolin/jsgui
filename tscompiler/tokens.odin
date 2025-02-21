@@ -7,6 +7,7 @@ TokenType :: enum {
 	EndOfFile,
 	Semicolon,
 	Comma,
+	Equals,
 	// whitespace-like
 	Whitespace,
 	Newline,
@@ -17,11 +18,11 @@ TokenType :: enum {
 	Alphanumeric,
 	// 2 length
 	QuestionMarkColon,
+	EqualsAngleBracketRight,
 	// 1 length
 	QuestionMark,
 	Math,
 	Colon,
-	Equals,
 	RoundBracketLeft,
 	SquareBracketLeft,
 	CurlyBracketLeft,
@@ -105,9 +106,17 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		return .Alphanumeric
 	// 2 length
 	case '?':
-		j_1 := j + 1
-		is_question_mark_colon := j_1 < len(file) && (file[j_1] == ':')
-		return is_question_mark_colon ? .QuestionMarkColon : .QuestionMark
+		{
+			j_1 := j + 1
+			is_question_mark_colon := j_1 < len(file) && (file[j_1] == ':')
+			return is_question_mark_colon ? .QuestionMarkColon : .QuestionMark
+		}
+	case '=':
+		{
+			j_1 := j + 1
+			is_lambda_arrow := j_1 < len(file) && (file[j_1] == '>')
+			return is_lambda_arrow ? .EqualsAngleBracketRight : .Equals
+		}
 	// 1 length
 	case ';':
 		return .Semicolon
@@ -117,8 +126,6 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		return .Math
 	case ':':
 		return .Colon
-	case '=':
-		return .Equals
 	case '(':
 		return .RoundBracketLeft
 	case ')':
@@ -149,16 +156,24 @@ _parse_token :: proc(parser: ^Parser) {
 			parser.k += 1
 		}
 		parser.token = parser.file[parser.j:parser.k]
-	case .QuestionMarkColon:
+	case .QuestionMarkColon, .EqualsAngleBracketRight:
+		// 2 length
 		parser.k = parser.j + 2
 		parser.token = parser.file[parser.j:parser.k]
-	case .EndOfFile:
-		parser.k = parser.j
-		parser.token = ""
 	case:
+		// 1 length
 		parser.k = parser.j + 1
 		parser.token = parser.file[parser.j:parser.k]
+	case .EndOfFile:
+		// 0 length
+		parser.k = parser.j
+		parser.token = ""
 	}
+}
+eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder) {
+	fmt.sbprint(sb, parser.file[parser.i:parser.j])
+	parser.i = parser.j
+	parser.whitespace = ""
 }
 @(private)
 _eat_token :: proc(parser: ^Parser) {
