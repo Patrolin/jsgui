@@ -10,6 +10,7 @@ main :: proc() {
 	test_file :: string(#load("test_file.mts"))
 	imports := parse_imports(test_file)
 	fmt.printfln("imports: %v", imports)
+	fmt.println("hello \U0001D435")
 }
 parse_imports :: proc(file: string) -> [dynamic]string {
 	imports: [dynamic]string

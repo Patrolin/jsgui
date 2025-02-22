@@ -160,13 +160,13 @@ _parse_token :: proc(parser: ^Parser) {
 			}
 			if is_escaped {
 				if char == 'u' {
-					char_code_string := parser.file[parser.k + l + 1:parser.k + l + 5]
+					char_code_string := parser.file[parser.k + l + 1:]
 					parsed_length: int
 					char_code, ok := strconv.parse_int(char_code_string, 16, &parsed_length)
 					if !ok && char_code == 0 {
-						fmt.sbprint(&sb, rune(0xFFFF))
+						fmt.sbprint(&sb, rune(0xFFFE))
 					} else {
-						fmt.sbprint(&sb, rune(char_code)) // TODO: actually handle UTF-16 properly
+						fmt.sbprint(&sb, rune(char_code)) // NOTE: we don't handle characters split across multiple "\u" tokens
 					}
 					skip_count = parsed_length
 				} else {
