@@ -148,7 +148,10 @@ _parse_token :: proc(parser: ^Parser) {
 	parser.token_type = _get_token_type(parser.file, parser.j)
 	#partial switch parser.token_type {
 	case .String:
-		assert(false, "Not implemented: .String")
+		parser.k = parser.j
+		parser.token = "TODO"
+		fmt.printfln("parser: %v", parser)
+		assert(false, "TODO: .String")
 	case .Alphanumeric:
 		parser.k = parser.j + 1
 		for parser.k < len(parser.file) &&

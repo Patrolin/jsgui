@@ -1,0 +1,17 @@
+{
+  "include": ["**/*.mts", "../jsgui/out/jsgui.mts"],
+  "compilerOptions": {
+    "target": "ESNext",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "forceConsistentCasingInFileNames": true,
+    "outDir": "out"
+  }
+}

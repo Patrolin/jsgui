@@ -3,14 +3,14 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 
-test_file :: string(#load("test_file.mts"))
-main :: proc() {
-	// TODO: include imports
-	fmt.printfln("args: %v", os.args)
+@(test)
+test_compile :: proc() {
+	test_file :: string(#load("test_file.mts"))
 	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)string(""))
 	javascript_output := parse_entire_file(test_file)
 	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)javascript_output)
 }
+
 DEBUG_PARSER :: false
 parse_entire_file :: proc(file: string) -> string {
 	parser := make_parser(file)
@@ -113,10 +113,5 @@ parse_until_end_of_expression :: proc(
 		}
 		if DEBUG_PARSER {fmt.printfln("bracket_count: %v, expr: %v", bracket_count, parser)}
 		eat_token(parser, sb)
-		if parser.token_type == .EqualsAngleBracketRight {
-			if DEBUG_PARSER {fmt.printfln("bracket_count: %v, expr: %v", bracket_count, parser)}
-			eat_token(parser, sb)
-			parse_until_end_of_expression(parser, sb, .Equals)
-		}
 	}
 }
