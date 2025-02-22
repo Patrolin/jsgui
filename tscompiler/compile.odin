@@ -2,9 +2,13 @@ package main
 import "core:fmt"
 import "core:os"
 import "core:strings"
+import win "core:sys/windows"
 
 @(test)
 test_compile :: proc() {
+	if ODIN_OS == .Windows {
+		win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
+	}
 	test_file :: string(#load("test_file.mts"))
 	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)string(""))
 	javascript_output := parse_entire_file(test_file)

@@ -1,8 +1,12 @@
 package main
 import "core:fmt"
 import "core:os"
+import win "core:sys/windows"
 
 main :: proc() {
+	if ODIN_OS == .Windows {
+		win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
+	}
 	test_file :: string(#load("test_file.mts"))
 	imports := parse_imports(test_file)
 	fmt.printfln("imports: %v", imports)

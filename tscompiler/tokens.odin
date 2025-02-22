@@ -1,5 +1,6 @@
 package main
 import "core:fmt"
+import "core:strconv"
 import "core:strings"
 
 TokenType :: enum {
@@ -148,10 +149,44 @@ _parse_token :: proc(parser: ^Parser) {
 	parser.token_type = _get_token_type(parser.file, parser.j)
 	#partial switch parser.token_type {
 	case .String:
-		parser.k = parser.j
-		parser.token = "TODO"
-		fmt.printfln("parser: %v", parser)
-		assert(false, "TODO: .String")
+		sb := strings.builder_make_none()
+		parser.k = parser.j + 1
+		is_escaped := false
+		skip_count := 0
+		for char, l in parser.file[parser.k:] {
+			if skip_count > 0 {
+				skip_count -= 1
+				continue
+			}
+			if is_escaped {
+				if char == 'u' {
+					char_code_string := parser.file[parser.k + l + 1:parser.k + l + 5]
+					parsed_length: int
+					char_code, ok := strconv.parse_int(char_code_string, 16, &parsed_length)
+					if !ok && char_code == 0 {
+						fmt.sbprint(&sb, rune(0xFFFF))
+					} else {
+						fmt.sbprint(&sb, rune(char_code)) // TODO: actually handle UTF-16 properly
+					}
+					skip_count = parsed_length
+				} else {
+					fmt.sbprint(&sb, char)
+				}
+				is_escaped = false
+			} else {
+				if char == '\\' {
+					is_escaped = true
+				} else {
+					if _get_token_type(parser.file, parser.k + l) == .String {
+						parser.k += l + 1
+						break
+					} else {
+						fmt.sbprint(&sb, char)
+					}
+				}
+			}
+		}
+		parser.token = strings.to_string(sb)
 	case .Alphanumeric:
 		parser.k = parser.j + 1
 		for parser.k < len(parser.file) &&
