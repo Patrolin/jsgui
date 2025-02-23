@@ -125,6 +125,7 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		return .Comma
 	case '+', '-', '*', '/':
 		return .Math
+	// TODO: handle comments
 	case ':':
 		return .Colon
 	case '(':
@@ -206,6 +207,7 @@ _parse_token :: proc(parser: ^Parser) {
 		// 0 length
 		parser.k = parser.j
 		parser.token = ""
+		assert(false, "Reached EndOfFile")
 	}
 }
 eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder) {

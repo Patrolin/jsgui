@@ -15,7 +15,7 @@ test_compile :: proc() {
 	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)javascript_output)
 }
 
-DEBUG_PARSER :: false
+DEBUG_PARSER :: true
 parse_entire_file :: proc(file: string) -> string {
 	parser := make_parser(file)
 	sb := strings.builder_make_none()
@@ -55,6 +55,7 @@ parse_generic :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	fmt.sbprint(sb, "*/")
 }
 parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
+	if DEBUG_PARSER {fmt.printfln("parse_until_end_of_bracket")}
 	bracket_count := 0
 	for {
 		if parser.token_type >= TokenType.RoundBracketLeft &&
@@ -69,6 +70,7 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		eat_token(parser, sb)
 		if bracket_count <= 0 {return}
 	}
+	if DEBUG_PARSER {fmt.printfln("-parse_until_end_of_bracket")}
 }
 
 
@@ -97,6 +99,7 @@ parse_until_end_of_expression :: proc(
 	sb: ^strings.Builder,
 	max_end_of_expression: TokenType,
 ) {
+	if DEBUG_PARSER {fmt.printfln("parse_until_end_of_expression")}
 	bracket_count := 0
 	for {
 		if parser.token_type >= TokenType.RoundBracketLeft &&
@@ -118,4 +121,5 @@ parse_until_end_of_expression :: proc(
 		if DEBUG_PARSER {fmt.printfln("bracket_count: %v, expr: %v", bracket_count, parser)}
 		eat_token(parser, sb)
 	}
+	if DEBUG_PARSER {fmt.printfln("-parse_until_end_of_expression")}
 }
