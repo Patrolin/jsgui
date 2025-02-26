@@ -15,6 +15,27 @@ test_compile :: proc() {
 	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)javascript_output)
 }
 
+/*
+Typescipt is a poorly designed language that makes it hard to parse. We can't just switch
+on one token and go from there, we have to constantly guess and rollback if we were wrong.
+Therefore we are basically forced to copy the following structure:
+
+STATEMENT :: "export" (TYPE_STATEMENT | INTERFACE_STATEMENT | CLASS_STATEMENT | FUNCTION_STATEMENT | VAR_STATEMENT)
+TYPE_STATEMENT :: "type" NAME GENERIC? "=" "{" _IGNORE_UNTIL_MATCHING_BRACKET "}"
+INTERFACE_STATEMENT :: "interface" NAME "{" _IGNORE_UNTIL_MATCHING_BRACKET "}"
+CLASS_STATEMENT :: "class NAME "{" CLASS_PROPERTY[] "}"
+	CLASS_PROPERTY :: (CLASS_VARIABLE | CLASS_METHOD)[]
+	CLASS_VARIABLE :: NAME ":" TYPE ("=" VALUE)? ";"?
+	CLASS_METHOD :: FUNCTION_DECL
+FUNCTION_STATEMENT :: "function" FUNCTION_DECL
+	FUNCTION_DECL :: NAME GENERIC "(" FUNCTION_ARGS ")" "{" STATMENT[] "}"
+VAR_STATEMENT :: (VAR_DECL | SINGLE_ASSIGN | MULTI_ASSIGN | VALUE)
+	VAR_DECL :: ("var" | "let" | "const")? NAME = VALUE ";"?
+	SINGLE_ASSIGN :: NAME "=" VALUE ";"?
+	MULTI_ASSIGN :: "[" NAME[","] "]" "=" VALUE ";"?
+VALUE :: _UNTIL_NEWLINE_OR_END_OF_BRACKET_OR_SEMICOLON
+*/
+
 DEBUG_PARSER :: true
 parse_entire_file :: proc(file: string) -> string {
 	parser := make_parser(file)
