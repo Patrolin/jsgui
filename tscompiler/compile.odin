@@ -18,7 +18,11 @@ test_compile :: proc() {
 /*
 Typescipt is a poorly designed language that makes it hard to parse. We can't just switch
 on one token and go from there, we have to constantly guess and rollback if we were wrong.
-Therefore we are basically forced to copy the following structure:
+We don't even know if something is a function or not, because there's 3 different ways
+to declare them: `() => {}`, `function name(){}`, `name(){}` (inside classes).
+We are also forced to parse lambdas (which we also don't know whether they are lambdas
+or function calls or just brackets for math), so we also have to parse the entirety of VALUE.
+Therefore we are practically forced to copy the following structure:
 
 STATEMENT :: "export" (TYPE_STATEMENT | INTERFACE_STATEMENT | CLASS_STATEMENT | FUNCTION_STATEMENT | VAR_STATEMENT)
 TYPE_STATEMENT :: "type" NAME GENERIC? "=" "{" _IGNORE_UNTIL_MATCHING_BRACKET "}"
@@ -28,12 +32,14 @@ CLASS_STATEMENT :: "class NAME "{" CLASS_PROPERTY[] "}"
 	CLASS_VARIABLE :: NAME ":" TYPE ("=" VALUE)? ";"?
 	CLASS_METHOD :: FUNCTION_DECL
 FUNCTION_STATEMENT :: "function" FUNCTION_DECL
-	FUNCTION_DECL :: NAME GENERIC "(" FUNCTION_ARGS ")" "{" STATMENT[] "}"
+	FUNCTION_DECL :: NAME GENERIC "(" FUNCTION_ARG[","] ")" "{" STATMENT[] "}"
+	GENERIC :: "<" _IGNORE_UNTIL_MATCHING_BRACKET ">"
 VAR_STATEMENT :: (VAR_DECL | SINGLE_ASSIGN | MULTI_ASSIGN | VALUE)
 	VAR_DECL :: ("var" | "let" | "const")? NAME = VALUE ";"?
 	SINGLE_ASSIGN :: NAME "=" VALUE ";"?
 	MULTI_ASSIGN :: "[" NAME[","] "]" "=" VALUE ";"?
 VALUE :: _UNTIL_NEWLINE_OR_END_OF_BRACKET_OR_SEMICOLON
+
 */
 
 DEBUG_PARSER :: true
