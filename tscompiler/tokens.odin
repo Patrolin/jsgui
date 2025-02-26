@@ -83,6 +83,8 @@ _parse_whitespace :: proc(parser: ^Parser) {
 					}
 				}
 				continue
+			} else {
+				j += 1
 			}
 		} else {
 			break
@@ -207,7 +209,6 @@ _parse_token :: proc(parser: ^Parser) {
 		// 0 length
 		parser.k = parser.j
 		parser.token = ""
-		assert(false, "Reached EndOfFile")
 	}
 }
 eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder) {
