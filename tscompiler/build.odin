@@ -127,8 +127,13 @@ main :: proc() {
 				fmt.printfln("mjs_out_file_path: %v", mjs_out_file_path)
 				mts_file := strings.to_string(sb)
 				os.write_entire_file(mts_out_file_path, transmute([]u8)mts_file)
-				mjs_file := parse_entire_file(mts_file)
+				mjs_file, error, parser := parse_entire_file(mts_file)
 				os.write_entire_file(mjs_out_file_path, transmute([]u8)mjs_file)
+				#partial switch error {
+				case .None:
+				case:
+					fmt.printfln("ParseError: .%v, %v", error, parser)
+				}
 			}
 		}
 	}

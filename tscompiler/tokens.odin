@@ -19,12 +19,13 @@ TokenType :: enum {
 	Alphanumeric,
 	// 2 length
 	QuestionMarkColon,
-	EqualsAngleBracketRight,
+	LambdaArrow,
 	// 1 length
 	QuestionMark,
-	Math,
+	PlusMinus,
+	TimesDivide,
 	Colon,
-	RoundBracketLeft,
+	BracketLeft,
 	SquareBracketLeft,
 	CurlyBracketLeft,
 	AngleBracketLeft,
@@ -118,20 +119,22 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		{
 			j_1 := j + 1
 			is_lambda_arrow := j_1 < len(file) && (file[j_1] == '>')
-			return is_lambda_arrow ? .EqualsAngleBracketRight : .Equals
+			return is_lambda_arrow ? .LambdaArrow : .Equals
 		}
 	// 1 length
 	case ';':
 		return .Semicolon
 	case ',':
 		return .Comma
-	case '+', '-', '*', '/':
-		return .Math
-	// TODO: handle comments
+	case '+', '-':
+		return .PlusMinus
+	case '*', '/':
+		// NOTE: comments are handled by _parse_whitespace()
+		return .TimesDivide
 	case ':':
 		return .Colon
 	case '(':
-		return .RoundBracketLeft
+		return .BracketLeft
 	case ')':
 		return .RoundBracketRight
 	case '[':
@@ -197,7 +200,7 @@ _parse_token :: proc(parser: ^Parser) {
 			parser.k += 1
 		}
 		parser.token = parser.file[parser.j:parser.k]
-	case .QuestionMarkColon, .EqualsAngleBracketRight:
+	case .QuestionMarkColon, .LambdaArrow:
 		// 2 length
 		parser.k = parser.j + 2
 		parser.token = parser.file[parser.j:parser.k]
@@ -229,4 +232,7 @@ _eat_token_and_sbprint :: proc(parser: ^Parser, sb: ^strings.Builder) {
 eat_token :: proc {
 	_eat_token,
 	_eat_token_and_sbprint,
+}
+print_prev_token :: proc(parser: ^Parser, sb: ^strings.Builder, prev_i: int) {
+	fmt.sbprint(sb, parser.file[prev_i:parser.i])
 }
