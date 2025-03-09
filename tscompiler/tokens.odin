@@ -26,26 +26,27 @@ TokenType :: enum {
 	TimesDivide,
 	Colon,
 	BracketLeft,
-	SquareBracketLeft,
-	CurlyBracketLeft,
-	AngleBracketLeft,
-	RoundBracketRight,
-	SquareBracketRight,
-	CurlyBracketRight,
-	AngleBracketRight,
+	BracketLeftSquare,
+	BracketLeftCurly,
+	BracketLeftAngle,
+	BracketRight,
+	BracketRightSquare,
+	BracketRightCurly,
+	BracketRightAngle,
 }
 
 Parser :: struct {
-	file:       string `fmt:"-"`,
-	whitespace: string,
-	token:      string,
-	token_type: TokenType,
-	i:          int,
-	j:          int,
-	k:          int,
+	file:         string `fmt:"-"`,
+	whitespace:   string,
+	token:        string,
+	token_type:   TokenType,
+	i:            int,
+	j:            int,
+	k:            int,
+	debug_indent: int,
 }
 make_parser :: proc(file: string) -> Parser {
-	parser := Parser{file, "", "", .EndOfFile, 0, 0, 0}
+	parser := Parser{file, "", "", .EndOfFile, 0, 0, 0, 0}
 	parse_until_next_token(&parser)
 	return parser
 }
@@ -136,19 +137,19 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 	case '(':
 		return .BracketLeft
 	case ')':
-		return .RoundBracketRight
+		return .BracketRight
 	case '[':
-		return .SquareBracketLeft
+		return .BracketLeftSquare
 	case ']':
-		return .SquareBracketRight
+		return .BracketRightSquare
 	case '{':
-		return .CurlyBracketLeft
+		return .BracketLeftCurly
 	case '}':
-		return .CurlyBracketRight
+		return .BracketRightCurly
 	case '<':
-		return .AngleBracketLeft
+		return .BracketLeftAngle
 	case '>':
-		return .AngleBracketRight
+		return .BracketRightAngle
 	}
 }
 _parse_token :: proc(parser: ^Parser) {
@@ -221,6 +222,7 @@ eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder) {
 }
 @(private)
 _eat_token :: proc(parser: ^Parser) {
+	if DEBUG_PARSER {fmt.printfln("  %v", parser)}
 	parser.i = parser.k
 	parse_until_next_token(parser)
 }
