@@ -261,7 +261,6 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	defer debug_print(parser, "parse_until_end_of_bracket", .End)
 	bracket_count := 0
 	for {
-		fmt.printfln("ayaya")
 		if parser.token_type >= TokenType.BracketLeft &&
 		   parser.token_type <= TokenType.BracketLeftAngle {
 			bracket_count += 1
@@ -270,7 +269,6 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		   parser.token_type <= TokenType.BracketRightAngle {
 			bracket_count -= 1
 		}
-		fmt.printfln("ayaya.3")
 		if DEBUG_PARSER {fmt.printfln("bracket_count: %v, parser: %v", bracket_count, parser)}
 		if parser.token_type == .EndOfFile {return}
 		eat_token(parser, sb) // TODO: this crashes for some reason
