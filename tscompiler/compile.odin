@@ -75,8 +75,8 @@ parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, pars
 }
 ParseError :: enum {
 	None,
-	NotImplemented,
-	UnexpectedToken,
+	UnexpectedTokenInStatement,
+	UnexpectedTokenInValue,
 	ExpectedName,
 	ExpectedEquals,
 	ExpectedBracketLeft,
@@ -84,6 +84,9 @@ ParseError :: enum {
 	ExpectedBracketRight,
 	ExpectedBracketRightCurly,
 	ExpectedColon,
+	NotImplementedClass,
+	NotImplementedLambda,
+	NotImplementedBracket,
 }
 
 // slow path
@@ -116,7 +119,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			parse_until_end_of_bracket(parser, sb)
 			fmt.sbprint(sb, "*/")
 		case "class":
-			return .NotImplemented
+			return .NotImplementedClass
 		case "var", "let", "const":
 			print_prev_token(parser, sb, statement_start)
 			eat_token(parser, sb)
@@ -127,7 +130,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			parse_value(parser, sb, .Semicolon) or_return
 		}
 	case:
-		return .NotImplemented
+		return .UnexpectedTokenInStatement
 	}
 	for parser.token_type == .Semicolon {
 		debug_print(parser, "statement.semicolons", .Middle)
@@ -169,7 +172,7 @@ parse_right_bracket_curly :: proc(parser: ^Parser, sb: ^strings.Builder) -> (err
 parse_value :: proc(
 	parser: ^Parser,
 	sb: ^strings.Builder,
-	stop_at: TokenType,
+	stop_at: TokenType = .Semicolon,
 ) -> (
 	error: ParseError,
 ) {
@@ -187,9 +190,9 @@ parse_value :: proc(
 			lookahead := parser^
 			parse_until_end_of_bracket(&lookahead, nil)
 			if lookahead.token_type == .LambdaArrow {
-				return .NotImplemented
+				return .NotImplementedLambda
 			} else {
-				return .NotImplemented
+				return .NotImplementedBracket
 			}
 		case .Alphanumeric:
 			if parser.token == "function" {
@@ -219,7 +222,7 @@ parse_value :: proc(
 		case .BracketLeftCurly:
 			parse_until_end_of_bracket(parser, sb)
 		case:
-			return .UnexpectedToken
+			return .UnexpectedTokenInValue
 		}
 		if parser.token_type == .PlusMinus ||
 		   parser.token_type == .TimesDivide ||
@@ -271,8 +274,7 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		}
 		if DEBUG_PARSER {fmt.printfln("bracket_count: %v, parser: %v", bracket_count, parser)}
 		if parser.token_type == .EndOfFile {return}
-		eat_token(parser, sb) // TODO: this crashes for some reason
-		fmt.printfln("ayaya.4")
+		eat_token(parser, sb)
 		if bracket_count <= 0 {return}
 	}
 }

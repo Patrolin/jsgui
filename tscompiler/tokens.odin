@@ -215,26 +215,28 @@ _parse_token :: proc(parser: ^Parser) {
 		parser.token = ""
 	}
 }
-eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, parser.file[parser.i:parser.j])
+eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
+	if sb != nil {
+		fmt.sbprint(sb, parser.file[parser.i:parser.j])
+	}
 	parser.i = parser.j
 	parser.whitespace = ""
 }
-@(private)
-_eat_token :: proc(parser: ^Parser) {
+// NOTE: we want `sb = nil` for lookahead
+eat_token :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
 	if DEBUG_PARSER {fmt.printfln("  %v", parser)}
+	if sb != nil {
+		fmt.sbprint(sb, parser.file[parser.i:parser.k])
+	}
 	parser.i = parser.k
 	parse_until_next_token(parser)
 }
-@(private)
-_eat_token_and_sbprint :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, parser.file[parser.i:parser.k])
-	_eat_token(parser)
-}
-eat_token :: proc {
-	_eat_token,
-	_eat_token_and_sbprint,
-}
-print_prev_token :: proc(parser: ^Parser, sb: ^strings.Builder, prev_i: int) {
+print_prev_token :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+	prev_i: int,
+	loc := #caller_location,
+) {
+	assert(sb != nil, "sb cannot be nil", loc = loc)
 	fmt.sbprint(sb, parser.file[prev_i:parser.i])
 }
