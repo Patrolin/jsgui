@@ -30,9 +30,9 @@ We are also forced to parse lambdas (which we also don't know whether they are l
 or function calls or just brackets for math), so we also have to parse the entirety of VALUE.
 Therefore we are practically forced to copy the following structure:
 
-STATEMENT :: "export" (TYPE_STATEMENT | INTERFACE_STATEMENT | CLASS_STATEMENT | FUNCTION_STATEMENT | VAR_STATEMENT)
+STATEMENT :: "export"? (TYPE_STATEMENT | INTERFACE_STATEMENT | CLASS_STATEMENT | FUNCTION_STATEMENT | VAR_STATEMENT) ()[";"]
 TYPE_STATEMENT :: "type" NAME GENERIC? "=" "{" _IGNORE_UNTIL_MATCHING_BRACKET "}"
-INTERFACE_STATEMENT :: "interface" NAME "{" _IGNORE_UNTIL_MATCHING_BRACKET "}"
+INTERFACE_STATEMENT :: "interface" NAME ("extends" NAME[","])? "{" _IGNORE_UNTIL_MATCHING_BRACKET "}"
 CLASS_STATEMENT :: "class NAME "{" CLASS_PROPERTY[] "}"
 	CLASS_PROPERTY :: (CLASS_VARIABLE | CLASS_METHOD)[]
 	CLASS_VARIABLE :: NAME ":" TYPE ("=" VALUE)? ";"?
@@ -86,8 +86,8 @@ ParseError :: enum {
 	ExpectedLambdaArrow,
 	ExpectedColon,
 	NotImplementedClass,
-	NotImplementedLambda,
 	NotImplementedBracket,
+	NotImplementedExtends,
 }
 
 // slow path
@@ -103,22 +103,29 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 	case .Alphanumeric:
 		switch parser.token {
 		case "type":
-			fmt.sbprint(sb, "/*")
-			print_prev_token(parser, sb, statement_start)
-			eat_token(parser, sb)
-			parse_name(parser, sb) or_return
-			parse_equals(parser, sb) or_return
-			if parser.token_type != .BracketRightCurly {return .ExpectedBracketRightCurly}
-			parse_until_end_of_bracket(parser, sb) // NOTE: we can use the fast path here
-			fmt.sbprint(sb, "*/")
+			{
+				debug_print(parser, "type", .Start)
+				defer debug_print(parser, "type", .End)
+				fmt.sbprint(sb, "/*")
+				print_prev_token(parser, sb, statement_start)
+				eat_token(parser, sb)
+				parse_name(parser, sb) or_return
+				parse_equals(parser, sb) or_return
+				parse_type_def(parser, sb, "type.def") or_return
+				fmt.sbprint(sb, "*/")
+			}
 		case "interface":
-			fmt.sbprint(sb, "/*")
-			print_prev_token(parser, sb, statement_start)
-			eat_token(parser, sb)
-			parse_name(parser, sb) or_return
-			if parser.token_type != .BracketRightCurly {return .ExpectedBracketRightCurly}
-			parse_until_end_of_bracket(parser, sb) // NOTE: we can use the fast path here
-			fmt.sbprint(sb, "*/")
+			{
+				debug_print(parser, "interface", .Start)
+				defer debug_print(parser, "interface", .End)
+				fmt.sbprint(sb, "/*")
+				print_prev_token(parser, sb, statement_start)
+				eat_token(parser, sb)
+				parse_name(parser, sb) or_return
+				parse_extends(parser, sb) or_return
+				parse_type_def(parser, sb, "interface.def") or_return
+				fmt.sbprint(sb, "*/")
+			}
 		case "class":
 			return .NotImplementedClass
 		case "var", "let", "const":
@@ -169,6 +176,29 @@ parse_right_bracket_curly :: proc(parser: ^Parser, sb: ^strings.Builder) -> (err
 	eat_token(parser, sb)
 	return .None
 }
+parse_extends :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	return .NotImplementedExtends
+}
+parse_type_def :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+	debug_name: string,
+) -> (
+	error: ParseError,
+) {
+	debug_print(parser, debug_name, .Middle)
+	for parser.token_type == .Alphanumeric || parser.token_type == .BracketLeftCurly {
+		if (parser.token_type == .Alphanumeric) {
+			eat_token(parser, sb)
+		} else {
+			parse_until_end_of_bracket(parser, sb)
+		}
+		if parser.token == "&" || parser.token == "|" {
+			eat_token(parser, sb)
+		}
+	}
+	return .None
+}
 parse_value :: proc(
 	parser: ^Parser,
 	sb: ^strings.Builder,
@@ -182,9 +212,6 @@ parse_value :: proc(
 		for parser.token_type == .PlusMinus {
 			eat_token(parser, sb)
 		}
-		if parser.token_type <= stop_at {
-			return .None
-		}
 		#partial switch parser.token_type {
 		case .BracketLeft:
 			lookahead := parser^
@@ -192,7 +219,7 @@ parse_value :: proc(
 			if lookahead.token_type == .LambdaArrow {
 				debug_print(parser, "lambda.args", .Start)
 				defer debug_print(parser, "lambda", .End)
-				parse_function_args(parser, sb) or_return
+				parse_function_args(parser, sb, "lambda.args.cont") or_return
 				parse_lambda_arrow(parser, sb) or_return
 				debug_print(parser, "lambda.body", .Start)
 				if parser.token_type == .BracketLeftCurly {
@@ -210,7 +237,7 @@ parse_value :: proc(
 				eat_token(parser, sb)
 				parse_name(parser, sb) or_return
 				debug_print(parser, "function.args", .Middle)
-				parse_function_args(parser, sb) or_return
+				parse_function_args(parser, sb, "function.args.cont") or_return
 				debug_print(parser, "function.body", .Middle)
 				parse_function_body(parser, sb) or_return
 			} else {
@@ -226,8 +253,13 @@ parse_value :: proc(
 			}
 		case .BracketLeftCurly:
 			parse_until_end_of_bracket(parser, sb) // TODO: parse this properly
+		case .String:
+			eat_token(parser, sb)
 		case:
 			return .UnexpectedTokenInValue
+		}
+		if parser.token_type <= stop_at {
+			return .None
 		}
 		if parser.token_type == .PlusMinus ||
 		   parser.token_type == .TimesDivide ||
@@ -241,7 +273,13 @@ parse_value :: proc(
 	}
 	return .None
 }
-parse_function_args :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+parse_function_args :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+	debug_name_cont: string,
+) -> (
+	error: ParseError,
+) {
 	parse_left_bracket(parser, sb) or_return
 	for parser.token_type == .Alphanumeric {
 		eat_token(parser, sb) // name
@@ -253,6 +291,10 @@ parse_function_args :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Pa
 			parse_value(parser, sb, .Comma) or_return // value
 		}
 		fmt.sbprint(sb, "*/")
+		if parser.token_type == .Comma {
+			debug_print(parser, debug_name_cont, .Middle)
+			eat_token(parser, sb)
+		}
 	}
 	parse_right_bracket(parser, sb) or_return
 	return .None
