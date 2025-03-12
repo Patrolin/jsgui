@@ -83,6 +83,7 @@ ParseError :: enum {
 	ExpectedBracketLeftCurly,
 	ExpectedBracketRight,
 	ExpectedBracketRightCurly,
+	ExpectedLambdaArrow,
 	ExpectedColon,
 	NotImplementedClass,
 	NotImplementedLambda,
@@ -189,7 +190,16 @@ parse_value :: proc(
 			lookahead := parser^
 			parse_until_end_of_bracket(&lookahead, nil) // NOTE: we can use the fast path here
 			if lookahead.token_type == .LambdaArrow {
-				return .NotImplementedLambda // TODO: parse this
+				debug_print(parser, "lambda.args", .Start)
+				defer debug_print(parser, "lambda", .End)
+				parse_function_args(parser, sb) or_return
+				parse_lambda_arrow(parser, sb) or_return
+				debug_print(parser, "lambda.body", .Start)
+				if parser.token_type == .BracketLeftCurly {
+					parse_function_body(parser, sb) or_return
+				} else {
+					parse_value(parser, sb, .Comma) or_return
+				}
 			} else {
 				return .NotImplementedBracket // TODO: parse this
 			}
@@ -200,15 +210,9 @@ parse_value :: proc(
 				eat_token(parser, sb)
 				parse_name(parser, sb) or_return
 				debug_print(parser, "function.args", .Middle)
-				parse_left_bracket(parser, sb) or_return
 				parse_function_args(parser, sb) or_return
-				parse_right_bracket(parser, sb) or_return
 				debug_print(parser, "function.body", .Middle)
-				parse_left_bracket_curly(parser, sb) or_return
-				for parser.token_type != .BracketRightCurly {
-					parse_statement(parser, sb) or_return
-				}
-				parse_right_bracket_curly(parser, sb) or_return
+				parse_function_body(parser, sb) or_return
 			} else {
 				debug_print(parser, "name", .Start)
 				defer debug_print(parser, "name", .End)
@@ -238,6 +242,7 @@ parse_value :: proc(
 	return .None
 }
 parse_function_args :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	parse_left_bracket(parser, sb) or_return
 	for parser.token_type == .Alphanumeric {
 		eat_token(parser, sb) // name
 		fmt.sbprint(sb, "/*")
@@ -249,6 +254,20 @@ parse_function_args :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Pa
 		}
 		fmt.sbprint(sb, "*/")
 	}
+	parse_right_bracket(parser, sb) or_return
+	return .None
+}
+parse_lambda_arrow :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type != .LambdaArrow {return .ExpectedLambdaArrow}
+	eat_token(parser, sb)
+	return .None
+}
+parse_function_body :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	parse_left_bracket_curly(parser, sb) or_return
+	for parser.token_type != .BracketRightCurly {
+		parse_statement(parser, sb) or_return
+	}
+	parse_right_bracket_curly(parser, sb) or_return
 	return .None
 }
 parse_colon :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
