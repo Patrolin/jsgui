@@ -62,6 +62,12 @@ debug_print :: proc(parser: ^Parser, name: string, type: DebugPrintType) {
 		if type == .End {parser.debug_indent -= 1}
 	}
 }
+start_comment :: proc(sb: ^strings.Builder) {
+	fmt.sbprint(sb, "/*")
+}
+end_comment :: proc(sb: ^strings.Builder) {
+	fmt.sbprint(sb, "*/")
+}
 parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, parser: Parser) {
 	parser = make_parser(file)
 	sb := strings.builder_make_none()
@@ -76,18 +82,22 @@ parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, pars
 ParseError :: enum {
 	None,
 	UnexpectedTokenInStatement,
+	UnexpectedTokenInDestructuring,
 	UnexpectedTokenInValue,
 	ExpectedName,
 	ExpectedEquals,
 	ExpectedBracketLeft,
 	ExpectedBracketLeftCurly,
+	ExpectedBracketLeftSquare,
 	ExpectedBracketRight,
 	ExpectedBracketRightCurly,
+	ExpectedBracketRightSquare,
 	ExpectedLambdaArrow,
 	ExpectedColon,
 	NotImplementedClass,
 	NotImplementedBracket,
 	NotImplementedExtends,
+	NotImplementedDestructuring,
 }
 
 // slow path
@@ -106,32 +116,32 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			{
 				debug_print(parser, "type", .Start)
 				defer debug_print(parser, "type", .End)
-				fmt.sbprint(sb, "/*")
+				start_comment(sb)
 				print_prev_token(parser, sb, statement_start)
 				eat_token(parser, sb)
 				parse_name(parser, sb) or_return
 				parse_equals(parser, sb) or_return
 				parse_type_def(parser, sb, "type.def") or_return
-				fmt.sbprint(sb, "*/")
+				end_comment(sb)
 			}
 		case "interface":
 			{
 				debug_print(parser, "interface", .Start)
 				defer debug_print(parser, "interface", .End)
-				fmt.sbprint(sb, "/*")
+				start_comment(sb)
 				print_prev_token(parser, sb, statement_start)
 				eat_token(parser, sb)
 				parse_name(parser, sb) or_return
 				parse_extends(parser, sb) or_return
 				parse_type_def(parser, sb, "interface.def") or_return
-				fmt.sbprint(sb, "*/")
+				end_comment(sb)
 			}
 		case "class":
 			return .NotImplementedClass
 		case "var", "let", "const":
 			print_prev_token(parser, sb, statement_start)
 			eat_token(parser, sb)
-			parse_name(parser, sb) or_return
+			parse_destructuring(parser, sb) or_return
 			parse_equals(parser, sb) or_return
 			parse_value(parser, sb, .Semicolon) or_return
 		case:
@@ -151,6 +161,42 @@ parse_name :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 	eat_token(parser, sb)
 	return .None
 }
+parse_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	defer debug_print(parser, "destructuring", .End)
+	#partial switch parser.token_type {
+	case .Alphanumeric:
+		debug_print(parser, "destructuring.name", .Start)
+		eat_token(parser, sb)
+		return .None
+	case .BracketLeftSquare:
+		debug_print(parser, "destructuring.square", .Start)
+		return .NotImplementedDestructuring
+	case .BracketLeftCurly:
+		debug_print(parser, "destructuring.curly", .Middle)
+		eat_token(parser, sb)
+		for parser.token_type == .Alphanumeric {
+			eat_token(parser, sb)
+			if parser.token_type == .Colon || parser.token_type == .QuestionMarkColon {
+				eat_token(parser, sb)
+				parse_destructuring(parser, sb)
+			}
+			if parser.token_type == .Equals {
+				eat_token(parser, sb)
+				parse_value(parser, sb)
+			}
+			if parser.token_type == .Comma {
+				eat_token(parser, sb)
+				continue
+			}
+		}
+		parse_right_bracket_curly(parser, sb)
+	case .BracketRightCurly:
+		return .None
+	case:
+		return .UnexpectedTokenInDestructuring
+	}
+	return .None
+}
 parse_equals :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	if parser.token_type != .Equals {return .ExpectedEquals}
 	eat_token(parser, sb)
@@ -163,6 +209,16 @@ parse_left_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Par
 }
 parse_right_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	if parser.token_type != .BracketRight {return .ExpectedBracketRight}
+	eat_token(parser, sb)
+	return .None
+}
+parse_left_bracket_square :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type != .BracketLeftSquare {return .ExpectedBracketLeftSquare}
+	eat_token(parser, sb)
+	return .None
+}
+parse_right_bracket_square :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type != .BracketRightSquare {return .ExpectedBracketRightSquare}
 	eat_token(parser, sb)
 	return .None
 }
@@ -247,7 +303,9 @@ parse_value :: proc(
 				if parser.token_type == .BracketLeft {
 					debug_print(parser, "name.call", .Middle)
 					eat_token(parser, sb)
-					parse_value(parser, sb, .Semicolon) or_return
+					if parser.token_type != .BracketRight {
+						parse_value(parser, sb, .Semicolon) or_return
+					}
 					parse_right_bracket(parser, sb) or_return
 				}
 			}
@@ -258,16 +316,29 @@ parse_value :: proc(
 		case:
 			return .UnexpectedTokenInValue
 		}
+		for parser.token_type == .BracketLeftSquare {
+			eat_token(parser, sb)
+			parse_value(parser, sb, stop_at)
+			parse_right_bracket_square(parser, sb)
+		}
 		if parser.token_type <= stop_at {
 			return .None
 		}
 		if parser.token_type == .PlusMinus ||
 		   parser.token_type == .TimesDivide ||
+		   parser.token_type == .DoubleQuestionMark ||
 		   parser.token_type == .Comma ||
 		   parser.token_type == .Equals {
-			debug_print(parser, "value.cont", .Middle)
+			debug_print(parser, "value.binaryOp", .Middle)
 			eat_token(parser, sb)
 			continue
+		}
+		if parser.token == "as" {
+			debug_print(parser, "value.as", .Middle)
+			start_comment(sb)
+			eat_token(parser, sb)
+			parse_value(parser, sb, stop_at)
+			end_comment(sb)
 		}
 		break
 	}
@@ -283,17 +354,19 @@ parse_function_args :: proc(
 	parse_left_bracket(parser, sb) or_return
 	for parser.token_type == .Alphanumeric {
 		eat_token(parser, sb) // name
-		fmt.sbprint(sb, "/*")
 		if parser.token_type == .Colon || parser.token_type == .QuestionMarkColon {
+			start_comment(sb)
 			eat_token(parser, sb) // ':' | '?:'
-			parse_value(parser, sb, .Comma) or_return // type ('=' value)?
-		} else {
-			parse_value(parser, sb, .Comma) or_return // value
+			parse_value(parser, sb, .Equals) or_return // type
+			end_comment(sb)
 		}
-		fmt.sbprint(sb, "*/")
+		if parser.token_type == .Equals {
+			eat_token(parser, sb) // '='
+			parse_value(parser, sb, .Comma)
+		}
 		if parser.token_type == .Comma {
 			debug_print(parser, debug_name_cont, .Middle)
-			eat_token(parser, sb)
+			eat_token(parser, sb) // ','
 		}
 	}
 	parse_right_bracket(parser, sb) or_return
@@ -320,7 +393,7 @@ parse_colon :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError
 	return .None
 }
 
-// fast path // TODO: we cannot call these ever unfortunately
+// fast path // TODO: when can we call these?
 parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	debug_print(parser, "parse_until_end_of_bracket", .Start)
 	defer debug_print(parser, "parse_until_end_of_bracket", .End)
@@ -339,27 +412,6 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		eat_token(parser, sb)
 		if bracket_count <= 0 {return}
 	}
-}
-// TODO: unused?
-parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, "/*")
-	eat_token(parser, sb)
-	parse_until_end_of_expression(parser, sb, .Equals)
-	fmt.sbprint(sb, "*/")
-}
-parse_as :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, "/*")
-	eat_token(parser, sb)
-	parse_until_end_of_expression(parser, sb, .Comma)
-	fmt.sbprint(sb, "*/")
-}
-parse_type_definition :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	eat_whitespace(parser, sb)
-	fmt.sbprint(sb, "/*")
-	eat_token(parser, sb)
-	eat_token(parser, sb)
-	parse_until_end_of_expression(parser, sb, .Comma)
-	fmt.sbprint(sb, "*/")
 }
 parse_until_end_of_expression :: proc(
 	parser: ^Parser,

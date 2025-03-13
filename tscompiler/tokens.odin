@@ -20,6 +20,7 @@ TokenType :: enum {
 	// 2 length
 	QuestionMarkColon,
 	LambdaArrow,
+	DoubleQuestionMark,
 	// 1 length
 	QuestionMark,
 	PlusMinus,
@@ -114,7 +115,10 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		{
 			j_1 := j + 1
 			is_question_mark_colon := j_1 < len(file) && (file[j_1] == ':')
-			return is_question_mark_colon ? .QuestionMarkColon : .QuestionMark
+			is_double_question_mark := j_1 < len(file) && (file[j_1] == '?')
+			if is_question_mark_colon {return .QuestionMarkColon}
+			if is_double_question_mark {return .DoubleQuestionMark}
+			return .QuestionMark
 		}
 	case '=':
 		{
@@ -201,7 +205,7 @@ _parse_token :: proc(parser: ^Parser) {
 			parser.k += 1
 		}
 		parser.token = parser.file[parser.j:parser.k]
-	case .QuestionMarkColon, .LambdaArrow:
+	case .QuestionMarkColon, .LambdaArrow, .DoubleQuestionMark:
 		// 2 length
 		parser.k = parser.j + 2
 		parser.token = parser.file[parser.j:parser.k]
