@@ -219,6 +219,21 @@ _parse_token :: proc(parser: ^Parser) {
 		parser.token = ""
 	}
 }
+eat_whitespace_excluding_comments :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
+	whitespace_start := parser.i
+	whitespace_end := whitespace_start
+	for ; whitespace_end < len(parser.file); whitespace_end += 1 {
+		char := parser.file[whitespace_end]
+		if !(get_is_whitespace(char) || get_is_newline(char)) {
+			break
+		}
+	}
+	if sb != nil {
+		fmt.sbprint(sb, parser.file[whitespace_start:whitespace_end])
+	}
+	parser.i = whitespace_end
+	parse_until_next_token(parser)
+}
 eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
 	if sb != nil {
 		fmt.sbprint(sb, parser.file[parser.i:parser.j])

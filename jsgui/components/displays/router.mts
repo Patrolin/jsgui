@@ -47,7 +47,7 @@ export const router = makeComponent(function router(props: RouterProps) {
   let currentRoute: Route | null = null; // TODO: save params in rootComponent?
   let currentRouteParams: Record<string, string> = {};
   for (let route of routes) {
-    const routeParamNames = [];
+    const routeParamNames = [] as string[];
     const regex = new RegExp(`^${
       makePath({pathname: route.path}).replace(/:([^/]*)/, (_m, g1) => {
         routeParamNames.push(g1);

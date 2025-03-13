@@ -196,7 +196,8 @@ parse_imports :: proc(file: string) -> (imports: [dynamic]string, remaining_file
 			eat_token(&parser)
 		}
 	}
-	remaining_file = parser.file[parser.j:]
+	eat_whitespace_excluding_comments(&parser)
+	remaining_file = parser.file[parser.i:]
 	//fmt.printfln("parser: %v", parser)
 	return
 }
