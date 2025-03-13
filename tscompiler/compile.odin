@@ -98,6 +98,7 @@ ParseError :: enum {
 	NotImplementedBracket,
 	NotImplementedExtends,
 	NotImplementedDestructuring,
+	NotImplementedForLoop,
 }
 
 // slow path
@@ -144,6 +145,8 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			parse_destructuring(parser, sb) or_return
 			parse_equals(parser, sb) or_return
 			parse_value(parser, sb, .Semicolon) or_return
+		case "for":
+			return .NotImplementedForLoop
 		case:
 			parse_value(parser, sb, .Semicolon) or_return
 		}
