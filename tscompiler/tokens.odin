@@ -9,6 +9,7 @@ TokenType :: enum {
 	Semicolon,
 	Comma,
 	Equals,
+	Colon,
 	// whitespace-like
 	Whitespace,
 	Newline,
@@ -17,22 +18,11 @@ TokenType :: enum {
 	// N length
 	String,
 	Alphanumeric,
-	// TODO: group binary ops
-	// 3 length
-	TripleEquals,
-	TripleNotEquals,
 	// 2 length
-	QuestionMarkColon,
-	DoubleQuestionMark,
-	DoubleEquals,
 	LambdaArrow,
-	DoubleNotEquals,
+	QuestionMarkColon,
 	// 1 length
 	QuestionMark,
-	ExclamationMark,
-	PlusMinus,
-	TimesDivide,
-	Colon,
 	BracketLeft,
 	BracketLeftSquare,
 	BracketLeftCurly,
@@ -41,7 +31,25 @@ TokenType :: enum {
 	BracketRightSquare,
 	BracketRightCurly,
 	BracketRightAngle,
+	/* binary ops */
+	// 3 length
+	TripleEquals,
+	TripleNotEquals,
+	// 2 length
+	DoubleQuestionMark,
+	DoubleEquals,
+	DoubleNotEquals,
+	// 1 length
+	TimesDivide,
+	/* binary and unary ops */
+	PlusMinus,
+	/* unary ops */
+	ExclamationMark,
+	// TODO: more unary ops
 }
+BINARY_OPS_START :: TokenType.TripleEquals
+BINARY_OPS_END :: TokenType.PlusMinus
+UNARY_OPS_START :: TokenType.PlusMinus
 
 Parser :: struct {
 	file:         string `fmt:"-"`,
