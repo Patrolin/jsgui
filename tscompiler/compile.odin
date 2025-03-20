@@ -55,7 +55,6 @@ DebugPrintType :: enum {
 }
 debug_print :: proc(parser: ^Parser, name: string, type: DebugPrintType) {
 	if DEBUG_PARSER {
-		if parser.debug_indent == 0 {fmt.println()}
 		if type == .Start {parser.debug_indent += 1}
 		format := type == .End ? "- %v, %v" : "%v %v"
 		fmt.printfln(format, parser.debug_indent, name)
@@ -72,7 +71,11 @@ parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, pars
 	parser = make_parser(file)
 	sb := strings.builder_make_none()
 	for parser.token_type != .EndOfFile {
+		fmt.println()
 		error := parse_statement(&parser, &sb)
+		if parser.debug_indent != 0 {
+			error = .WrongDebugIndent
+		}
 		if error != .None {
 			return strings.to_string(sb), error, parser
 		}
@@ -81,11 +84,13 @@ parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, pars
 }
 ParseError :: enum {
 	None,
+	WrongDebugIndent,
 	UnexpectedTokenInStatement,
 	UnexpectedTokenInDestructuring,
 	UnexpectedTokenInValue,
 	ExpectedName,
 	ExpectedEquals,
+	ExpectedAssignmentInForLoop,
 	ExpectedBracketLeft,
 	ExpectedBracketLeftCurly,
 	ExpectedBracketLeftSquare,
@@ -146,7 +151,44 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			parse_equals(parser, sb) or_return
 			parse_value(parser, sb, .Semicolon) or_return
 		case "for":
-			return .NotImplementedForLoop
+			{
+				if statement_start != parser.i {
+					return .UnexpectedTokenInStatement
+				}
+				debug_print(parser, "for.args", .Start)
+				defer debug_print(parser, "for", .End)
+				eat_token(parser, sb)
+				parse_left_bracket(parser, sb) or_return
+				debug_print(parser, "for.args.lookahead", .Start)
+				lookahead := parser^
+				parse_name(&lookahead, nil) or_return
+				parse_name(&lookahead, nil) or_return
+				debug_print(parser, "for.args.lookahead", .End)
+				if lookahead.token == "in" || lookahead.token == "of" {
+					eat_token(parser, sb)
+					eat_token(parser, sb)
+					eat_token(parser, sb)
+					parse_value(parser, sb) or_return
+				} else {
+					for {
+						error := parse_statement(parser, sb)
+						if error != .None {
+							return error
+						}
+					}
+				}
+				parse_right_bracket(parser, sb) or_return
+				debug_print(parser, "for.body", .Middle)
+				parse_left_bracket_curly(parser, sb) or_return
+				for {
+					error := parse_statement(parser, sb)
+					if error != .None {
+						if parser.token_type == .BracketRightCurly {break}
+						return error
+					}
+				}
+				parse_right_bracket_curly(parser, sb) or_return
+			}
 		case:
 			parse_value(parser, sb, .Semicolon) or_return
 		}
@@ -175,24 +217,24 @@ parse_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Pa
 		debug_print(parser, "destructuring.square", .Start)
 		return .NotImplementedDestructuring
 	case .BracketLeftCurly:
-		debug_print(parser, "destructuring.curly", .Middle)
+		debug_print(parser, "destructuring.curly", .Start)
 		eat_token(parser, sb)
 		for parser.token_type == .Alphanumeric {
 			eat_token(parser, sb)
 			if parser.token_type == .Colon || parser.token_type == .QuestionMarkColon {
 				eat_token(parser, sb)
-				parse_destructuring(parser, sb)
+				parse_destructuring(parser, sb) or_return
 			}
 			if parser.token_type == .Equals {
 				eat_token(parser, sb)
-				parse_value(parser, sb)
+				parse_value(parser, sb) or_return
 			}
 			if parser.token_type == .Comma {
 				eat_token(parser, sb)
 				continue
 			}
 		}
-		parse_right_bracket_curly(parser, sb)
+		parse_right_bracket_curly(parser, sb) or_return
 	case .BracketRightCurly:
 		return .None
 	case:
@@ -204,6 +246,23 @@ parse_equals :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseErro
 	if parser.token_type != .Equals {return .ExpectedEquals}
 	eat_token(parser, sb)
 	return .None
+}
+parse_equals_or_of :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+) -> (
+	is_is_or_of: bool,
+	error: ParseError,
+) {
+	if parser.token_type == .Equals {
+		eat_token(parser, sb)
+		return false, .None
+	}
+	if parser.token == "in" || parser.token == "of" {
+		eat_token(parser, sb)
+		return true, .None
+	}
+	return false, .ExpectedAssignmentInForLoop
 }
 parse_left_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	if parser.token_type != .BracketLeft {return .ExpectedBracketLeft}
@@ -273,38 +332,39 @@ parse_value :: proc(
 		}
 		#partial switch parser.token_type {
 		case .BracketLeft:
-			lookahead := parser^
-			parse_until_end_of_bracket(&lookahead, nil) // NOTE: we can use the fast path here
-			if lookahead.token_type == .LambdaArrow {
-				debug_print(parser, "lambda.args", .Start)
-				defer debug_print(parser, "lambda", .End)
-				parse_function_args(parser, sb, "lambda.args.cont") or_return
-				parse_lambda_arrow(parser, sb) or_return
-				debug_print(parser, "lambda.body", .Start)
-				if parser.token_type == .BracketLeftCurly {
-					parse_function_body(parser, sb) or_return
+			{
+				debug_print(parser, "value.bracket.lookahead", .Middle)
+				lookahead := parser^
+				parse_until_end_of_bracket(&lookahead, nil) // NOTE: we can use the fast path here
+				if lookahead.token_type == .LambdaArrow {
+					debug_print(parser, "value.bracket.lambda.args", .Middle)
+					parse_function_args(parser, sb, "lambda.args.cont") or_return
+					parse_lambda_arrow(parser, sb) or_return
+					debug_print(parser, "value.bracket.lambda.body", .Middle)
+					if parser.token_type == .BracketLeftCurly {
+						parse_function_body(parser, sb) or_return
+					} else {
+						parse_value(parser, sb, .Comma) or_return
+					}
 				} else {
-					parse_value(parser, sb, .Comma) or_return
+					debug_print(parser, "value.bracket.value", .Middle)
+					return .NotImplementedBracket // TODO: parse this
 				}
-			} else {
-				return .NotImplementedBracket // TODO: parse this
 			}
 		case .Alphanumeric:
 			if parser.token == "function" {
-				debug_print(parser, "function", .Start)
-				defer debug_print(parser, "function", .End)
+				debug_print(parser, "value.function", .Middle)
 				eat_token(parser, sb)
 				parse_name(parser, sb) or_return
-				debug_print(parser, "function.args", .Middle)
+				debug_print(parser, "value.function.args", .Middle)
 				parse_function_args(parser, sb, "function.args.cont") or_return
-				debug_print(parser, "function.body", .Middle)
+				debug_print(parser, "value.function.body", .Middle)
 				parse_function_body(parser, sb) or_return
 			} else {
-				debug_print(parser, "name", .Start)
-				defer debug_print(parser, "name", .End)
+				debug_print(parser, "value.name", .Middle)
 				eat_token(parser, sb)
 				if parser.token_type == .BracketLeft {
-					debug_print(parser, "name.call", .Middle)
+					debug_print(parser, "value.name.call", .Middle)
 					eat_token(parser, sb)
 					if parser.token_type != .BracketRight {
 						parse_value(parser, sb, .Semicolon) or_return
@@ -321,8 +381,11 @@ parse_value :: proc(
 		}
 		for parser.token_type == .BracketLeftSquare {
 			eat_token(parser, sb)
-			parse_value(parser, sb, stop_at)
-			parse_right_bracket_square(parser, sb)
+			error := parse_value(parser, sb, stop_at)
+			if error == .UnexpectedTokenInValue && parser.token_type != .BracketRightSquare {
+				return error
+			}
+			parse_right_bracket_square(parser, sb) or_return
 		}
 		if parser.token_type <= stop_at {
 			return .None
@@ -340,7 +403,7 @@ parse_value :: proc(
 			debug_print(parser, "value.as", .Middle)
 			start_comment(sb)
 			eat_token(parser, sb)
-			parse_value(parser, sb, stop_at)
+			parse_value(parser, sb, stop_at) or_return
 			end_comment(sb)
 		}
 		break
@@ -365,7 +428,7 @@ parse_function_args :: proc(
 		}
 		if parser.token_type == .Equals {
 			eat_token(parser, sb) // '='
-			parse_value(parser, sb, .Comma)
+			parse_value(parser, sb, .Comma) or_return
 		}
 		if parser.token_type == .Comma {
 			debug_print(parser, debug_name_cont, .Middle)
