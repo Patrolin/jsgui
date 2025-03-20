@@ -155,9 +155,9 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			debug_print(parser, "statement.if", .Middle)
 			eat_token(parser, sb)
 			parse_left_bracket(parser, sb) or_return
-			parse_value(parser, sb) or_return
+			parse_value(parser, sb, .Semicolon) or_return
 			parse_right_bracket(parser, sb) or_return
-			parse_code_block(parser, sb) or_return
+			parse_code_block_or_statement(parser, sb) or_return
 			for parser.token == "else" {
 				debug_print(parser, "statement.if.else", .Middle)
 				eat_token(parser, sb)
@@ -165,9 +165,9 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 					eat_token(parser, sb)
 				}
 				parse_left_bracket(parser, sb) or_return
-				parse_value(parser, sb) or_return
+				parse_value(parser, sb, .Semicolon) or_return
 				parse_right_bracket(parser, sb) or_return
-				parse_code_block(parser, sb) or_return
+				parse_code_block_or_statement(parser, sb) or_return
 			}
 		case "for":
 			{
@@ -184,7 +184,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 					eat_token(parser, sb)
 					eat_token(parser, sb)
 					eat_token(parser, sb)
-					parse_value(parser, sb) or_return
+					parse_value(parser, sb, .Semicolon) or_return
 				} else {
 					// SPEC: technically we should parse exactly 3 statements
 					for parser.token_type != .BracketRight {
@@ -198,6 +198,8 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 		case:
 			parse_value(parser, sb, .Semicolon) or_return
 		}
+	case .BracketLeft:
+		parse_value(parser, sb, .Semicolon) or_return
 	case:
 		return .UnexpectedTokenInStatement
 	}
@@ -221,19 +223,22 @@ parse_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Pa
 		return .None
 	case .BracketLeftSquare:
 		debug_print(parser, "destructuring.square", .Start)
-		return .NotImplementedDestructuring
+		return .NotImplementedDestructuring // TODO
 	case .BracketLeftCurly:
 		debug_print(parser, "destructuring.curly", .Start)
 		eat_token(parser, sb)
-		for parser.token_type == .Alphanumeric {
-			eat_token(parser, sb)
+		for parser.token_type == .Alphanumeric || parser.token_type == .TripleDot {
+			if parser.token_type == .TripleDot {
+				eat_token(parser, sb)
+			}
+			parse_name(parser, sb) or_return
 			if parser.token_type == .Colon || parser.token_type == .QuestionMarkColon {
 				eat_token(parser, sb)
 				parse_destructuring(parser, sb) or_return
 			}
 			if parser.token_type == .Equals {
 				eat_token(parser, sb)
-				parse_value(parser, sb) or_return
+				parse_value(parser, sb, .Comma) or_return
 			}
 			if parser.token_type == .Comma {
 				eat_token(parser, sb)
@@ -326,7 +331,7 @@ parse_type_def :: proc(
 parse_value :: proc(
 	parser: ^Parser,
 	sb: ^strings.Builder,
-	stop_at: TokenType = .Semicolon,
+	stop_at: TokenType,
 ) -> (
 	error: ParseError,
 ) {
@@ -366,6 +371,11 @@ parse_value :: proc(
 				parse_name(parser, sb) or_return
 				debug_print(parser, "value.function.args", .Middle)
 				parse_function_args(parser, sb, "function.args.cont") or_return
+				if parser.token_type == .Colon {
+					debug_print(parser, "value.function.returnType", .Middle)
+					eat_token(parser, sb)
+					parse_value(parser, sb, stop_at)
+				}
 				debug_print(parser, "value.function.body", .Middle)
 				parse_code_block(parser, sb) or_return
 			} else {
@@ -462,6 +472,23 @@ parse_code_block :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Parse
 		parse_statement(parser, sb) or_return
 	}
 	parse_right_bracket_curly(parser, sb) or_return
+	return .None
+}
+parse_code_block_or_statement :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+) -> (
+	error: ParseError,
+) {
+	if parser.token_type == .BracketLeftCurly {
+		eat_token(parser, sb)
+		for parser.token_type != .BracketRightCurly {
+			parse_statement(parser, sb) or_return
+		}
+		parse_right_bracket_curly(parser, sb) or_return
+	} else {
+		parse_statement(parser, sb) or_return
+	}
 	return .None
 }
 parse_colon :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {

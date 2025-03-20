@@ -18,6 +18,8 @@ TokenType :: enum {
 	// N length
 	String,
 	Alphanumeric,
+	// 3 length
+	TripleDot,
 	// 2 length
 	LambdaArrow,
 	QuestionMarkColon,
@@ -39,8 +41,13 @@ TokenType :: enum {
 	DoubleQuestionMark,
 	DoubleEquals,
 	DoubleNotEquals,
+	LogicalOr,
+	LogicalAnd,
 	// 1 length
 	TimesDivide,
+	BinaryOr,
+	BinaryAnd,
+	Dot,
 	/* binary and unary ops */
 	PlusMinus,
 	/* unary ops */
@@ -116,19 +123,20 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 	if j >= len(file) {
 		return .EndOfFile
 	}
+	j_1 := j + 1
+	j_2 := j + 2
 	switch file[j] {
 	// whitespace-like
 	case ' ', '\t', '\r', '\n':
 		return .Whitespace
 	// N length
-	case '"', '\'':
+	case '`', '"', '\'':
 		return .String
 	case:
 		return .Alphanumeric
 	// 2-3 length
 	case '?':
 		{
-			j_1 := j + 1
 			is_question_mark_colon := j_1 < len(file) && (file[j_1] == ':')
 			is_double_question_mark := j_1 < len(file) && (file[j_1] == '?')
 			if is_question_mark_colon {return .QuestionMarkColon}
@@ -137,8 +145,6 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		}
 	case '=':
 		{
-			j_1 := j + 1
-			j_2 := j + 2
 			is_double_equals := j_1 < len(file) && (file[j_1] == '=')
 			is_triple_equals := j_2 < len(file) && (file[j_2] == '=')
 			is_lambda_arrow := j_1 < len(file) && (file[j_1] == '>')
@@ -149,14 +155,22 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		}
 	case '!':
 		{
-			j_1 := j + 1
-			j_2 := j + 2
 			is_double_equals := j_1 < len(file) && (file[j_1] == '=')
 			is_triple_equals := j_2 < len(file) && (file[j_2] == '=')
 			if is_double_equals {
 				return is_triple_equals ? .TripleNotEquals : .DoubleNotEquals
 			}
 			return .ExclamationMark
+		}
+	case '|':
+		{
+			is_logical_or := j_1 < len(file) && (file[j_1] == '|')
+			return is_logical_or ? .LogicalOr : .BinaryOr
+		}
+	case '&':
+		{
+			is_logical_or := j_1 < len(file) && (file[j_1] == '&')
+			return is_logical_or ? .LogicalAnd : .BinaryAnd
 		}
 	// 1 length
 	case ';':
@@ -166,8 +180,11 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 	case '+', '-':
 		return .PlusMinus
 	case '*', '/':
-		// NOTE: comments are handled by _parse_whitespace()
-		return .TimesDivide
+		return .TimesDivide // NOTE: comments are handled by _parse_whitespace()
+	case '.':
+		is_double_dot := j_1 < len(file) && (file[j_1] == '.')
+		is_triple_dot := j_2 < len(file) && (file[j_2] == '.')
+		return is_double_dot && is_triple_dot ? .TripleDot : .Dot
 	case ':':
 		return .Colon
 	case '(':
@@ -193,6 +210,7 @@ _parse_token :: proc(parser: ^Parser) {
 	#partial switch parser.token_type {
 	case .String:
 		sb := strings.builder_make_none()
+		string_char := parser.file[parser.j]
 		parser.k = parser.j + 1
 		is_escaped := false
 		skip_count := 0
@@ -220,7 +238,7 @@ _parse_token :: proc(parser: ^Parser) {
 				if char == '\\' {
 					is_escaped = true
 				} else {
-					if _get_token_type(parser.file, parser.k + l) == .String {
+					if parser.file[parser.k + l] == string_char {
 						parser.k += l + 1
 						break
 					} else {
@@ -237,11 +255,17 @@ _parse_token :: proc(parser: ^Parser) {
 			parser.k += 1
 		}
 		parser.token = parser.file[parser.j:parser.k]
-	case .TripleEquals, .TripleNotEquals:
+	case .TripleDot, .TripleEquals, .TripleNotEquals:
 		// 3 length
 		parser.k = parser.j + 3
 		parser.token = parser.file[parser.j:parser.k]
-	case .QuestionMarkColon, .DoubleQuestionMark, .DoubleEquals, .LambdaArrow, .DoubleNotEquals:
+	case .QuestionMarkColon,
+	     .DoubleQuestionMark,
+	     .DoubleEquals,
+	     .LambdaArrow,
+	     .DoubleNotEquals,
+	     .LogicalOr,
+	     .LogicalAnd:
 		// 2 length
 		parser.k = parser.j + 2
 		parser.token = parser.file[parser.j:parser.k]
