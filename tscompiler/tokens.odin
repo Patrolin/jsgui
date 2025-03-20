@@ -17,12 +17,19 @@ TokenType :: enum {
 	// N length
 	String,
 	Alphanumeric,
+	// TODO: group binary ops
+	// 3 length
+	TripleEquals,
+	TripleNotEquals,
 	// 2 length
 	QuestionMarkColon,
-	LambdaArrow,
 	DoubleQuestionMark,
+	DoubleEquals,
+	LambdaArrow,
+	DoubleNotEquals,
 	// 1 length
 	QuestionMark,
+	ExclamationMark,
 	PlusMinus,
 	TimesDivide,
 	Colon,
@@ -110,7 +117,7 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		return .String
 	case:
 		return .Alphanumeric
-	// 2 length
+	// 2-3 length
 	case '?':
 		{
 			j_1 := j + 1
@@ -123,8 +130,25 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 	case '=':
 		{
 			j_1 := j + 1
+			j_2 := j + 2
+			is_double_equals := j_1 < len(file) && (file[j_1] == '=')
+			is_triple_equals := j_2 < len(file) && (file[j_2] == '=')
 			is_lambda_arrow := j_1 < len(file) && (file[j_1] == '>')
+			if is_double_equals {
+				return is_triple_equals ? .TripleEquals : .DoubleEquals
+			}
 			return is_lambda_arrow ? .LambdaArrow : .Equals
+		}
+	case '!':
+		{
+			j_1 := j + 1
+			j_2 := j + 2
+			is_double_equals := j_1 < len(file) && (file[j_1] == '=')
+			is_triple_equals := j_2 < len(file) && (file[j_2] == '=')
+			if is_double_equals {
+				return is_triple_equals ? .TripleNotEquals : .DoubleNotEquals
+			}
+			return .ExclamationMark
 		}
 	// 1 length
 	case ';':
@@ -205,7 +229,11 @@ _parse_token :: proc(parser: ^Parser) {
 			parser.k += 1
 		}
 		parser.token = parser.file[parser.j:parser.k]
-	case .QuestionMarkColon, .LambdaArrow, .DoubleQuestionMark:
+	case .TripleEquals, .TripleNotEquals:
+		// 3 length
+		parser.k = parser.j + 3
+		parser.token = parser.file[parser.j:parser.k]
+	case .QuestionMarkColon, .DoubleQuestionMark, .DoubleEquals, .LambdaArrow, .DoubleNotEquals:
 		// 2 length
 		parser.k = parser.j + 2
 		parser.token = parser.file[parser.j:parser.k]

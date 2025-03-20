@@ -309,7 +309,7 @@ parse_type_def :: proc(
 		if (parser.token_type == .Alphanumeric) {
 			eat_token(parser, sb)
 		} else {
-			parse_until_end_of_bracket(parser, sb)
+			parse_until_end_of_bracket(parser, sb) // NOTE: we can use the fast path here
 		}
 		if parser.token == "&" || parser.token == "|" {
 			eat_token(parser, sb)
@@ -390,6 +390,7 @@ parse_value :: proc(
 		if parser.token_type <= stop_at {
 			return .None
 		}
+		// TODO: if any binary op
 		if parser.token_type == .PlusMinus ||
 		   parser.token_type == .TimesDivide ||
 		   parser.token_type == .DoubleQuestionMark ||
@@ -459,7 +460,7 @@ parse_colon :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError
 	return .None
 }
 
-// fast path // TODO: when can we call these?
+// fast path
 parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	debug_print(parser, "parse_until_end_of_bracket", .Start)
 	defer debug_print(parser, "parse_until_end_of_bracket", .End)
@@ -477,33 +478,5 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		if parser.token_type == .EndOfFile {return}
 		eat_token(parser, sb)
 		if bracket_count <= 0 {return}
-	}
-}
-parse_until_end_of_expression :: proc(
-	parser: ^Parser,
-	sb: ^strings.Builder,
-	max_end_of_expression: TokenType,
-) {
-	debug_print(parser, "parse_until_end_of_expression", .Start)
-	defer debug_print(parser, "parse_until_end_of_expression", .End)
-	bracket_count := 0
-	for {
-		if parser.token_type >= TokenType.BracketLeft &&
-		   parser.token_type <= TokenType.BracketLeftAngle {
-			bracket_count += 1
-		}
-		if parser.token_type >= TokenType.BracketRight &&
-		   parser.token_type <= TokenType.BracketRightAngle {
-			bracket_count -= 1
-		}
-		if parser.token_type == .EndOfFile ||
-		   (bracket_count < 0) ||
-		   (bracket_count == 0 &&
-				   parser.token_type >= .Semicolon &&
-				   parser.token_type <= max_end_of_expression) {
-			return
-		}
-		//if DEBUG_PARSER {fmt.printfln("bracket_count: %v, parser: %v", bracket_count, parser)}
-		eat_token(parser, sb)
 	}
 }
