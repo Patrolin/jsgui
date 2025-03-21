@@ -3,7 +3,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import win "core:sys/windows"
-// TODO: Run qgrep with: tscompiler "parse_" and not ("proc" or "or_return" or ":=" or "DEBUG_") and file "compile.odin"
+// TODO: Run qgrep with: tscompiler "parse_" and not ("proc" or "or_return" or ":=" or "DEBUG_" or "parse_until_end_of_bracket") and file "compile.odin"
 
 @(test)
 test_compile :: proc() {
@@ -452,7 +452,7 @@ parse_value :: proc(
 			debug_print(parser, "value.square", .Middle)
 			eat_token(parser, sb)
 			for parser.token_type != .BracketRightSquare {
-				parse_value(parser, sb, .Comma)
+				parse_value(parser, sb, .Comma) or_return
 				if parser.token_type == .Comma {
 					eat_token(parser, sb)
 				}
