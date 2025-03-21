@@ -111,7 +111,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 	defer debug_print(parser, "statement", .End)
 	eat_whitespace(parser, sb)
 	statement_start := parser.i
-	// TODO: lookahead "export"?
+	// REFACTOR: lookahead "export"?
 	if parser.token == "export" {
 		eat_token(parser)
 	}
