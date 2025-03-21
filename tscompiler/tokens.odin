@@ -25,38 +25,44 @@ TokenType :: enum {
 	QuestionMarkColon,
 	// 1 length
 	QuestionMark,
+	// 1 length, brackets
+	BRACKETS_START,
 	BracketLeft,
-	BracketLeftSquare,
-	BracketLeftCurly,
-	BracketLeftAngle,
 	BracketRight,
+	BracketLeftSquare,
 	BracketRightSquare,
+	BracketLeftCurly,
 	BracketRightCurly,
+	// 1 length, brackets, binary ops
+	BINARY_OPS_START,
+	BracketLeftAngle,
 	BracketRightAngle,
-	/* binary ops */
-	// 3 length
-	TripleEquals,
-	TripleNotEquals,
-	// 2 length
-	DoubleQuestionMark,
-	DoubleEquals,
-	DoubleNotEquals,
-	LogicalOr,
-	LogicalAnd,
-	// 1 length
+	BRACKETS_END,
+	// 1 length, binary ops
 	TimesDivide,
 	BinaryOr,
 	BinaryAnd,
 	Dot,
-	/* binary and unary ops */
+	// 2 length, binary ops
+	DoubleQuestionMark,
+	QuestionMarkDot,
+	DoubleEquals,
+	DoubleNotEquals,
+	LessThanEquals,
+	GreaterThanEquals,
+	LogicalOr,
+	LogicalAnd,
+	// 3 length, binary ops
+	TripleEquals,
+	TripleNotEquals,
+	// 1 length, binary ops, unary ops
+	UNARY_OPS_START,
 	PlusMinus,
-	/* unary ops */
+	BINARY_OPS_END,
+	// 1 length, unary ops
 	ExclamationMark,
 	// TODO: more unary ops
 }
-BINARY_OPS_START :: TokenType.TripleEquals
-BINARY_OPS_END :: TokenType.PlusMinus
-UNARY_OPS_START :: TokenType.PlusMinus
 
 Parser :: struct {
 	file:         string `fmt:"-"`,
@@ -85,6 +91,7 @@ parse_until_next_token :: proc(parser: ^Parser) {
 }
 @(private)
 _parse_whitespace :: proc(parser: ^Parser) {
+	// TODO: print("/*") when we end a comment and parser.inside_comment == true
 	j := parser.i
 	for j < len(parser.file) {
 		char := parser.file[j]
@@ -139,8 +146,10 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		{
 			is_question_mark_colon := j_1 < len(file) && (file[j_1] == ':')
 			is_double_question_mark := j_1 < len(file) && (file[j_1] == '?')
+			is_question_mark_dot := j_1 < len(file) && (file[j_1] == '.')
 			if is_question_mark_colon {return .QuestionMarkColon}
 			if is_double_question_mark {return .DoubleQuestionMark}
+			if is_question_mark_dot {return .QuestionMarkDot}
 			return .QuestionMark
 		}
 	case '=':
@@ -200,9 +209,11 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 	case '}':
 		return .BracketRightCurly
 	case '<':
-		return .BracketLeftAngle
+		is_less_than_equals := j_1 < len(file) && (file[j_1] == '=')
+		return is_less_than_equals ? .LessThanEquals : .BracketLeftAngle
 	case '>':
-		return .BracketRightAngle
+		is_greater_than_equals := j_1 < len(file) && (file[j_1] == '=')
+		return is_greater_than_equals ? .GreaterThanEquals : .BracketRightAngle
 	}
 }
 _parse_token :: proc(parser: ^Parser) {
@@ -261,9 +272,12 @@ _parse_token :: proc(parser: ^Parser) {
 		parser.token = parser.file[parser.j:parser.k]
 	case .QuestionMarkColon,
 	     .DoubleQuestionMark,
+	     .QuestionMarkDot,
 	     .DoubleEquals,
 	     .LambdaArrow,
 	     .DoubleNotEquals,
+	     .LessThanEquals,
+	     .GreaterThanEquals,
 	     .LogicalOr,
 	     .LogicalAnd:
 		// 2 length
