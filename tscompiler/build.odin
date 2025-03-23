@@ -188,15 +188,17 @@ get_files_under :: proc(dir_path: string, suffix: string) -> (arr: [dynamic]stri
 parse_imports :: proc(file: string) -> (imports: [dynamic]string, remaining_file: string) {
 	parser := make_parser(file)
 	for parser.token == "import" {
-		for parser.token != "from" {eat_token(&parser)}
-		eat_token(&parser)
+		for parser.token != "from" {next_token(&parser)}
+		fmt.printfln(" FROM")
+		next_token(&parser)
 		append(&imports, parser.token)
-		eat_token(&parser)
+		next_token(&parser)
 		if parser.token_type == .Semicolon {
-			eat_token(&parser)
+			next_token(&parser)
 		}
 	}
-	eat_whitespace_excluding_comments(&parser)
+	fmt.printfln(" END_OF_IMPORTS:")
+	next_token(&parser, nil, .Comment)
 	remaining_file = parser.file[parser.i:]
 	//fmt.printfln("parser: %v", parser)
 	return

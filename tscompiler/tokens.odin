@@ -12,7 +12,6 @@ TokenType :: enum {
 	Colon,
 	// whitespace-like
 	Whitespace,
-	Newline,
 	SingleLineComment,
 	MultiLineComment,
 	// N length
@@ -72,67 +71,110 @@ TokenType :: enum {
 
 Parser :: struct {
 	file:           string `fmt:"-"`,
-	whitespace:     string,
 	token:          string,
 	token_type:     TokenType,
+	token_group:    TokenGroup,
 	i:              int,
 	j:              int,
-	k:              int,
 	debug_indent:   int,
 	inside_comment: bool,
 }
-make_parser :: proc(file: string) -> Parser {
-	parser := Parser{file, "", "", .EndOfFile, 0, 0, 0, 0, false}
-	parse_until_next_token(&parser)
+TokenGroup :: enum {
+	EndOfFile,
+	Whitespace,
+	Comment,
+	Token,
+}
+make_parser :: proc(file: string, loc := #caller_location) -> Parser {
+	parser := Parser{file, "", .Whitespace, .Whitespace, 0, 0, 0, false}
+	_parse_until_next_token(&parser, nil, .Whitespace, loc = loc)
 	return parser
 }
 get_is_whitespace :: #force_inline proc(char: u8) -> bool {
-	return char == ' ' || char == '\t'
+	return char == ' ' || char == '\t' || get_is_newline(char)
 }
 get_is_newline :: #force_inline proc(char: u8) -> bool {
 	return char == '\r' || char == '\n'
 }
-parse_until_next_token :: proc(parser: ^Parser) {
-	_parse_whitespace(parser)
-	_parse_token(parser)
-}
 @(private)
-_parse_whitespace :: proc(parser: ^Parser) {
-	j := parser.i
+_parse_until_next_token :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+	desired_token_group: TokenGroup,
+	loc := #caller_location,
+) {
+	i := parser.i
+	j := i
 	for j < len(parser.file) {
-		char := parser.file[j]
-		is_whitespace := get_is_whitespace(char)
-		is_newline := get_is_newline(char)
-		if is_whitespace || is_newline {
+		// .Whitespace
+		if get_is_whitespace(parser.file[j]) {
 			j += 1
-		} else if char == '/' {
+			for j < len(parser.file) && get_is_whitespace(parser.file[j]) {
+				j += 1
+			}
+			if desired_token_group <= .Whitespace {
+				parser.token_type = .Whitespace
+				parser.token_group = .Whitespace
+				break
+			} else {
+				if sb != nil {
+					fmt.sbprint(sb, parser.file[i:j])
+				}
+				i = j
+			}
+		}
+		// .Comment
+		if j < len(parser.file) && parser.file[j] == '/' {
 			j_1 := j + 1
 			is_single_line_comment := j_1 < len(parser.file) && parser.file[j_1] == '/'
 			is_multi_line_comment := j_1 < len(parser.file) && parser.file[j_1] == '*'
 			if is_single_line_comment {
+				//debug_print(parser, "comment.single")
 				j += 2
 				for ; j < len(parser.file) && !get_is_newline(parser.file[j]); j += 1 {}
-				continue
+				parser.token_type = .SingleLineComment
+				if desired_token_group <= .Comment {break}
 			} else if is_multi_line_comment {
+				//debug_print(parser, "comment.multi")
 				for ; j < len(parser.file); j += 1 {
 					j_1 := j + 1
 					if parser.file[j] == '*' && j_1 < len(parser.file) && parser.file[j_1] == '/' {
 						break
 					}
 				}
-				continue
-			} else {
-				j += 1
+				parser.token_type = .MultiLineComment
 			}
-		} else {
-			break
+			if j != i {
+				if desired_token_group <= .Comment {
+					parser.token_group = .Comment
+					break
+				} else {
+					if sb != nil {
+						fmt.sbprint(sb, parser.file[i:j])
+						if parser.token_type == .MultiLineComment && parser.inside_comment {
+							fmt.sbprint(sb, "/*")
+						}
+					}
+					i = j
+					continue
+				}
+			}
 		}
+		// .Token | .EndOfFile
+		//debug_print(parser, "token")
+		parser.i = i
+		parser.j = i
+		_parse_token(parser, loc = loc)
+		parser.token_group = .Token
+		assert(parser.token_type != .Whitespace, loc = loc)
+		return
 	}
-	parser.whitespace = parser.file[parser.i:j]
+	parser.i = i
 	parser.j = j
+	parser.token = parser.file[i:j]
 }
 @(private)
-_get_token_type :: proc(file: string, j: int) -> TokenType {
+_get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenType {
 	if j >= len(file) {
 		return .EndOfFile
 	}
@@ -226,23 +268,23 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		return is_greater_than_equals ? .GreaterThanEquals : .BracketRightAngle
 	}
 }
-_parse_token :: proc(parser: ^Parser) {
-	parser.token_type = _get_token_type(parser.file, parser.j)
+_parse_token :: proc(parser: ^Parser, loc := #caller_location) {
+	parser.token_type = _get_token_type(parser.file, parser.i, loc = loc)
 	#partial switch parser.token_type {
 	case .String:
 		sb := strings.builder_make_none()
-		string_char := parser.file[parser.j]
-		parser.k = parser.j + 1
+		string_char := parser.file[parser.i]
+		parser.j = parser.i + 1
 		is_escaped := false
 		skip_count := 0
-		for char, l in parser.file[parser.k:] {
+		for char, l in parser.file[parser.j:] {
 			if skip_count > 0 {
 				skip_count -= 1
 				continue
 			}
 			if is_escaped {
 				if char == 'u' {
-					char_code_string := parser.file[parser.k + l + 1:]
+					char_code_string := parser.file[parser.j + l + 1:]
 					parsed_length: int
 					char_code, ok := strconv.parse_int(char_code_string, 16, &parsed_length)
 					if !ok && char_code == 0 {
@@ -259,8 +301,8 @@ _parse_token :: proc(parser: ^Parser) {
 				if char == '\\' {
 					is_escaped = true
 				} else {
-					if parser.file[parser.k + l] == string_char {
-						parser.k += l + 1
+					if parser.file[parser.j + l] == string_char {
+						parser.j += l + 1
 						break
 					} else {
 						fmt.sbprint(&sb, char)
@@ -270,16 +312,16 @@ _parse_token :: proc(parser: ^Parser) {
 		}
 		parser.token = strings.to_string(sb)
 	case .Alphanumeric:
-		parser.k = parser.j + 1
-		for parser.k < len(parser.file) &&
-		    _get_token_type(parser.file, parser.k) == .Alphanumeric {
-			parser.k += 1
+		parser.j = parser.i + 1
+		for parser.j < len(parser.file) &&
+		    _get_token_type(parser.file, parser.j, loc = loc) == .Alphanumeric {
+			parser.j += 1
 		}
-		parser.token = parser.file[parser.j:parser.k]
+		parser.token = parser.file[parser.i:parser.j]
 	case .TripleDot, .TripleEquals, .TripleNotEquals:
 		// 3 length
-		parser.k = parser.j + 3
-		parser.token = parser.file[parser.j:parser.k]
+		parser.j = parser.i + 3
+		parser.token = parser.file[parser.i:parser.j]
 	case .QuestionMarkColon,
 	     .DoubleQuestionMark,
 	     .QuestionMarkDot,
@@ -293,48 +335,31 @@ _parse_token :: proc(parser: ^Parser) {
 	     .DoublePlus,
 	     .DoubleMinus:
 		// 2 length
-		parser.k = parser.j + 2
-		parser.token = parser.file[parser.j:parser.k]
+		parser.j = parser.i + 2
+		parser.token = parser.file[parser.i:parser.j]
 	case:
 		// 1 length
-		parser.k = parser.j + 1
-		parser.token = parser.file[parser.j:parser.k]
+		parser.j = parser.i + 1
+		parser.token = parser.file[parser.i:parser.j]
 	case .EndOfFile:
 		// 0 length
-		parser.k = parser.j
+		parser.j = parser.i
 		parser.token = ""
 	}
 }
-eat_whitespace_excluding_comments :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
-	whitespace_start := parser.i
-	whitespace_end := whitespace_start
-	for ; whitespace_end < len(parser.file); whitespace_end += 1 {
-		char := parser.file[whitespace_end]
-		if !(get_is_whitespace(char) || get_is_newline(char)) {
-			break
-		}
-	}
-	if sb != nil {
-		fmt.sbprint(sb, parser.file[whitespace_start:whitespace_end])
-	}
-	parser.i = whitespace_end
-	parse_until_next_token(parser)
-}
-eat_whitespace :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
+// NOTE: we want `sb = nil` for lookahead
+next_token :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder = nil,
+	token_group := TokenGroup.Token,
+	loc := #caller_location,
+) {
+	if DEBUG_PARSER {fmt.printfln("  %v", parser)}
 	if sb != nil {
 		fmt.sbprint(sb, parser.file[parser.i:parser.j])
 	}
 	parser.i = parser.j
-	parser.whitespace = ""
-}
-// NOTE: we want `sb = nil` for lookahead
-eat_token :: proc(parser: ^Parser, sb: ^strings.Builder = nil) {
-	if DEBUG_PARSER {fmt.printfln("  %v", parser)}
-	if sb != nil {
-		fmt.sbprint(sb, parser.file[parser.i:parser.k])
-	}
-	parser.i = parser.k
-	parse_until_next_token(parser)
+	_parse_until_next_token(parser, sb, token_group, loc = loc)
 }
 print_prev_token :: proc(
 	parser: ^Parser,
