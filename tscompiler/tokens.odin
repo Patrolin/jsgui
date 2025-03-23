@@ -80,7 +80,6 @@ Parser :: struct {
 	inside_comment: bool,
 }
 TokenGroup :: enum {
-	EndOfFile,
 	Whitespace,
 	Comment,
 	Token,
@@ -105,6 +104,7 @@ _parse_until_next_token :: proc(
 ) {
 	i := parser.i
 	j := i
+	// TODO: TokenGroup.WhitespaceAndToken?
 	for j < len(parser.file) {
 		// .Whitespace
 		if get_is_whitespace(parser.file[j]) {
@@ -157,7 +157,7 @@ _parse_until_next_token :: proc(
 				}
 			}
 		}
-		// .Token | .EndOfFile
+		// .Token
 		//debug_print(parser, "token")
 		parser.i = i
 		parser.j = i
