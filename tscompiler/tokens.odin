@@ -130,18 +130,15 @@ _parse_until_next_token :: proc(
 			is_multi_line_comment := j_1 < len(parser.file) && parser.file[j_1] == '*'
 			if is_single_line_comment {
 				//debug_print(parser, "comment.single")
-				j += 2
-				for ; j < len(parser.file) && !get_is_newline(parser.file[j]); j += 1 {}
+				for j += 2; j < len(parser.file) && !get_is_newline(parser.file[j]); j += 1 {}
 				parser.token_type = .SingleLineComment
 				if desired_token_group <= .Comment {break}
 			} else if is_multi_line_comment {
 				//debug_print(parser, "comment.multi")
-				for ; j < len(parser.file); j += 1 {
-					j_1 := j + 1
-					if parser.file[j] == '*' && j_1 < len(parser.file) && parser.file[j_1] == '/' {
-						break
-					}
-				}
+				for j += 1;
+				    j < len(parser.file) && (parser.file[j - 1] != '*' || parser.file[j] != '/');
+				    j += 1 {}
+				j += 1
 				parser.token_type = .MultiLineComment
 			}
 			if j != i {
