@@ -16,6 +16,7 @@ TokenType :: enum {
 	MultiLineComment,
 	// N length
 	String,
+	Regex,
 	Alphanumeric,
 	// 3 length
 	TripleDot,
@@ -24,6 +25,11 @@ TokenType :: enum {
 	QuestionMarkColon,
 	// 1 length
 	QuestionMark,
+	// 2 length, postfix ops
+	POSTFIX_OPS_START,
+	DoublePlus,
+	DoubleMinus,
+	POSTFIX_OPS_END,
 	// 1 length, brackets
 	BRACKETS_START,
 	BracketLeft,
@@ -32,22 +38,15 @@ TokenType :: enum {
 	BracketRightSquare,
 	BracketLeftCurly,
 	BracketRightCurly,
-	// 2 length, postfix ops
-	POSTFIX_OPS_START,
-	DoublePlus,
-	DoubleMinus,
-	POSTFIX_OPS_END,
 	// 1 length, brackets, binary ops
 	_PAD_BRACKET_PARITY,
 	BINARY_OPS_START,
 	BracketLeftAngle,
 	BracketRightAngle,
 	BRACKETS_END,
-	// 1 length, binary ops
-	TimesDivide,
-	BinaryOr,
-	BinaryAnd,
-	Dot,
+	// 3 length, binary ops
+	TripleEquals,
+	TripleNotEquals,
 	// 2 length, binary ops
 	DoubleQuestionMark,
 	QuestionMarkDot,
@@ -57,9 +56,13 @@ TokenType :: enum {
 	GreaterThanEquals,
 	LogicalOr,
 	LogicalAnd,
-	// 3 length, binary ops
-	TripleEquals,
-	TripleNotEquals,
+	// 1 length, binary ops
+	Times,
+	Slash,
+	BinaryOr,
+	BinaryAnd,
+	Dot,
+	Remainder,
 	// 1 length, binary ops, unary ops
 	UNARY_OPS_START,
 	Plus,
@@ -70,14 +73,14 @@ TokenType :: enum {
 }
 
 Parser :: struct {
-	file:           string `fmt:"-"`,
-	token:          string,
-	token_type:     TokenType,
-	token_group:    TokenGroup,
-	i:              int,
-	j:              int,
-	debug_indent:   int,
-	inside_comment: bool,
+	file:                 string `fmt:"-"`,
+	token:                string,
+	token_type:           TokenType,
+	token_group:          TokenGroup,
+	i:                    int,
+	j:                    int,
+	debug_indent:         int,
+	custom_comment_depth: int,
 }
 TokenGroup :: enum {
 	Whitespace,
@@ -85,7 +88,7 @@ TokenGroup :: enum {
 	Token,
 }
 make_parser :: proc(file: string, loc := #caller_location) -> Parser {
-	parser := Parser{file, "", .Whitespace, .Whitespace, 0, 0, 0, false}
+	parser := Parser{file, "", .Whitespace, .Whitespace, 0, 0, 0, 0}
 	_parse_until_next_token(&parser, nil, .Whitespace, loc = loc)
 	return parser
 }
@@ -148,7 +151,8 @@ _parse_until_next_token :: proc(
 				} else {
 					if sb != nil {
 						fmt.sbprint(sb, parser.file[i:j])
-						if parser.token_type == .MultiLineComment && parser.inside_comment {
+						if parser.token_type == .MultiLineComment &&
+						   parser.custom_comment_depth > 0 {
 							fmt.sbprint(sb, "/*")
 						}
 					}
@@ -161,11 +165,13 @@ _parse_until_next_token :: proc(
 		//debug_print(parser, "token")
 		parser.i = i
 		parser.j = i
-		_parse_token(parser, loc = loc)
+		parser.token_type = _get_token_type(parser.file, parser.i, loc = loc)
+		parse_current_token(parser, loc = loc)
 		parser.token_group = .Token
 		assert(parser.token_type != .Whitespace, loc = loc)
 		return
 	}
+	// .Whitespace | .Comment
 	parser.i = i
 	parser.j = j
 	parser.token = parser.file[i:j]
@@ -237,12 +243,18 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	case '-':
 		is_double_minus := j_1 < len(file) && (file[j_1] == '-')
 		return is_double_minus ? .DoubleMinus : .Minus
-	case '*', '/':
-		return .TimesDivide // NOTE: comments are handled by _parse_whitespace()
+	case '*':
+		return .Times
+	case '/':
+		// NOTE: comments are handled by _parse_until_next_token()
+		// NOTE: compiler needs to set `parser.token_type = .Regex` manually
+		return .Slash
 	case '.':
 		is_double_dot := j_1 < len(file) && (file[j_1] == '.')
 		is_triple_dot := j_2 < len(file) && (file[j_2] == '.')
 		return is_double_dot && is_triple_dot ? .TripleDot : .Dot
+	case '%':
+		return .Remainder
 	case ':':
 		return .Colon
 	case '(':
@@ -265,8 +277,7 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 		return is_greater_than_equals ? .GreaterThanEquals : .BracketRightAngle
 	}
 }
-_parse_token :: proc(parser: ^Parser, loc := #caller_location) {
-	parser.token_type = _get_token_type(parser.file, parser.i, loc = loc)
+parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 	#partial switch parser.token_type {
 	case .String:
 		sb := strings.builder_make_none()

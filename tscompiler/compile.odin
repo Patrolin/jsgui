@@ -3,7 +3,7 @@ import "core:fmt"
 import "core:os"
 import "core:strings"
 import win "core:sys/windows"
-// TODO: Run qgrep with: tscompiler "parse_" and not ("proc" or "or_return" or ":=" or "DEBUG_" or "parse_until_end_of_bracket") and file "compile.odin"
+// TODO: Run qgrep with: tscompiler "parse_" and not ("proc" or "or_return" or ":=" or "error =" or "DEBUG_" or "reparse_as_" or "parse_until_end_of_bracket") and file "compile.odin"
 
 @(test)
 test_compile :: proc() {
@@ -85,18 +85,22 @@ debug_print_end :: proc(
 	}
 }
 start_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, "/*")
-	parser.inside_comment = true
+	if parser.custom_comment_depth == 0 {
+		fmt.sbprint(sb, "/*")
+	}
+	parser.custom_comment_depth += 1
 }
 end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	buffer := &sb.buf
+	comment_end := "*/"
 	if buffer[len(buffer) - 1] == ' ' {
 		pop(buffer)
-		fmt.sbprint(sb, "*/ ")
-	} else {
-		fmt.sbprint(sb, "*/")
+		comment_end = "*/ "
 	}
-	parser.inside_comment = false
+	parser.custom_comment_depth -= 1
+	if parser.custom_comment_depth == 0 {
+		fmt.sbprint(sb, comment_end)
+	}
 }
 parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, parser: Parser) {
 	parser = make_parser(file)
@@ -114,15 +118,18 @@ ParseError :: enum {
 	UnexpectedTokenInDestructuring,
 	UnexpectedTokenInType,
 	UnexpectedTokenInValue,
+	UnexpectedTokenInValueCurly,
 	ExpectedName,
 	ExpectedEquals,
 	ExpectedAssignmentInForLoop,
 	ExpectedBracketLeft,
-	ExpectedBracketLeftCurly,
-	ExpectedBracketLeftSquare,
 	ExpectedBracketRight,
-	ExpectedBracketRightCurly,
+	ExpectedBracketLeftSquare,
 	ExpectedBracketRightSquare,
+	ExpectedBracketLeftCurly,
+	ExpectedBracketRightCurly,
+	ExpectedBracketLeftAngle,
+	ExpectedBracketRightAngle,
 	ExpectedLambdaArrow,
 	ExpectedColon,
 	NotImplementedClass,
@@ -149,7 +156,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			start_comment(parser, sb)
 			print_prev_token(parser, sb, statement_start)
 			next_token(parser, sb)
-			parse_name(parser, sb) or_return
+			parse_name_with_generic(parser, sb) or_return
 			parse_equals(parser, sb) or_return
 			parse_type(parser, sb) or_return
 			end_comment(parser, sb)
@@ -176,7 +183,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			debug_print(parser, "statement.return")
 			next_token(parser, sb)
 			if parser.token_type != .Semicolon {
-				parse_value(parser, sb, .Semicolon)
+				parse_value(parser, sb, .Semicolon) or_return
 			}
 			if parser.token_type != .Semicolon && parser.token != "case" {
 				return .UnexpectedTokenInStatement
@@ -274,6 +281,24 @@ parse_name :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 	next_token(parser, sb)
 	return .None
 }
+parse_name_with_generic :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	parse_name(parser, sb) or_return
+	if parser.token_type == .BracketLeftAngle {
+		next_token(parser, sb)
+		for parser.token_type != .BracketRightAngle {
+			parse_name(parser, sb) or_return
+			if parser.token_type == .Equals {
+				next_token(parser, sb)
+				parse_type(parser, sb) or_return
+			}
+			if parser.token_type == .Comma {
+				next_token(parser, sb)
+			}
+		}
+		parse_right_bracket_angle(parser, sb) or_return
+	}
+	return .None
+}
 parse_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	prev_debug_indent := -1
 	#partial switch parser.token_type {
@@ -294,7 +319,6 @@ parse_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Pa
 			}
 			if parser.token_type == .Comma {
 				next_token(parser, sb)
-				continue
 			}
 		}
 		parse_right_bracket_square(parser, sb) or_return
@@ -316,7 +340,6 @@ parse_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Pa
 			}
 			if parser.token_type == .Comma {
 				next_token(parser, sb)
-				continue
 			}
 		}
 		parse_right_bracket_curly(parser, sb) or_return
@@ -378,6 +401,16 @@ parse_right_bracket_curly :: proc(parser: ^Parser, sb: ^strings.Builder) -> (err
 	next_token(parser, sb)
 	return .None
 }
+parse_left_bracket_angle :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type != .BracketLeftAngle {return .ExpectedBracketLeftAngle}
+	next_token(parser, sb)
+	return .None
+}
+parse_right_bracket_angle :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type != .BracketRightAngle {return .ExpectedBracketRightAngle}
+	next_token(parser, sb)
+	return .None
+}
 parse_extends :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	return .NotImplementedExtends
 }
@@ -388,7 +421,13 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		case .Alphanumeric:
 			next_token(parser, sb)
 			if parser.token_type == .BracketLeftAngle {
-				return .NotImplementedTypeAngle
+				next_token(parser, sb)
+				parse_type(parser, sb) or_return
+				for parser.token_type == .Comma {
+					next_token(parser, sb)
+					parse_type(parser, sb) or_return
+				}
+				parse_right_bracket_angle(parser, sb) or_return
 			}
 		case .String:
 			next_token(parser, sb)
@@ -454,6 +493,9 @@ parse_value :: proc(
 						parse_value(parser, sb, .Semicolon) or_return
 					}
 					parse_right_bracket(parser, sb) or_return
+				} else if parser.token_type == .LambdaArrow {
+					next_token(parser, sb)
+					parse_code_block_or_value(parser, sb) or_return
 				}
 			}
 		case .String:
@@ -469,11 +511,7 @@ parse_value :: proc(
 					parse_function_args(parser, sb, "lambda.args.cont") or_return
 					parse_lambda_arrow(parser, sb) or_return
 					debug_print(parser, "value.bracket.lambda.body")
-					if parser.token_type == .BracketLeftCurly {
-						parse_code_block(parser, sb) or_return
-					} else {
-						parse_value(parser, sb, .Comma) or_return
-					}
+					parse_code_block_or_value(parser, sb) or_return
 				} else {
 					debug_print(parser, "value.bracket.value")
 					parse_left_bracket(parser, sb) or_return
@@ -505,8 +543,7 @@ parse_value :: proc(
 					next_token(parser, sb)
 					parse_name(parser, sb) or_return
 				} else {
-					fmt.printfln("ayaya.1")
-					return .UnexpectedTokenInValue
+					return .UnexpectedTokenInValueCurly
 				}
 				if parser.token_type == .Colon {
 					next_token(parser, sb)
@@ -517,8 +554,10 @@ parse_value :: proc(
 				}
 			}
 			next_token(parser, sb)
+		case .Slash:
+			reparse_as_regex(parser)
+			next_token(parser, sb)
 		case:
-			fmt.printfln("ayaya.2")
 			return .UnexpectedTokenInValue
 		}
 		for parser.token_type == .BracketLeftSquare {
@@ -603,6 +642,14 @@ parse_code_block :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Parse
 	parse_right_bracket_curly(parser, sb) or_return
 	return .None
 }
+parse_code_block_or_value :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type == .BracketLeftCurly {
+		parse_code_block(parser, sb) or_return
+	} else {
+		parse_value(parser, sb, .Comma) or_return
+	}
+	return .None
+}
 parse_code_block_or_statement :: proc(
 	parser: ^Parser,
 	sb: ^strings.Builder,
@@ -642,4 +689,45 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		if bracket_count <= 0 {break}
 	}
 	debug_print_end(parser, "parse_until_end_of_bracket", prev_debug_indent)
+}
+
+/* special regex path */
+is_regex_flag :: #force_inline proc(char: u8) -> bool {
+	return(
+		char == 'd' ||
+		char == 'g' ||
+		char == 'i' ||
+		char == 'm' ||
+		char == 's' ||
+		char == 'u' ||
+		char == 'v' ||
+		char == 'y' \
+	)
+}
+reparse_as_regex :: proc(parser: ^Parser, loc := #caller_location) {
+	assert(parser.token_type == .Slash, "Regex must start with '/'")
+	parser.j = parser.i + 1
+	is_inside_set := false
+	outer: for parser.j < len(parser.file) {
+		char := parser.file[parser.j]
+		switch char {
+		case '[':
+			is_inside_set = true
+		case ']':
+			is_inside_set = false
+		case '\\':
+			parser.j += 1
+		case '/':
+			if !is_inside_set {
+				parser.j += 1
+				break outer // ???: why do we need the outer label?
+			}
+		}
+		parser.j += 1
+	}
+	for parser.j < len(parser.file) && is_regex_flag(parser.file[parser.j]) {
+		parser.j += 1
+	}
+	parser.token = parser.file[parser.i:parser.j]
+	parser.token_type = .Regex
 }
