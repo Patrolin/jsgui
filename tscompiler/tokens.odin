@@ -362,7 +362,7 @@ next_token :: proc(
 	token_group := TokenGroup.Token,
 	loc := #caller_location,
 ) {
-	if DEBUG_PARSER {fmt.printfln("  %v", parser)}
+	if DEBUG_MODE {fmt.printfln("  %v", parser)}
 	if sb != nil {
 		fmt.sbprint(sb, parser.file[parser.i:parser.j])
 	}

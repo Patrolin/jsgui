@@ -47,7 +47,7 @@ VAR_STATEMENT :: (VAR_DECL | SINGLE_ASSIGN | MULTI_ASSIGN | VALUE)
 VALUE :: _UNTIL_NEWLINE_OR_END_OF_BRACKET_OR_SEMICOLON
 
 */
-DEBUG_PARSER :: true
+DEBUG_MODE :: true
 DebugPrintType :: enum {
 	Middle,
 	Start,
@@ -55,14 +55,14 @@ DebugPrintType :: enum {
 }
 debug_print_start :: proc(parser: ^Parser, name: string) -> int {
 	prev_debug_indent := parser.debug_indent
-	if DEBUG_PARSER {
+	if DEBUG_MODE {
 		parser.debug_indent += 1
 		fmt.printfln("%v %v", parser.debug_indent, name)
 	}
 	return prev_debug_indent
 }
 debug_print :: proc(parser: ^Parser, name: string) {
-	if DEBUG_PARSER {
+	if DEBUG_MODE {
 		fmt.printfln("%v %v", parser.debug_indent, name)
 	}
 }
@@ -72,7 +72,7 @@ debug_print_end :: proc(
 	prev_debug_indent: int,
 	loc := #caller_location,
 ) {
-	if DEBUG_PARSER {
+	if DEBUG_MODE {
 		fmt.printfln("- %v %v", parser.debug_indent, name)
 		parser.debug_indent -= 1
 		fmt.assertf(
@@ -103,12 +103,13 @@ end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	}
 }
 parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, parser: Parser) {
+	fmt.println()
 	parser = make_parser(file)
 	sb := strings.builder_make_none()
 	for parser.token_type != .EndOfFile {
-		fmt.println()
 		error = parse_statement(&parser, &sb)
 		if error != .None {break}
+		if DEBUG_MODE {fmt.println()}
 	}
 	return strings.to_string(sb), error, parser
 }
@@ -748,7 +749,7 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		if is_bracket {
 			bracket_count += 2 * is_left_bracket - 1
 		}
-		if DEBUG_PARSER {fmt.printfln("bracket_count: %v, parser: %v", bracket_count, parser)}
+		if DEBUG_MODE {fmt.printfln("bracket_count: %v, parser: %v", bracket_count, parser)}
 		if parser.token_type == .EndOfFile {break}
 		next_token(parser, sb)
 		if bracket_count <= 0 {break}

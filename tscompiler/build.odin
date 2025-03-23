@@ -189,7 +189,6 @@ parse_imports :: proc(file: string) -> (imports: [dynamic]string, remaining_file
 	parser := make_parser(file)
 	for parser.token == "import" {
 		for parser.token != "from" {next_token(&parser)}
-		fmt.printfln(" FROM")
 		next_token(&parser)
 		append(&imports, parser.token)
 		next_token(&parser)
@@ -197,9 +196,9 @@ parse_imports :: proc(file: string) -> (imports: [dynamic]string, remaining_file
 			next_token(&parser)
 		}
 	}
-	fmt.printfln(" END_OF_IMPORTS:")
-	next_token(&parser, nil, .Comment)
+	if parser.token_group == .Whitespace {
+		next_token(&parser, nil, .Comment)
+	}
 	remaining_file = parser.file[parser.i:]
-	//fmt.printfln("parser: %v", parser)
 	return
 }
