@@ -45,14 +45,10 @@ VAR_STATEMENT :: (VAR_DECL | SINGLE_ASSIGN | MULTI_ASSIGN | VALUE)
 	SINGLE_ASSIGN :: NAME "=" VALUE ";"?
 	MULTI_ASSIGN :: "[" NAME[","] "]" "=" VALUE ";"?
 VALUE :: _UNTIL_NEWLINE_OR_END_OF_BRACKET_OR_SEMICOLON
-
 */
+
+// debug print
 DEBUG_MODE :: true
-DebugPrintType :: enum {
-	Middle,
-	Start,
-	End,
-}
 debug_print_start :: proc(parser: ^Parser, name: string) -> int {
 	prev_debug_indent := parser.debug_indent
 	if DEBUG_MODE {
@@ -84,6 +80,8 @@ debug_print_end :: proc(
 		)
 	}
 }
+
+// comments
 start_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	if parser.custom_comment_depth == 0 {
 		fmt.sbprint(sb, "/*")
@@ -102,6 +100,8 @@ end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 		fmt.sbprint(sb, comment_end)
 	}
 }
+
+// main
 parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, parser: Parser) {
 	fmt.println()
 	parser = make_parser(file)
@@ -134,8 +134,6 @@ ParseError :: enum {
 	ExpectedLambdaArrow,
 	ExpectedColon,
 	NotImplementedClass,
-	NotImplementedExtends,
-	NotImplementedTypeAngle,
 }
 
 /* slow path */
@@ -167,7 +165,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			print_prev_token(parser, sb, statement_start)
 			next_token(parser, sb)
 			parse_name(parser, sb) or_return
-			parse_extends(parser, sb) or_return
+			parse_extends_type(parser, sb) or_return
 			parse_until_end_of_bracket(parser, sb)
 			end_comment(parser, sb)
 		case "class":
@@ -281,6 +279,13 @@ parse_name :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 	next_token(parser, sb)
 	return .None
 }
+parse_extends_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token == "extends" {
+		next_token(parser, sb)
+		parse_type(parser, sb) or_return
+	}
+	return .None
+}
 parse_name_with_generic :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	parse_name(parser, sb) or_return
 	if parser.token_type == .BracketLeftAngle {
@@ -289,10 +294,7 @@ parse_name_with_generic :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error
 		next_token(parser, sb)
 		for parser.token_type != .BracketRightAngle {
 			parse_name(parser, sb) or_return
-			if parser.token == "extends" {
-				next_token(parser, sb)
-				parse_type(parser, sb) or_return
-			}
+			parse_extends_type(parser, sb) or_return
 			if parser.token_type == .Equals {
 				next_token(parser, sb)
 				parse_type(parser, sb) or_return
@@ -426,9 +428,6 @@ parse_right_bracket_angle :: proc(parser: ^Parser, sb: ^strings.Builder) -> (err
 	if parser.token_type != .BracketRightAngle {return .ExpectedBracketRightAngle}
 	next_token(parser, sb)
 	return .None
-}
-parse_extends :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
-	return .NotImplementedExtends
 }
 parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	prev_debug_indent := debug_print_start(parser, "type")
