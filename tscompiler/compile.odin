@@ -93,12 +93,12 @@ start_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	buffer := &sb.buf
 	comment_end := "*/"
-	if buffer[len(buffer) - 1] == ' ' {
-		pop(buffer)
-		comment_end = "*/ "
-	}
 	parser.custom_comment_depth -= 1
 	if parser.custom_comment_depth == 0 {
+		if buffer[len(buffer) - 1] == ' ' {
+			pop(buffer)
+			comment_end = "*/ "
+		}
 		fmt.sbprint(sb, comment_end)
 	}
 }
@@ -176,8 +176,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			print_prev_token(parser, sb, statement_start)
 			next_token(parser, sb)
 			parse_destructuring(parser, sb) or_return
-			parse_equals(parser, sb) or_return
-			parse_value(parser, sb, .Semicolon) or_return
+			parse_colon_equals_value(parser, sb, .Semicolon) or_return
 		case "return":
 			if statement_start != parser.i {return .UnexpectedTokenInStatement}
 			debug_print(parser, "statement.return")
@@ -216,12 +215,12 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			{
 				prev_debug_indent := debug_print_start(&lookahead, "statement.for.lookahead")
 				parse_name(&lookahead, nil) or_return
-				parse_name(&lookahead, nil) or_return
+				parse_name_or_destructuring(&lookahead, nil) or_return
 				debug_print_end(&lookahead, "statement.for.lookahead", prev_debug_indent)
 			}
 			if lookahead.token == "in" || lookahead.token == "of" {
 				next_token(parser, sb)
-				next_token(parser, sb)
+				parse_name_or_destructuring(parser, sb) or_return
 				next_token(parser, sb)
 				parse_value(parser, sb, .Semicolon) or_return
 			} else {
@@ -284,9 +283,15 @@ parse_name :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 parse_name_with_generic :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	parse_name(parser, sb) or_return
 	if parser.token_type == .BracketLeftAngle {
+		prev_debug_indent := debug_print_start(parser, "generic")
+		start_comment(parser, sb)
 		next_token(parser, sb)
 		for parser.token_type != .BracketRightAngle {
 			parse_name(parser, sb) or_return
+			if parser.token == "extends" {
+				next_token(parser, sb)
+				parse_type(parser, sb) or_return
+			}
 			if parser.token_type == .Equals {
 				next_token(parser, sb)
 				parse_type(parser, sb) or_return
@@ -296,6 +301,16 @@ parse_name_with_generic :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error
 			}
 		}
 		parse_right_bracket_angle(parser, sb) or_return
+		end_comment(parser, sb)
+		debug_print_end(parser, "generic", prev_debug_indent)
+	}
+	return .None
+}
+parse_name_or_destructuring :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	if parser.token_type == .Alphanumeric {
+		parse_name(parser, sb) or_return
+	} else {
+		parse_destructuring(parser, sb) or_return
 	}
 	return .None
 }
@@ -417,6 +432,9 @@ parse_extends :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseErr
 parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	prev_debug_indent := debug_print_start(parser, "type")
 	for {
+		if parser.token == "infer" {
+			next_token(parser, sb)
+		}
 		#partial switch parser.token_type {
 		case .Alphanumeric:
 			next_token(parser, sb)
@@ -432,9 +450,18 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		case .String:
 			next_token(parser, sb)
 		case .BracketLeft:
-			next_token(parser, sb)
-			parse_type(parser, sb) or_return
-			parse_right_bracket(parser, sb) or_return
+			lookahead := parser^
+			parse_until_end_of_bracket(&lookahead, nil) // NOTE: we can use the fast path here
+			if lookahead.token_type == .LambdaArrow {
+				debug_print(parser, "type.lambda")
+				parse_function_args(parser, sb, "type.lambda.cont") or_return
+				parse_lambda_arrow(parser, sb) or_return
+				parse_type(parser, sb) or_return
+			} else {
+				next_token(parser, sb)
+				parse_type(parser, sb) or_return
+				parse_right_bracket(parser, sb) or_return
+			}
 		case .BracketLeftCurly:
 			parse_until_end_of_bracket(parser, sb) // NOTE: we can use the fast path here
 		case:
@@ -444,9 +471,18 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 			next_token(parser, sb)
 			parse_right_bracket_square(parser, sb) or_return
 		}
-		if parser.token_type == .BinaryAnd || parser.token_type == .BinaryOr {
-			debug_print(parser, "type.cont")
+		if parser.token_type == .BinaryAnd ||
+		   parser.token_type == .BinaryOr ||
+		   parser.token == "extends" {
+			debug_print(parser, "type.binary_op")
 			next_token(parser, sb)
+			continue
+		}
+		if parser.token_type == .QuestionMark {
+			debug_print(parser, "type.ternary")
+			next_token(parser, sb)
+			parse_type(parser, sb) or_return
+			parse_colon(parser, sb) or_return
 			continue
 		}
 		break
@@ -471,7 +507,7 @@ parse_value :: proc(
 			if parser.token == "function" {
 				debug_print(parser, "value.function")
 				next_token(parser, sb)
-				parse_name(parser, sb) or_return
+				parse_name_with_generic(parser, sb) or_return
 				debug_print(parser, "value.function.args")
 				parse_function_args(parser, sb, "function.args.cont") or_return
 				if parser.token_type == .Colon {
@@ -609,21 +645,15 @@ parse_function_args :: proc(
 	error: ParseError,
 ) {
 	parse_left_bracket(parser, sb) or_return
-	for parser.token_type == .Alphanumeric {
-		next_token(parser, sb) // name
-		if parser.token_type == .Colon || parser.token_type == .QuestionMarkColon {
-			start_comment(parser, sb)
-			next_token(parser, sb) // ':' | '?:'
-			parse_type(parser, sb) or_return // type
-			end_comment(parser, sb)
+	for parser.token_type == .Alphanumeric || parser.token_type == .TripleDot {
+		if parser.token_type == .TripleDot {
+			next_token(parser, sb)
 		}
-		if parser.token_type == .Equals {
-			next_token(parser, sb) // '='
-			parse_value(parser, sb, .Comma) or_return
-		}
+		parse_name(parser, sb) or_return
+		parse_question_mark_colon_equals_value(parser, sb) or_return
 		if parser.token_type == .Comma {
 			debug_print(parser, debug_name_cont)
-			next_token(parser, sb) // ','
+			next_token(parser, sb)
 		}
 	}
 	parse_right_bracket(parser, sb) or_return
@@ -670,6 +700,41 @@ parse_code_block_or_statement :: proc(
 parse_colon :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	if parser.token_type != .Colon {return .ExpectedColon}
 	next_token(parser, sb)
+	return .None
+}
+parse_question_mark_colon_equals_value :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+) -> (
+	error: ParseError,
+) {
+	if parser.token_type == .Colon || parser.token_type == .QuestionMarkColon {
+		start_comment(parser, sb)
+		next_token(parser, sb)
+		parse_type(parser, sb) or_return
+		end_comment(parser, sb)
+	}
+	if parser.token_type == .Equals {
+		next_token(parser, sb) // '='
+		parse_value(parser, sb, .Comma) or_return
+	}
+	return .None
+}
+parse_colon_equals_value :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+	stop_at: TokenType,
+) -> (
+	error: ParseError,
+) {
+	if parser.token_type == .Colon {
+		start_comment(parser, sb)
+		next_token(parser, sb)
+		parse_type(parser, sb) or_return
+		end_comment(parser, sb)
+	}
+	parse_equals(parser, sb) or_return
+	parse_value(parser, sb, stop_at) or_return
 	return .None
 }
 
