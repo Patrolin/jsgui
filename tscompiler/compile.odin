@@ -89,7 +89,13 @@ start_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	parser.inside_comment = true
 }
 end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
-	fmt.sbprint(sb, "*/")
+	buffer := &sb.buf
+	if buffer[len(buffer) - 1] == ' ' {
+		pop(buffer)
+		fmt.sbprint(sb, "*/ ")
+	} else {
+		fmt.sbprint(sb, "*/")
+	}
 	parser.inside_comment = false
 }
 parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, parser: Parser) {
