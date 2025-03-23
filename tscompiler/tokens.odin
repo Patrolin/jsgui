@@ -33,7 +33,13 @@ TokenType :: enum {
 	BracketRightSquare,
 	BracketLeftCurly,
 	BracketRightCurly,
+	// 2 length, postfix ops
+	POSTFIX_OPS_START,
+	DoublePlus,
+	DoubleMinus,
+	POSTFIX_OPS_END,
 	// 1 length, brackets, binary ops
+	_PAD_BRACKET_PARITY,
 	BINARY_OPS_START,
 	BracketLeftAngle,
 	BracketRightAngle,
@@ -57,25 +63,26 @@ TokenType :: enum {
 	TripleNotEquals,
 	// 1 length, binary ops, unary ops
 	UNARY_OPS_START,
-	PlusMinus,
+	Plus,
+	Minus,
 	BINARY_OPS_END,
 	// 1 length, unary ops
 	ExclamationMark,
-	// TODO: more unary ops
 }
 
 Parser :: struct {
-	file:         string `fmt:"-"`,
-	whitespace:   string,
-	token:        string,
-	token_type:   TokenType,
-	i:            int,
-	j:            int,
-	k:            int,
-	debug_indent: int,
+	file:           string `fmt:"-"`,
+	whitespace:     string,
+	token:          string,
+	token_type:     TokenType,
+	i:              int,
+	j:              int,
+	k:              int,
+	debug_indent:   int,
+	inside_comment: bool,
 }
 make_parser :: proc(file: string) -> Parser {
-	parser := Parser{file, "", "", .EndOfFile, 0, 0, 0, 0}
+	parser := Parser{file, "", "", .EndOfFile, 0, 0, 0, 0, false}
 	parse_until_next_token(&parser)
 	return parser
 }
@@ -91,7 +98,6 @@ parse_until_next_token :: proc(parser: ^Parser) {
 }
 @(private)
 _parse_whitespace :: proc(parser: ^Parser) {
-	// TODO: print("/*") when we end a comment and parser.inside_comment == true
 	j := parser.i
 	for j < len(parser.file) {
 		char := parser.file[j]
@@ -186,8 +192,12 @@ _get_token_type :: proc(file: string, j: int) -> TokenType {
 		return .Semicolon
 	case ',':
 		return .Comma
-	case '+', '-':
-		return .PlusMinus
+	case '+':
+		is_double_plus := j_1 < len(file) && (file[j_1] == '+')
+		return is_double_plus ? .DoublePlus : .Plus
+	case '-':
+		is_double_minus := j_1 < len(file) && (file[j_1] == '-')
+		return is_double_minus ? .DoubleMinus : .Minus
 	case '*', '/':
 		return .TimesDivide // NOTE: comments are handled by _parse_whitespace()
 	case '.':
@@ -279,7 +289,9 @@ _parse_token :: proc(parser: ^Parser) {
 	     .LessThanEquals,
 	     .GreaterThanEquals,
 	     .LogicalOr,
-	     .LogicalAnd:
+	     .LogicalAnd,
+	     .DoublePlus,
+	     .DoubleMinus:
 		// 2 length
 		parser.k = parser.j + 2
 		parser.token = parser.file[parser.j:parser.k]
