@@ -120,6 +120,7 @@ ParseError :: enum {
 	UnexpectedTokenInType,
 	UnexpectedTokenInValue,
 	UnexpectedTokenInValueCurly,
+	UnexpectedTokenInClass,
 	ExpectedName,
 	ExpectedEquals,
 	ExpectedAssignmentInForLoop,
@@ -169,21 +170,55 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			parse_until_end_of_bracket(parser, sb)
 			end_comment(parser, sb)
 		case "class":
-			return .NotImplementedClass
+			debug_print(parser, "statement.class")
+			next_token(parser, sb)
+			parse_name(parser, sb) or_return
+			parse_extends_type(parser, sb) or_return
+			parse_left_bracket_curly(parser, sb) or_return
+			for parser.token_type != .BracketRightCurly {
+				if parser.token == "get" || parser.token == "set" || parser.token == "static" {
+					next_token(parser, sb)
+				}
+				parse_name_with_generic(parser, sb) or_return // SPEC: technically we shouldn't parse generic if it's a class field
+				#partial switch parser.token_type {
+				case .Colon, .QuestionMarkColon:
+					parse_question_mark_colon_equals_value(parser, sb) or_return
+				case .BracketLeft:
+					debug_print(parser, "statement.class.method")
+					parse_function_args(parser, sb, "statement.class.method.cont") or_return
+					if parser.token_type == .Colon {
+						start_comment(parser, sb)
+						next_token(parser, sb)
+						parse_type(parser, sb) or_return
+						end_comment(parser, sb)
+					}
+					parse_code_block(parser, sb) or_return
+				case .Semicolon:
+				// noop
+				case:
+					return .UnexpectedTokenInClass
+				}
+				for parser.token_type == .Semicolon {
+					next_token(parser, sb)
+				}
+			}
+			parse_right_bracket_curly(parser, sb) or_return
 		case "var", "let", "const":
 			debug_print(parser, "statement.var")
 			print_prev_token(parser, sb, statement_start)
 			next_token(parser, sb)
 			parse_destructuring(parser, sb) or_return
 			parse_colon_equals_value(parser, sb, .Semicolon) or_return
-		case "return":
+		case "return", "throw":
 			if statement_start != parser.i {return .UnexpectedTokenInStatement}
 			debug_print(parser, "statement.return")
 			next_token(parser, sb)
 			if parser.token_type != .Semicolon {
 				parse_value(parser, sb, .Semicolon) or_return
 			}
-			if parser.token_type != .Semicolon && parser.token != "case" {
+			if parser.token_type != .Semicolon &&
+			   parser.token_type != .BracketRightCurly &&
+			   parser.token != "case" {
 				return .UnexpectedTokenInStatement
 			}
 		case "if":
@@ -462,7 +497,20 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 				parse_type(parser, sb) or_return
 				parse_right_bracket(parser, sb) or_return
 			}
+		case .BracketLeftSquare:
+			debug_print(parser, "type.tuple")
+			next_token(parser, sb)
+			for {
+				parse_type(parser, sb) or_return
+				if parser.token_type == .Comma {
+					next_token(parser, sb)
+					continue
+				}
+				break
+			}
+			parse_right_bracket_square(parser, sb)
 		case .BracketLeftCurly:
+			debug_print(parser, "type.struct")
 			parse_until_end_of_bracket(parser, sb) // NOTE: we can use the fast path here
 		case:
 			return .UnexpectedTokenInType
@@ -473,7 +521,8 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		}
 		if parser.token_type == .BinaryAnd ||
 		   parser.token_type == .BinaryOr ||
-		   parser.token == "extends" {
+		   parser.token == "extends" ||
+		   parser.token_type == .Dot {
 			debug_print(parser, "type.binary_op")
 			next_token(parser, sb)
 			continue
@@ -499,7 +548,10 @@ parse_value :: proc(
 ) {
 	prev_debug_indent := debug_print_start(parser, "value")
 	for {
-		for parser.token_type >= .UNARY_OPS_START {
+		for parser.token_type >= .UNARY_OPS_START ||
+		    parser.token == "typeof" ||
+		    parser.token == "new" ||
+		    parser.token_type == .TripleDot { 	// SPEC: cba to only parse .TripleDot inside function calls
 			next_token(parser, sb)
 		}
 		#partial switch parser.token_type {
@@ -522,16 +574,19 @@ parse_value :: proc(
 			} else {
 				debug_print(parser, "value.name")
 				next_token(parser, sb)
-				if parser.token_type == .BracketLeft {
-					debug_print(parser, "value.name.call")
-					next_token(parser, sb)
-					if parser.token_type != .BracketRight {
-						parse_value(parser, sb, .Semicolon) or_return
-					}
-					parse_right_bracket(parser, sb) or_return
-				} else if parser.token_type == .LambdaArrow {
+				if parser.token_type == .LambdaArrow {
+					debug_print(parser, "value.name.lambda")
 					next_token(parser, sb)
 					parse_code_block_or_value(parser, sb) or_return
+				} else {
+					for parser.token_type == .BracketLeft {
+						debug_print(parser, "value.name.call")
+						next_token(parser, sb)
+						if parser.token_type != .BracketRight {
+							parse_value(parser, sb, .Semicolon) or_return
+						}
+						parse_right_bracket(parser, sb) or_return
+					}
 				}
 			}
 		case .String:
@@ -569,16 +624,22 @@ parse_value :: proc(
 			debug_print(parser, "value.curly")
 			next_token(parser, sb)
 			for parser.token_type != .BracketRightCurly {
-				if parser.token_type == .Alphanumeric {
+				#partial switch parser.token_type {
+				case .TripleDot:
 					next_token(parser, sb)
-				} else if parser.token_type == .BracketLeftSquare {
+					parse_value(parser, sb, .Comma) or_return
+				case .Alphanumeric:
+					next_token(parser, sb)
+					if parser.token_type == .BracketLeft {
+						debug_print(parser, "value.curly.method")
+						parse_function_args(parser, sb, "value.curly.method.cont") or_return
+						parse_code_block(parser, sb) or_return
+					}
+				case .BracketLeftSquare:
 					next_token(parser, sb)
 					parse_value(parser, sb, .Semicolon) or_return
 					parse_right_bracket_square(parser, sb) or_return
-				} else if parser.token_type == .TripleDot {
-					next_token(parser, sb)
-					parse_name(parser, sb) or_return
-				} else {
+				case:
 					return .UnexpectedTokenInValueCurly
 				}
 				if parser.token_type == .Colon {
@@ -613,7 +674,9 @@ parse_value :: proc(
 		}
 		if (parser.token_type >= .BINARY_OPS_START && parser.token_type <= .BINARY_OPS_END) ||
 		   parser.token_type == .Comma ||
-		   parser.token_type == .Equals {
+		   parser.token_type == .Equals ||
+		   parser.token == "instanceof" ||
+		   parser.token == "in" {
 			debug_print(parser, "value.binary_op")
 			next_token(parser, sb)
 			continue
@@ -645,17 +708,20 @@ parse_function_args :: proc(
 	error: ParseError,
 ) {
 	parse_left_bracket(parser, sb) or_return
-	for parser.token_type == .Alphanumeric || parser.token_type == .TripleDot {
+	for parser.token_type != .BracketRight {
 		if parser.token_type == .TripleDot {
 			next_token(parser, sb)
+			parse_name(parser, sb) or_return
+		} else {
+			parse_destructuring(parser, sb) or_return
 		}
-		parse_name(parser, sb) or_return
 		parse_question_mark_colon_equals_value(parser, sb) or_return
 		if parser.token_type == .Comma {
 			debug_print(parser, debug_name_cont)
 			next_token(parser, sb)
 		}
 	}
+	fmt.printfln("aaa: %v", parser)
 	parse_right_bracket(parser, sb) or_return
 	return .None
 }
