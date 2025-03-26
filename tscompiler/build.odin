@@ -19,7 +19,7 @@ BuildTask :: struct {
 BUILD_TASKS :: []BuildTask {
 	BuildTask{BuildTaskType.Copy, "jsgui/jsgui.css", "jsgui/out"},
 	BuildTask{BuildTaskType.MtsCompile, "jsgui", "jsgui/out"},
-	//BuildTask{BuildTaskType.MtsCompile, "docs", "docs/out"},
+	BuildTask{BuildTaskType.MtsCompile, "docs", "docs/out"},
 }
 
 main :: proc() {
@@ -33,9 +33,11 @@ main :: proc() {
 	for task in BUILD_TASKS {
 		switch task.type {
 		case .Copy:
-		// TODO
+		// TODO copy file
 		case .MtsCompile:
 			{
+				// TODO: cache files by mtime?
+				// TODO: fix dependency ordering
 				out_file_path := strings.join({task.out, "/", task.src}, "")
 				mts_out_file_path := strings.join({out_file_path, ".mts"}, "")
 				mjs_out_file_path := strings.join({out_file_path, ".mjs"}, "")

@@ -134,7 +134,7 @@ ParseError :: enum {
 	ExpectedBracketRightAngle,
 	ExpectedLambdaArrow,
 	ExpectedColon,
-	NotImplementedClass,
+	NotImplementedHell,
 }
 
 /* slow path */
@@ -265,7 +265,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			}
 			parse_right_bracket(parser, sb) or_return
 			debug_print(parser, "statement.for.body")
-			parse_code_block(parser, sb) or_return
+			parse_code_block_or_statement(parser, sb) or_return
 		case "switch":
 			debug_print(parser, "statement.switch")
 			next_token(parser, sb)
@@ -508,7 +508,7 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 				}
 				break
 			}
-			parse_right_bracket_square(parser, sb)
+			parse_right_bracket_square(parser, sb) or_return
 		case .BracketLeftCurly:
 			debug_print(parser, "type.struct")
 			parse_until_end_of_bracket(parser, sb) // NOTE: we can use the fast path here
@@ -547,7 +547,7 @@ parse_value :: proc(
 	error: ParseError,
 ) {
 	prev_debug_indent := debug_print_start(parser, "value")
-	for {
+	outer: for {
 		for parser.token_type >= .UNARY_OPS_START ||
 		    parser.token == "typeof" ||
 		    parser.token == "new" ||
@@ -579,6 +579,17 @@ parse_value :: proc(
 					next_token(parser, sb)
 					parse_code_block_or_value(parser, sb) or_return
 				} else {
+					if parser.token_type == .BracketLeftAngle {
+						lookahead := parser^
+						parse_until_end_of_bracket(&lookahead, nil)
+						if lookahead.token_type == .BracketLeft {
+							start_comment(parser, sb)
+							next_token(parser, sb)
+							parse_type(parser, sb) or_return
+							parse_right_bracket_angle(parser, sb) or_return
+							end_comment(parser, sb)
+						}
+					}
 					for parser.token_type == .BracketLeft {
 						debug_print(parser, "value.name.call")
 						next_token(parser, sb)
@@ -655,6 +666,8 @@ parse_value :: proc(
 		case .Slash:
 			reparse_as_regex(parser)
 			next_token(parser, sb)
+		case .BracketRight:
+			break outer
 		case:
 			return .UnexpectedTokenInValue
 		}

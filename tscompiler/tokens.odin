@@ -51,6 +51,9 @@ TokenType :: enum {
 	// 2 length, binary ops
 	PlusEquals,
 	MinusEquals,
+	TimesEquals,
+	SlashEquals,
+	DoubleTimes,
 	DoubleQuestionMark,
 	QuestionMarkDot,
 	DoubleEquals,
@@ -253,11 +256,15 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 		if is_minus_equals {return .MinusEquals}
 		return is_double_minus ? .DoubleMinus : .Minus
 	case '*':
-		return .Times
+		is_double_times := j_1 < len(file) && (file[j_1] == '*')
+		is_times_equals := j_1 < len(file) && (file[j_1] == '=')
+		if is_times_equals {return .TimesEquals}
+		return is_double_times ? .DoubleTimes : .Times
 	case '/':
 		// NOTE: comments are handled by _parse_until_next_token()
 		// NOTE: compiler needs to set `parser.token_type = .Regex` manually
-		return .Slash
+		is_slash_equals := j_1 < len(file) && (file[j_1] == '=')
+		return is_slash_equals ? .SlashEquals : .Slash
 	case '.':
 		is_double_dot := j_1 < len(file) && (file[j_1] == '.')
 		is_triple_dot := j_2 < len(file) && (file[j_2] == '.')
@@ -364,6 +371,8 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 		parser.token = parser.file[parser.i:parser.j]
 	case .PlusEquals,
 	     .MinusEquals,
+	     .TimesEquals,
+	     .SlashEquals,
 	     .QuestionMarkColon,
 	     .DoubleQuestionMark,
 	     .QuestionMarkDot,
@@ -375,7 +384,8 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 	     .LogicalOr,
 	     .LogicalAnd,
 	     .DoublePlus,
-	     .DoubleMinus:
+	     .DoubleMinus,
+	     .DoubleTimes:
 		// 2 length
 		parser.j = parser.i + 2
 		parser.token = parser.file[parser.i:parser.j]
