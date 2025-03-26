@@ -134,7 +134,6 @@ ParseError :: enum {
 	ExpectedBracketRightAngle,
 	ExpectedLambdaArrow,
 	ExpectedColon,
-	NotImplementedHell,
 }
 
 /* slow path */
