@@ -16,6 +16,7 @@ TokenType :: enum {
 	MultiLineComment,
 	// N length
 	String,
+	InterpolatedString,
 	Regex,
 	Alphanumeric,
 	// 3 length
@@ -48,6 +49,8 @@ TokenType :: enum {
 	TripleEquals,
 	TripleNotEquals,
 	// 2 length, binary ops
+	PlusEquals,
+	MinusEquals,
 	DoubleQuestionMark,
 	QuestionMarkDot,
 	DoubleEquals,
@@ -188,8 +191,10 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	case ' ', '\t', '\r', '\n':
 		return .Whitespace
 	// N length
-	case '`', '"', '\'':
+	case '"', '\'':
 		return .String
+	case '`':
+		return .InterpolatedString
 	case:
 		return .Alphanumeric
 	// 2-3 length
@@ -239,9 +244,13 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 		return .Comma
 	case '+':
 		is_double_plus := j_1 < len(file) && (file[j_1] == '+')
+		is_plus_equals := j_1 < len(file) && (file[j_1] == '=')
+		if is_plus_equals {return .PlusEquals}
 		return is_double_plus ? .DoublePlus : .Plus
 	case '-':
 		is_double_minus := j_1 < len(file) && (file[j_1] == '-')
+		is_minus_equals := j_1 < len(file) && (file[j_1] == '=')
+		if is_minus_equals {return .MinusEquals}
 		return is_double_minus ? .DoubleMinus : .Minus
 	case '*':
 		return .Times
@@ -319,6 +328,29 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 			}
 		}
 		parser.token = strings.to_string(sb)
+	case .InterpolatedString:
+		// default parsing for .InterpolatedString, does not comment out typescript syntax inside interpolations
+		parser.j = parser.i + 1
+		interpolation_depth := 0
+		outer: for parser.j < len(parser.file) {
+			switch parser.file[parser.j] {
+			case '{':
+				if parser.file[parser.j - 1] == '$' || interpolation_depth > 0 {
+					interpolation_depth += 1
+					fmt.printfln("interpolation_depth, %v", interpolation_depth)
+				}
+			case '}':
+				interpolation_depth -= 1
+				fmt.printfln("interpolation_depth, %v", interpolation_depth)
+			case '`':
+				if interpolation_depth <= 0 {
+					parser.j += 1
+					break outer
+				}
+			}
+			parser.j += 1
+		}
+		parser.token = parser.file[parser.i:parser.j]
 	case .Alphanumeric:
 		parser.j = parser.i + 1
 		for parser.j < len(parser.file) &&
@@ -330,7 +362,9 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 		// 3 length
 		parser.j = parser.i + 3
 		parser.token = parser.file[parser.i:parser.j]
-	case .QuestionMarkColon,
+	case .PlusEquals,
+	     .MinusEquals,
+	     .QuestionMarkColon,
 	     .DoubleQuestionMark,
 	     .QuestionMarkDot,
 	     .DoubleEquals,

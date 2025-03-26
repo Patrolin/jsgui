@@ -589,7 +589,8 @@ parse_value :: proc(
 					}
 				}
 			}
-		case .String:
+		case .String, .InterpolatedString:
+			// TODO: fully parse .InterpolatedString?
 			debug_print(parser, "value.string")
 			next_token(parser, sb)
 		case .BracketLeft:
@@ -665,13 +666,15 @@ parse_value :: proc(
 			}
 			parse_right_bracket_square(parser, sb) or_return
 		}
-		if parser.token_type <= stop_at {
-			break
-		}
+		// SPEC: is postfix allowed (syntactically speaking) after a function call?
 		if (parser.token_type >= .POSTFIX_OPS_START && parser.token_type <= .POSTFIX_OPS_END) {
 			debug_print(parser, "value.postfix_op")
 			next_token(parser, sb)
 		}
+		if parser.token_type <= stop_at {
+			break
+		}
+		// REFACTOR: put .Comma, .Equals under .BINARY_OPS
 		if (parser.token_type >= .BINARY_OPS_START && parser.token_type <= .BINARY_OPS_END) ||
 		   parser.token_type == .Comma ||
 		   parser.token_type == .Equals ||
