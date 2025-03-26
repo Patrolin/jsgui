@@ -48,7 +48,7 @@ VALUE :: _UNTIL_NEWLINE_OR_END_OF_BRACKET_OR_SEMICOLON
 */
 
 // debug print
-DEBUG_MODE :: true
+DEBUG_MODE :: false
 debug_print_start :: proc(parser: ^Parser, name: string) -> int {
 	prev_debug_indent := parser.debug_indent
 	if DEBUG_MODE {
@@ -103,7 +103,7 @@ end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 
 // main
 parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, parser: Parser) {
-	fmt.println()
+	if DEBUG_MODE {fmt.println()}
 	parser = make_parser(file)
 	sb := strings.builder_make_none()
 	for parser.token_type != .EndOfFile {
@@ -145,7 +145,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 	statement_start := parser.i
 	// REFACTOR: lookahead "export"?
 	if parser.token == "export" {
-		next_token(parser)
+		next_token(parser, nil)
 	}
 	#partial switch parser.token_type {
 	case .Alphanumeric:
@@ -736,7 +736,6 @@ parse_function_args :: proc(
 			next_token(parser, sb)
 		}
 	}
-	fmt.printfln("aaa: %v", parser)
 	parse_right_bracket(parser, sb) or_return
 	return .None
 }

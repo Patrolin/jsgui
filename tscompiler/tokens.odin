@@ -344,11 +344,9 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 			case '{':
 				if parser.file[parser.j - 1] == '$' || interpolation_depth > 0 {
 					interpolation_depth += 1
-					fmt.printfln("interpolation_depth, %v", interpolation_depth)
 				}
 			case '}':
 				interpolation_depth -= 1
-				fmt.printfln("interpolation_depth, %v", interpolation_depth)
 			case '`':
 				if interpolation_depth <= 0 {
 					parser.j += 1
@@ -402,7 +400,7 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 // NOTE: we want `sb = nil` for lookahead
 next_token :: proc(
 	parser: ^Parser,
-	sb: ^strings.Builder = nil,
+	sb: ^strings.Builder,
 	token_group := TokenGroup.Token,
 	loc := #caller_location,
 ) {
