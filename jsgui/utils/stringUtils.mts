@@ -31,7 +31,7 @@ export type PathParts = {
   query?: string | Record<string, string>;
   hash?: string;
 };
-/** Make path `${origin}${pathname}#{hash}?${queryString}` and normalize to no trailing `"/"` */
+/** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
 export function makePath(parts: string | PathParts): string {
   if (typeof parts === "string") {return parts}
   let origin = parts.origin ?? window.location.origin;
@@ -42,6 +42,7 @@ export function makePath(parts: string | PathParts): string {
   let pathLocation = (origin ?? "") + (pathname ?? "");
   if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
   pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
+  console.log('ayaya.makePath', {pathLocation})
   let queryString = '';
   if (typeof query === "string") {
     queryString = query;

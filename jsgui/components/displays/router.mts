@@ -30,8 +30,6 @@ export type PageWrapperProps = {
   currentRoute: Route;
   contentWrapperComponent: ComponentFunction<any>,
 };
-// TODO: colon params
-// TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
 export const router = makeComponent(function router(props: RouterProps) {
   const {
     prefix = "",
@@ -52,10 +50,10 @@ export const router = makeComponent(function router(props: RouterProps) {
   for (let route of routes) {
     const routeParamNames = [] as string[];
     const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
-    const regex = new RegExp(`^${routePrefix}${
+    const regex = new RegExp(`^${
       makePath({
         origin: '',
-        pathname: route.path,
+        pathname: routePrefix + route.path,
         query: '',
         hash: '',
       }).replace(/:([^/]*)/g, (_m, g1) => {
@@ -63,6 +61,7 @@ export const router = makeComponent(function router(props: RouterProps) {
         return `[^/?]*`;
       })
     }$`);
+    console.log('ayaya.route', currentPath, regex)
     const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
     if (match != null) {
       const routeParamsEntries = makeArray(routeParamNames.length, (v, i) => [v, match[i]]);

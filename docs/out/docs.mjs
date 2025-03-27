@@ -38,7 +38,7 @@ function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
   query?: string | Record<string, string>;
   hash?: string;
 }*/;
-/** Make path `${origin}${pathname}#{hash}?${queryString}` and normalize to no trailing `"/"` */
+/** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
 function makePath(parts/*: string | PathParts*/)/*: string*/ {
   if (typeof parts === "string") {return parts}
   let origin = parts.origin ?? window.location.origin;
@@ -49,6 +49,7 @@ function makePath(parts/*: string | PathParts*/)/*: string*/ {
   let pathLocation = (origin ?? "") + (pathname ?? "");
   if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
   pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
+  console.log('ayaya.makePath', {pathLocation})
   let queryString = '';
   if (typeof query === "string") {
     queryString = query;
@@ -1456,8 +1457,6 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
   currentRoute: Route;
   contentWrapperComponent: ComponentFunction<any>,
 }*/;
-// TODO: colon params
-// TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
 export const router = makeComponent(function router(props/*: RouterProps*/) {
   const {
     prefix = "",
@@ -1478,10 +1477,10 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
   for (let route of routes) {
     const routeParamNames = [] /*as string[]*/;
     const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
-    const regex = new RegExp(`^${routePrefix}${
+    const regex = new RegExp(`^${
       makePath({
         origin: '',
-        pathname: route.path,
+        pathname: routePrefix + route.path,
         query: '',
         hash: '',
       }).replace(/:([^/]*)/g, (_m, g1) => {
@@ -1489,6 +1488,7 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
         return `[^/?]*`;
       })
     }$`);
+    console.log('ayaya.route', currentPath, regex)
     const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
     if (match != null) {
       const routeParamsEntries = makeArray(routeParamNames.length, (v, i) => [v, match[i]]);
