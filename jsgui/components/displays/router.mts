@@ -61,7 +61,6 @@ export const router = makeComponent(function router(props: RouterProps) {
         return `[^/?]*`;
       })
     }$`);
-    console.log('ayaya.route', currentPath, regex)
     const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
     if (match != null) {
       const routeParamsEntries = makeArray(routeParamNames.length, (v, i) => [v, match[i]]);
