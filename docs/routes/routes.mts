@@ -1,13 +1,13 @@
 import { div, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, router, span } from '../../jsgui/out/jsgui.mts';
+import { getGithubPagesPrefix, GITHUB_PAGES_PREFIX } from '../utils/utils.mts';
 import { debugKeysPage } from './debugKeysPage.mts';
 import {docsPage} from './docsPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
 
-export const GITHUB_PAGES_PREFIX = "/jsgui";
 export const ROUTES = [
   {
-    path: `${GITHUB_PAGES_PREFIX}/`,
+    path: `/`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,
@@ -15,7 +15,7 @@ export const ROUTES = [
     label: "Docs",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/:selectedSectionId/:selectedSectionId`,
+    path: `/:selectedSectionId/:selectedSectionId`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,
@@ -23,7 +23,7 @@ export const ROUTES = [
     label: "Docs",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/themeCreator`,
+    path: `/themeCreator`,
     defaultPath: "/themeCreator",
     component: () => themeCreatorPage(),
     wrapper: true,
@@ -31,7 +31,7 @@ export const ROUTES = [
     label: "Theme creator",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/debugKeys`,
+    path: `/debugKeys`,
     defaultPath: "/debugKeys",
     component: () => debugKeysPage(),
     wrapper: false,
@@ -42,6 +42,7 @@ export const ROUTES = [
 export const root = makeComponent(function root() {
   this.append(
     router({
+      prefix: GITHUB_PAGES_PREFIX,
       pageWrapperComponent: pageWrapper,
       routes: ROUTES,
       notFoundRoute: {
@@ -53,8 +54,7 @@ export const root = makeComponent(function root() {
 export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
   const {routes, currentRoute, contentWrapperComponent} = props;
   // TODO: have router support routes including hash, and take longest matching route
-  const isGithubPages = window.location.pathname.startsWith("/jsgui");
-  const githubPagesPrefix = isGithubPages ? `/jsgui` : "";
+  const isGithubPages = window.location.pathname.startsWith(GITHUB_PAGES_PREFIX);
   const wrapper = this.append(div({
     style: {
       height: "100%",
@@ -71,7 +71,7 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
   navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
   ROUTES.forEach((route, i) => {
     if (route.showInNavigation) {
-      navigation.append(span(route.label, { href: `${githubPagesPrefix}${route.defaultPath ?? route.path}` }));
+      navigation.append(span(route.label, { href: `${getGithubPagesPrefix()}${route.defaultPath ?? route.path}` }));
     }
   });
   const contentWrapper = wrapper.append(contentWrapperComponent())

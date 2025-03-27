@@ -28,15 +28,28 @@ export function stringifyJsonStable(data: Record<string, any>): string {
 export type PathParts = {
   origin?: string;
   pathname?: string;
+  query?: string | Record<string, string>;
   hash?: string;
-  query?: Record<string, string>;
 };
 /** Make path `${origin}${pathname}#{hash}?${queryString}` and normalize to no trailing `"/"` */
-export function makePath(parts: PathParts): string {
-  const {origin, pathname, hash, query} = parts;
+export function makePath(parts: string | PathParts): string {
+  if (typeof parts === "string") {return parts}
+  let origin = parts.origin ?? window.location.origin;
+  let pathname = parts.pathname ?? window.location.pathname;
+  let query = parts.query ?? window.location.search;
+  let hash = parts.hash ?? window.location.hash;
+  // build path
   let pathLocation = (origin ?? "") + (pathname ?? "");
   if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
-  pathLocation = pathLocation.replace(/(\/*$)/g, "");
-  let pathProps = (hash ? `#${hash}` : "") + (query ? `?${Object.entries(query).map(([k, v]) => `${k}=${stringifyJson(v)}`).join("&")}` : "");
-  return pathLocation + pathProps;
+  pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
+  let queryString = '';
+  if (typeof query === "string") {
+    queryString = query;
+  } else if (Object.keys(query ?? {}).length) {
+    const queryObject = query as any;
+    queryString = `?${Object.entries(queryObject).map(([k, v]) => `${k}=${v}`).join("&")}`;
+  }
+  let hashString = hash ?? "";
+  if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
+  return pathLocation + queryString + hashString;
 }

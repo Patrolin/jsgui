@@ -75,7 +75,7 @@ TokenType :: enum {
 	Minus,
 	BINARY_OPS_END,
 	// 1 length, unary ops
-	ExclamationMark,
+	ExclamationMark, // TODO: this shouldn't parse as a postfix op by default..
 }
 
 Parser :: struct {

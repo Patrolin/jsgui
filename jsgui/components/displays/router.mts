@@ -15,6 +15,7 @@ export type Route = {
 };
 export type FallbackRoute = Omit<Route, "path">;
 export type RouterProps = {
+  prefix?: string;
   routes: Route[];
   pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
   contentWrapperComponent?: ComponentFunction<any>,
@@ -33,6 +34,7 @@ export type PageWrapperProps = {
 // TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
 export const router = makeComponent(function router(props: RouterProps) {
   const {
+    prefix = "",
     routes,
     pageWrapperComponent = () => fragment(),
     contentWrapperComponent = () => div({ className: "page-content" }),
@@ -42,16 +44,23 @@ export const router = makeComponent(function router(props: RouterProps) {
     notFoundRoute = { component: () => span("404 Not found") },
     unauthorizedRoute = { component: fragment },
   } = props;
-  let currentPath = makePath({pathname: location.pathname});
+  this.useLocation(); // rerender on location change
+  let currentPath = makePath({origin: '', query: '', hash: ''});
   const currentPathWithHash = `${currentPath}${location.hash}`
   let currentRoute: Route | null = null; // TODO: save params in rootComponent?
   let currentRouteParams: Record<string, string> = {};
   for (let route of routes) {
     const routeParamNames = [] as string[];
-    const regex = new RegExp(`^${
-      makePath({pathname: route.path}).replace(/:([^/]*)/, (_m, g1) => {
+    const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
+    const regex = new RegExp(`^${routePrefix}${
+      makePath({
+        origin: '',
+        pathname: route.path,
+        query: '',
+        hash: '',
+      }).replace(/:([^/]*)/g, (_m, g1) => {
         routeParamNames.push(g1);
-        return `:([^/d]*)`;
+        return `[^/?]*`;
       })
     }$`);
     const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);

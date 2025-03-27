@@ -1,4 +1,5 @@
-import { BaseProps, makeComponent, NavigateFunction, NodeType, Size } from "../jsgui.mts";
+import { BaseProps, makeComponent, NodeType, Size } from "../jsgui.mts";
+import { navigate, NavigateFunction } from "../utils/stringUtils.mts";
 
 // basic components
 export const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
@@ -137,7 +138,7 @@ export type SpanProps = BaseProps & {
   onClick?: (event: MouseEvent) => void;
 };
 export const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, download, navigate, id, selfLink, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, download, navigate: navigateInner, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
@@ -155,7 +156,7 @@ export const span = makeComponent(function _span(text: string | number | null | 
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
   if (isLink) (e as HTMLAnchorElement).href = href;
-  navigate = (navigate ?? this.useNavigate().pushRoute);
+  navigateInner = (navigateInner ?? navigate);
   if (onClick || href) {
     if (!isLink) {
       attribute.tabindex = "-1";
@@ -165,7 +166,7 @@ export const span = makeComponent(function _span(text: string | number | null | 
       if (onClick) onClick(event);
       if (href && !download) {
         event.preventDefault();
-        navigate(href);
+        navigateInner(href);
       }
     });
   }

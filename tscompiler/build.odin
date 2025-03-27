@@ -54,7 +54,7 @@ main :: proc() {
 				// .mjs
 				mjs_file, error, parser := parse_entire_file(mts_file)
 				if error != .None {
-					//fmt.printfln("ParseError: .%v, %v", error, parser)
+					fmt.printfln("ParseError: .%v, %v", error, parser)
 				}
 				os.write_entire_file(mjs_out_file_path, transmute([]u8)mjs_file)
 				fmt.printfln("+ %v", mjs_out_file_path)

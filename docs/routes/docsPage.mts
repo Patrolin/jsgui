@@ -1,6 +1,6 @@
-import { code, div, makeComponent, tabs } from '../../jsgui/out/jsgui.mts';
+import { code, div, makeComponent, navigate, tabs } from '../../jsgui/out/jsgui.mts';
 import { BASICS_SECTION } from '../components/basicsSection.mts';
-import {DocsSection, getGithubPrefix} from '../utils/utils.mts';
+import {DocsSection, getGithubPagesPrefix} from '../utils/utils.mts';
 import { textInputPage } from '../components/inputs/textInputPage.mts';
 import { dialogPage } from '../components/displays/dialogPage.mts';
 import { progressPage } from '../components/displays/progressPage.mts';
@@ -44,7 +44,6 @@ export const docsPage = makeComponent(function docsPage() {
     selectedSectionId: params.selectedSectionId ?? DOCS_SECTIONS[0].id,
     selectedPageId: params.selectedPageId ?? DOCS_SECTIONS[0].pages[0].id,
   });
-  const {replaceHistory} = this.useNavigate();
   const column = this.append(
     div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
   );
@@ -76,5 +75,12 @@ export const docsPage = makeComponent(function docsPage() {
       borderRadius: 8,
     }}));
   }
-  replaceHistory(`${window.location.origin}${getGithubPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`);
+  const wantPathname = `/${state.selectedSectionId}/${state.selectedPageId}`;
+  if (window.location.pathname !== wantPathname) {
+    navigate({
+      pathname: `${getGithubPagesPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`,
+      query: '',
+      hash: '',
+    });
+  }
 });

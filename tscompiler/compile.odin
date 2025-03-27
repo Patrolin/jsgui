@@ -111,6 +111,7 @@ parse_entire_file :: proc(file: string) -> (mjs: string, error: ParseError, pars
 		if error != .None {break}
 		if DEBUG_MODE {fmt.println()}
 	}
+	fmt.assertf(error != .None || parser.debug_indent == 0, "Wrong debug indent")
 	return strings.to_string(sb), error, parser
 }
 ParseError :: enum {
@@ -206,8 +207,15 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			debug_print(parser, "statement.var")
 			print_prev_token(parser, sb, statement_start)
 			next_token(parser, sb)
-			parse_destructuring(parser, sb) or_return
-			parse_colon_equals_value(parser, sb, .Semicolon) or_return
+			for {
+				parse_destructuring(parser, sb) or_return
+				parse_colon_equals_value(parser, sb, .Comma) or_return
+				if parser.token_type == .Comma {
+					next_token(parser, sb)
+					continue
+				}
+				break
+			}
 		case "return", "throw":
 			if statement_start != parser.i {return .UnexpectedTokenInStatement}
 			debug_print(parser, "statement.return")

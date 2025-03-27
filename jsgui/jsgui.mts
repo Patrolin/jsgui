@@ -1,4 +1,4 @@
-import { stringifyJs } from "./utils/stringUtils.mts";
+import { makePath, PathParts, stringifyJs } from "./utils/stringUtils.mts";
 
 // utils
 export const JSGUI_VERSION = "v0.18-dev";
@@ -110,17 +110,6 @@ export type SetState<T> = (newValue: T) => void;
 export type UseNodeState = {nodeDependOn?: any};
 export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 export type DefaultUseParamsReturn = {[key: string]: string};
-export type NavigateFunction = (url: string) => void; // TODO: split url into origin, pathname and query
-export type UseNavigate = {
-  /** add url to history and reload page */
-  pushRoute: NavigateFunction;
-  /** replace url in history and reload page */
-  replaceRoute: NavigateFunction;
-  /** add url to history */
-  pushHistory: NavigateFunction;
-  /** replace url in history */
-  replaceHistory: NavigateFunction;
-};
 export type UseWindowResize = { windowBottom: number, windowRight: number };
 // component
 export function _setDefaultChildKey(component: Component, child: Component) {
@@ -246,7 +235,10 @@ export class Component {
     return this._.root.routeParams as T;
   } */
   // TODO: useParams()?
-  // TODO: useLocation()?
+  useLocation(): PathParts {
+    _dispatchTargets.location.addComponent(this);
+    return {}; // TODO: useLocation()
+  }
   useLocationHash(): string {
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
@@ -257,14 +249,6 @@ export class Component {
   }
   useParams<T = DefaultUseParamsReturn>(): T {
     return this._.root.routeParams as T;
-  }
-  useNavigate(): UseNavigate {
-    return {
-      pushRoute: (url: string) => location.href = url, // add url to history and reload page
-      replaceRoute: (url: string) => location.replace(url), // replace url in history and reload page
-      pushHistory: (url: string) => history.pushState(null, "", url), // add url to history
-      replaceHistory: (url: string) => history.replaceState(null, "", url), // replace url in history
-    }
   }
   rerender() {
     const root_ = this._.root;
@@ -385,6 +369,7 @@ export const _dispatchTargets = {
     return mediaQueryList;
   }),
   localStorage: new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch)),
+  location: new DispatchTarget((_dispatch) => {}),
   locationHash: new DispatchTarget((dispatch) => {
     window.addEventListener("hashchange", () => {
       _scrollToLocationHash();
@@ -404,6 +389,7 @@ export const _dispatchTargets = {
   removeComponent(component: Component) {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
+    _dispatchTargets.location.removeComponent(component);
     _dispatchTargets.locationHash.removeComponent(component);
     _dispatchTargets.windowResize.removeComponent(component);
   },
@@ -411,6 +397,27 @@ export const _dispatchTargets = {
 export function _scrollToLocationHash() {
   const element = document.getElementById(location.hash.slice(1));
   if (element) element.scrollIntoView();
+}
+export type NavigateFunction = (parts: string | PathParts) => void;
+type NavigateOptions = {reload?: boolean, replaceHistory?: boolean};
+export function navigate(urlOrParts: string | PathParts, options: NavigateOptions = {}) {
+  const newPath = makePath(urlOrParts);
+  const {reload, replaceHistory} = options;
+  if (reload) {
+    if (replaceHistory) {
+      location.replace(newPath);
+    } else {
+      location.href = newPath;
+    }
+  } else {
+    if (replaceHistory) {
+      history.replaceState(null, "", newPath)
+      _dispatchTargets.location.dispatch();
+    } else {
+      history.pushState(null, "", newPath)
+      _dispatchTargets.location.dispatch();
+    }
+  }
 }
 
 // metadata
@@ -671,7 +678,6 @@ TODO: documentation
       }
     }
   useLocalStorage()
-  useNavigate()
 */
 // TODO: more input components (icon button, radio, checkbox/switch, select, date/date range input, file input)
 // TODO: badgeWrapper

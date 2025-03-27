@@ -1,5 +1,65 @@
-/* jsgui.mts */
-/* dateUtils.mts */
+function makeArray/*<T>*/(N/*: number*/, map/*: (v: undefined, i: number) => T*/)/*: T[]*/ {
+	const arr = Array(N);
+	for (let i = 0; i < arr.length; i++) {
+		arr[i] = map(undefined, i);
+	}
+	return arr;
+}
+/** Return stringified JSON with extra undefineds */
+function stringifyJs(v/*: any*/)/*: string*/ {
+  if (v === undefined) return "undefined";
+  return JSON.stringify(v); // TODO: also handle nested nulls
+}
+/** Return stringified JSON */
+function stringifyJson(v/*: any*/)/*: string*/ {
+  return JSON.stringify(v);
+}
+function parseJson(v/*: string*/)/*: any*/ {
+  return JSON.parse(v);
+}
+/** Return stringified JSON with object keys and arrays sorted */
+function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
+  const replacer = (_key/*: string*/, value/*: any*/) =>
+    value instanceof Object
+      ? value instanceof Array
+        ? [...value].sort()
+        : Object.keys(value)
+            .sort()
+            .reduce((sorted/*: Record<string, any>*/, key) => {
+              sorted[key] = value[key];
+              return sorted;
+            }, {})
+      : value;
+  return JSON.stringify(data, replacer);
+}
+/*export type PathParts = {
+  origin?: string;
+  pathname?: string;
+  query?: string | Record<string, string>;
+  hash?: string;
+}*/;
+/** Make path `${origin}${pathname}#{hash}?${queryString}` and normalize to no trailing `"/"` */
+function makePath(parts/*: string | PathParts*/)/*: string*/ {
+  if (typeof parts === "string") {return parts}
+  let origin = parts.origin ?? window.location.origin;
+  let pathname = parts.pathname ?? window.location.pathname;
+  let query = parts.query ?? window.location.search;
+  let hash = parts.hash ?? window.location.hash;
+  // build path
+  let pathLocation = (origin ?? "") + (pathname ?? "");
+  if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
+  pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
+  let queryString = '';
+  if (typeof query === "string") {
+    queryString = query;
+  } else if (Object.keys(query ?? {}).length) {
+    const queryObject = query /*as any*/;
+    queryString = `?${Object.entries(queryObject).map(([k, v]) => `${k}=${v}`).join("&")}`;
+  }
+  let hashString = hash ?? "";
+  if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
+  return pathLocation + queryString + hashString;
+}
 /*export type DateParts = {
   year?: number;
   month?: number;
@@ -8,7 +68,7 @@
   minutes?: number;
   seconds?: number;
   millis?: number;
-};*/
+}*/;
 function reparseDate(date/*: Date*/, country/*: string*/ = "GMT")/*: Required<DateParts>*/ {
   const localeString = date.toLocaleString("en-GB", {
     year: "numeric",
@@ -31,7 +91,7 @@ function reparseDate(date/*: Date*/, country/*: string*/ = "GMT")/*: Required<Da
     millis: +countryMillis,
   };
 }
-export class CountryDate {
+class CountryDate {
   _countryUTCDate/*: Date*/;
   country/*: string*/;
   constructor(_countryUTCDate/*: Date*/, country/*: string*/ = "GMT") {
@@ -71,7 +131,7 @@ export class CountryDate {
     date.setUTCMilliseconds(date.getUTCMilliseconds() + (offset.millis ?? 0));
     return new CountryDate(date, this.country);
   }
-  with(parts/*: DateParts*/, country/*: : string*/)/*: CountryDate*/ {
+  with(parts/*: DateParts*/, country/*?: string*/)/*: CountryDate*/ {
     const date = new Date(this._countryUTCDate);
     if (parts.year) date.setUTCFullYear(parts.year);
     if (parts.month) date.setUTCMonth(parts.month);
@@ -100,38 +160,8 @@ setTimeout(() => {
   console.log('ayaya.dateString', a.toLocaleString());
 })
 */
-/* stringUtils.mts */
-/** Return stringified JSON with extra undefineds */
-export function stringifyJs(v/*: any*/)/*: string*/ {
-  if (v === undefined) return "undefined";
-  return JSON.stringify(v); // TODO: also handle nested nulls
-}
-/** Return stringified JSON */
-export function stringifyJson(v/*: any*/)/*: string*/ {
-  return JSON.stringify(v);
-}
-export function parseJson(v/*: string*/)/*: any*/ {
-  return JSON.parse(v);
-}
-/** Return stringified JSON with object keys and arrays sorted */
-export function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
-  const replacer = (_key/*: string*/, value/*: any*/) =>
-    value instanceof Object
-      ? value instanceof Array
-        ? [...value].sort()
-        : Object.keys(value)
-            .sort()
-            .reduce((sorted/*: Record<string, any>*/, key) => {
-              sorted[key] = value[key];
-              return sorted;
-            }, {})
-      : value;
-  return JSON.stringify(data, replacer);
-}
-/* jsgui.mts */
-// utils
 export const JSGUI_VERSION = "v0.18-dev";
-export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
+function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
   } catch {
@@ -139,38 +169,38 @@ export function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   }
 }
 // TODO!: sortBy(), groupBy(), asArray()
-export function camelCaseToKebabCase(key/*: string*/) {
+function camelCaseToKebabCase(key/*: string*/) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
-export function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
   return value.startsWith(prefix) ? value.slice(prefix.length) : value;
 }
-export function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
   return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
 }
-export function addPx(value/*: string | number*/) {
-  return (value?.constructor?.name === "Number") ? `${value}px` : value/* as string*/;
+function addPx(value/*: string | number*/) {
+  return (value?.constructor?.name === "Number") ? `${value}px` : value /*as string*/;
 }
-export function lerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+function lerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
   return (1-value)*x + value*y;
 }
 /** clamp value between min and max (defaulting to min) */
-export function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
+function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
   return Math.max(min, Math.min(value, max));
 }
-export function rgbFromHexString(hexString/*: string*/)/*: string*/ {
+function rgbFromHexString(hexString/*: string*/)/*: string*/ {
   let hexString2 = removePrefix(hexString.trim(), '#');
   return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
 }
-/*export type Nullsy = undefined | null;*/
-/*export type StringMap<T = any> = Record<string, T>;*/
-/*export type JSONValue = string | number | any[] | StringMap | null;*/
-/*export type ParentNodeType = HTMLElement | SVGSVGElement;*/
-/*export type NodeType = ParentNodeType | Text;*/
-/*export type EventWithTarget<T = Event, E = HTMLInputElement> = T & {target: E};*/
-/*export type InputEventWithTarget = EventWithTarget<InputEvent>;*/
-/*export type ChangeEventWithTarget = EventWithTarget<Event>;*/
-/*export type _EventListener<T = Event> = ((event: T) => void);*/
+/*export type Nullsy = undefined | null*/;
+/*export type StringMap<T = any> = Record<string, T>*/;
+/*export type JSONValue = string | number | any[] | StringMap | null*/;
+/*export type ParentNodeType = HTMLElement | SVGSVGElement*/;
+/*export type NodeType = ParentNodeType | Text*/;
+/*export type EventWithTarget<T = Event, E = HTMLInputElement> = T & {target: E}*/;
+/*export type InputEventWithTarget = EventWithTarget<InputEvent>*/;
+/*export type ChangeEventWithTarget = EventWithTarget<Event>*/;
+/*export type _EventListener<T = Event> = ((event: T) => void)*/;
 /*export type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
   & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
   & Record<"focus" | "blur" | "focusin" | "focusout", _EventListener<FocusEvent>>
@@ -180,14 +210,14 @@ export function rgbFromHexString(hexString/*: string*/)/*: string*/ {
   & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
   & Record<"change", _EventListener<ChangeEventWithTarget>>
   & Record<"paste", _EventListener<ClipboardEvent>>
-  & Record<string, _EventListener>>;*/
-/*export type UndoPartial<T> = T extends Partial<infer R> ? R : T;*/
+  & Record<string, _EventListener>>*/;
+/*export type UndoPartial<T> = T extends Partial<infer R> ? R : T*/;
 /*export type Diff<T> = {
   key: string;
   oldValue: T;
   newValue: T;
-};*/
-export function getDiff/*<T>*/(oldValue/*: StringMap<T>*/, newValue/*: StringMap<T>*/)/*: Diff<T>[]*/ {
+}*/;
+function getDiff/*<T>*/(oldValue/*: StringMap<T>*/, newValue/*: StringMap<T>*/)/*: Diff<T>[]*/ {
   const diffMap/*: StringMap<Partial<Diff<T>>>*/ = {};
   for (let [k, v] of Object.entries(oldValue)) {
     let d = diffMap[k] ?? {key: k};
@@ -199,9 +229,9 @@ export function getDiff/*<T>*/(oldValue/*: StringMap<T>*/, newValue/*: StringMap
     d.newValue = v;
     diffMap[k] = d;
   }
-  return (Object.values(diffMap)/* as Diff<T>[]*/).filter(v => v.newValue !== v.oldValue);
+  return (Object.values(diffMap) /*as Diff<T>[]*/).filter(v => v.newValue !== v.oldValue);
 }
-export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*: Diff<string>[]*/ {
+function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*: Diff<string>[]*/ {
   const diffMap/*: StringMap<Partial<Diff<string>>>*/ = {};
   for (let k of oldValues) {
     let d = diffMap[k] ?? {key: k};
@@ -213,14 +243,14 @@ export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*
     d.newValue = k;
     diffMap[k] = d;
   }
-  return (Object.values(diffMap)/* as Diff<string>[]*/).filter(v => v.newValue !== v.oldValue);
+  return (Object.values(diffMap) /*as Diff<string>[]*/).filter(v => v.newValue !== v.oldValue);
 }
 
 // NOTE: tsc is stupid and removes comments before types
-/*export type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;*/
+/*export type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component*/;
 /*export type ComponentOptions = {
   name?: string;
-};*/
+}*/;
 /*export type BaseProps = {
   key?: string | number;
   attribute?: StringMap<string | number | boolean>;
@@ -228,30 +258,20 @@ export function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*
   className?: string | string[];
   style?: StringMap<string | number | undefined>;
   events?: EventsMap;
-};*/
-/*export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};*/
+}*/;
+/*export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]}*/;
 /*export type RenderReturn = void | {
   onMount?: () => void,
   onUnmount?: () => void,
-};*/
-/*export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;*/
-/*export type SetState<T> = (newValue: T) => void;*/
-/*export type UseNodeState = {nodeDependOn?: any};*/
-/*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;*/
-/*export type NavigateFunction = (url: string) => void;*/ // TODO: split url into origin, pathname and query
-/*export type UseNavigate = {
-  /** add url to history and reload page *//*
-  pushRoute: NavigateFunction;
-  /** replace url in history and reload page *//*
-  replaceRoute: NavigateFunction;
-  /** add url to history *//*
-  pushHistory: NavigateFunction;
-  /** replace url in history *//*
-  replaceHistory: NavigateFunction;
-};*/
-/*export type UseWindowResize = { windowBottom: number, windowRight: number };*/
+}*/;
+/*export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn*/;
+/*export type SetState<T> = (newValue: T) => void*/;
+/*export type UseNodeState = {nodeDependOn?: any}*/;
+/*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void*/;
+/*export type DefaultUseParamsReturn = {[key: string]: string}*/;
+/*export type UseWindowResize = { windowBottom: number, windowRight: number }*/;
 // component
-export function _setDefaultChildKey(component/*: Component*/, child/*: Component*/) {
+function _setDefaultChildKey(component/*: Component*/, child/*: Component*/) {
   const name = child.name;
   let key = child.baseProps.key;
   if (key == null) {
@@ -263,7 +283,7 @@ export function _setDefaultChildKey(component/*: Component*/, child/*: Component
   }
   child.key = key;
 }
-export class Component {
+class Component {
   // props
   name/*: string*/;
   args/*: any[]*/;
@@ -289,14 +309,14 @@ export class Component {
     this.onRender = onRender;
     this.options = options;
     // metadata
-    this._ = null/* as any*/;
+    this._ = null /*as any*/;
     this.key = "";
     // hooks
     this.node = null;
     this.indexedChildCount = 0;
     this.indexedTextCount = 0;
   }
-  useNode/*<T extends NodeType>*/(getNode/*: () => T*/, nodeDependOn/*: : any*/)/*: T*/ {
+  useNode/*<T extends NodeType>*/(getNode/*: () => T*/, nodeDependOn/*?: any*/)/*: T*/ {
     const [state] = this.useState/*<UseNodeState>*/({});
     let node = this.getNode();
     if (state.nodeDependOn !== nodeDependOn) {
@@ -305,7 +325,7 @@ export class Component {
     } else if (node == null) {
       node = getNode();
     }
-    return (this.node = node)/* as T*/;
+    return (this.node = node) /*as T*/;
   }
   getNode()/*: NodeType | null*/ {
     return this._.prevNode;
@@ -329,7 +349,7 @@ export class Component {
       setState(newValue);
       this.rerender();
     }
-    return [_.state/* as T*/, setStateAndRerender, setState];
+    return [_.state /*as T*/, setStateAndRerender, setState];
   }
   useValidate/*<K extends string>*/(getErrors/*: GetErrorsFunction<K>*/) {
     return () => {
@@ -355,7 +375,7 @@ export class Component {
   /** `return [value, setValueAndDispatch, setValue]` */
   useLocalStorage/*<T>*/(key/*: string*/, defaultValue/*: T*/)/*: [T, SetState<T>, SetState<T>]*/ {
     _dispatchTargets.localStorage.addComponent(this);
-    const value = (parseJsonOrNull(localStorage[key])/* as [T] | null*/)?.[0] ?? defaultValue;
+    const value = (parseJsonOrNull(localStorage[key]) /*as [T] | null*/)?.[0] ?? defaultValue;
     const setValue = (newValue/*: T*/) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
     }
@@ -374,7 +394,10 @@ export class Component {
     return this._.root.routeParams as T;
   } */
   // TODO: useParams()?
-  // TODO: useLocation()?
+  useLocation()/*: PathParts*/ {
+    _dispatchTargets.location.addComponent(this);
+    return {}; // TODO: useLocation()
+  }
   useLocationHash()/*: string*/ {
     _dispatchTargets.locationHash.addComponent(this);
     return window.location.hash;
@@ -383,13 +406,8 @@ export class Component {
     _dispatchTargets.windowResize.addComponent(this);
     return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
   }
-  useNavigate()/*: UseNavigate*/ {
-    return {
-      pushRoute: (url/*: string*/) => location.href = url, // add url to history and reload page
-      replaceRoute: (url/*: string*/) => location.replace(url), // replace url in history and reload page
-      pushHistory: (url/*: string*/) => history.pushState(null, "", url), // add url to history
-      replaceHistory: (url/*: string*/) => history.replaceState(null, "", url), // replace url in history
-    }
+  useParams/*<T = DefaultUseParamsReturn>*/()/*: T*/ {
+    return this._.root.routeParams /*as T*/;
   }
   rerender() {
     const root_ = this._.root;
@@ -417,15 +435,15 @@ export class Component {
     console.log({ ...(component ?? {}), _: {...(component?._ ?? {})} });
   }
 }
-export function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction<A>*/, options/*: ComponentOptions*/ = {})/*: ComponentFunction<A>*/ {
+function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction<A>*/, options/*: ComponentOptions*/ = {})/*: ComponentFunction<A>*/ {
   return (...argsOrProps/*: any[]*/) => {
     const argCount = (onRender+"").split("{")[0].split(",").length; // NOTE: allow multiple default arguments
     const args = new Array(argCount).fill(undefined);
     for (let i = 0; i < argsOrProps.length; i++) {
       args[i] = argsOrProps[i];
     }
-    const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {})/* as BaseProps & StringMap*/;
-    const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {}/* as EventsMap*/, ...props} = propsAndBaseProps;
+    const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {}) /*as BaseProps & StringMap*/;
+    const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} /*as EventsMap*/, ...props} = propsAndBaseProps;
     if (('key' in propsAndBaseProps) && ((key == null) || (key === ""))) {
       const name = options.name ?? onRender.name;
       console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
@@ -446,18 +464,18 @@ export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ 
   const e = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
     state.prevStr = str;
-    (e/* as Text*/).textContent = str;
+    (e /*as Text*/).textContent = str;
   }
 });
-export function _copyComponent(component/*: Component*/) {
+function _copyComponent(component/*: Component*/) {
   const newComponent = new Component(component.onRender, component.args, component.baseProps, component.props, component.options);
   newComponent._ = component._;
   return newComponent;
 }
 
-/*export type DispatchTargetAddListeners = (dispatch: () => void) => any;*/
+/*export type DispatchTargetAddListeners = (dispatch: () => void) => any*/;
 // dispatch
-export class DispatchTarget {
+class DispatchTarget {
   components/*: Component[]*/;
   state/*: any*/;
   constructor(addListeners/*: DispatchTargetAddListeners*/ = () => {}) {
@@ -477,7 +495,7 @@ export class DispatchTarget {
     }
   }
 }
-export class DispatchTargetMap {
+class DispatchTargetMap {
   data/*: StringMap<DispatchTarget>*/;
   addListeners/*: (key: string) => DispatchTargetAddListeners*/;
   constructor(addListeners/*: (key: string) => DispatchTargetAddListeners*/) {
@@ -502,7 +520,7 @@ export class DispatchTargetMap {
   map: StringMap<DispatchTarget>;
   key: string;
   addListeners: DispatchTargetAddListeners;
-};*/
+}*/;
 export const _dispatchTargets = {
   media: new DispatchTargetMap((key) => (dispatch) => {
     const mediaQueryList = window.matchMedia(key);
@@ -510,6 +528,7 @@ export const _dispatchTargets = {
     return mediaQueryList;
   }),
   localStorage: new DispatchTarget((dispatch) => window.addEventListener("storage", dispatch)),
+  location: new DispatchTarget((_dispatch) => {}),
   locationHash: new DispatchTarget((dispatch) => {
     window.addEventListener("hashchange", () => {
       _scrollToLocationHash();
@@ -529,24 +548,46 @@ export const _dispatchTargets = {
   removeComponent(component/*: Component*/) {
     _dispatchTargets.media.removeComponent(component);
     _dispatchTargets.localStorage.removeComponent(component);
+    _dispatchTargets.location.removeComponent(component);
     _dispatchTargets.locationHash.removeComponent(component);
     _dispatchTargets.windowResize.removeComponent(component);
   },
 }
-export function _scrollToLocationHash() {
+function _scrollToLocationHash() {
   const element = document.getElementById(location.hash.slice(1));
   if (element) element.scrollIntoView();
 }
+/*export type NavigateFunction = (parts: string | PathParts) => void*/;
+/*type NavigateOptions = {reload?: boolean, replaceHistory?: boolean}*/;
+function navigate(urlOrParts/*: string | PathParts*/, options/*: NavigateOptions*/ = {}) {
+  const newPath = makePath(urlOrParts);
+  const {reload, replaceHistory} = options;
+  if (reload) {
+    if (replaceHistory) {
+      location.replace(newPath);
+    } else {
+      location.href = newPath;
+    }
+  } else {
+    if (replaceHistory) {
+      history.replaceState(null, "", newPath)
+      _dispatchTargets.location.dispatch();
+    } else {
+      history.pushState(null, "", newPath)
+      _dispatchTargets.location.dispatch();
+    }
+  }
+}
 
 // metadata
-export class ComponentMetadata {
+class ComponentMetadata {
   // state
   stateIsInitialized/*: boolean*/ = false;
   state/*: StringMap*/ = {};
   prevState/*: any | null*/ = null;
   prevNode/*: NodeType | null*/ = null;
   prevBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS;
-  prevEvents/*: EventsMap*/ = {}/* as EventsMap*/;
+  prevEvents/*: EventsMap*/ = {} /*as EventsMap*/;
   gcFlag/*: boolean*/ = false;
   onUnmount/*?: () => void*/;
   // navigation
@@ -559,10 +600,10 @@ export class ComponentMetadata {
   prevIndexedChildCount/*: number | null*/ = null;
   constructor(parent/*: ComponentMetadata | RootComponentMetadata | null*/) {
     this.parent = parent;
-    this.root = parent?.root ?? null/* as any*/;
+    this.root = parent?.root ?? null /*as any*/;
   }
 }
-export class RootComponentMetadata extends ComponentMetadata {
+class RootComponentMetadata extends ComponentMetadata {
   component/*: Component*/;
   parentNode/*: ParentNodeType*/;
   routeParams/*: Record<string, string>*/;
@@ -579,7 +620,7 @@ export class RootComponentMetadata extends ComponentMetadata {
 // render
 export let SCROLLBAR_WIDTH = 0;
 export let THIN_SCROLLBAR_WIDTH = 0;
-export function _computeScrollbarWidth() {
+function _computeScrollbarWidth() {
   let e = document.createElement("div");
   e.style.cssText = "overflow:scroll; visibility:hidden; position:absolute;";
   document.body.append(e);
@@ -590,8 +631,8 @@ export function _computeScrollbarWidth() {
   document.body.style.setProperty("--scrollbarWidth", addPx(SCROLLBAR_WIDTH));
   document.body.style.setProperty("--thinScrollbarWidth", addPx(THIN_SCROLLBAR_WIDTH));
 }
-export function renderRoot(rootComponent/*: Component*/, parentNode/*: ParentNodeType | null*/ = null)/*: RootComponentMetadata*/ {
-  const root_ = new RootComponentMetadata(rootComponent, parentNode/* as any*/);
+function renderRoot(rootComponent/*: Component*/, parentNode/*: ParentNodeType | null*/ = null)/*: RootComponentMetadata*/ {
+  const root_ = new RootComponentMetadata(rootComponent, parentNode /*as any*/);
   rootComponent._ = root_;
   const render = () => {
     root_.parentNode = root_.parentNode ?? document.body;
@@ -608,7 +649,7 @@ export function renderRoot(rootComponent/*: Component*/, parentNode/*: ParentNod
   }
   return root_;
 }
-/*export type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]};*/
+/*export type InheritedBaseProps = UndoPartial<Omit<BaseProps, "key" | "events">> & {className: string[]}*/;
 export const _START_BASE_PROPS/*: InheritedBaseProps*/ = {
   attribute: {},
   className: [],
@@ -616,7 +657,7 @@ export const _START_BASE_PROPS/*: InheritedBaseProps*/ = {
   style: {},
 };
 // TODO: make this non-recursive for cleaner console errors
-export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/, beforeNodeStack/*: (NodeType | null)[]*/ = [], _inheritedBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS, isTopNode = true) {
+function _render(component/*: Component*/, parentNode/*: ParentNodeType*/, beforeNodeStack/*: (NodeType | null)[]*/ = [], _inheritedBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS, isTopNode = true) {
   // render elements
   const {_, name, args, baseProps, props, onRender} = component;
   const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
@@ -642,14 +683,14 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
     if (node != prevNode) {
       if (prevNode) prevNode.remove();
       _.prevBaseProps = _START_BASE_PROPS;
-      _.prevEvents = {}/* as EventsMap*/;
+      _.prevEvents = {} /*as EventsMap*/;
     }
     if (!(node instanceof Text)) {
       // style
       const styleDiff = getDiff(_.prevBaseProps.style, inheritedBaseProps.style);
       for (let {key, newValue} of styleDiff) {
         if (newValue != null) {
-          node.style[key/* as any*/] = addPx(newValue);
+          node.style[key /*as any*/] = addPx(newValue);
         } else {
           node.style.removeProperty(key);
         }
@@ -689,10 +730,10 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
       // events
       const eventsDiff = getDiff(_.prevEvents, baseProps.events ?? {});
       for (let {key, oldValue, newValue} of eventsDiff) {
-        node.removeEventListener(key, oldValue/* as _EventListener*/);
+        node.removeEventListener(key, oldValue /*as _EventListener*/);
         if (newValue) {
           const passive = key === "scroll" || key === "wheel";
-          node.addEventListener(key, newValue/* as _EventListener*/, {passive});
+          node.addEventListener(key, newValue /*as _EventListener, {passive}*/);
         }
       }
       _.prevBaseProps = inheritedBaseProps;
@@ -704,8 +745,8 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
   } else {
     if (prevNode) {
       prevNode.remove(); // NOTE: removing components is handled by _unloadUnusedComponents()
-      _.prevBaseProps = {}/* as InheritedBaseProps*/;
-      _.prevEvents = {}/* as EventsMap*/;
+      _.prevBaseProps = {} /*as InheritedBaseProps*/;
+      _.prevEvents = {} /*as EventsMap*/;
     }
     if (name) inheritedBaseProps.className.push(camelCaseToKebabCase(name)); // NOTE: fragment has name: ''
   }
@@ -743,7 +784,7 @@ export function _render(component/*: Component*/, parentNode/*: ParentNodeType*/
 }
 
 // rerender
-export function _unloadUnusedComponents(prevComponent/*: Component*/, rootGcFlag/*: boolean*/) {
+function _unloadUnusedComponents(prevComponent/*: Component*/, rootGcFlag/*: boolean*/) {
   for (let child of prevComponent.children) {
     const {gcFlag, parent, onUnmount, prevNode} = child._;
     if (gcFlag !== rootGcFlag) {
@@ -755,16 +796,16 @@ export function _unloadUnusedComponents(prevComponent/*: Component*/, rootGcFlag
     _unloadUnusedComponents(child, rootGcFlag);
   }
 }
-export function moveRoot(root_/*: RootComponentMetadata*/, parentNode/*: ParentNodeType*/) {
+function moveRoot(root_/*: RootComponentMetadata*/, parentNode/*: ParentNodeType*/) {
   root_.parentNode = parentNode;
   if (root_.prevNode) parentNode.append(root_.prevNode);
 }
-export function unloadRoot(root_/*: RootComponentMetadata*/) {
+function unloadRoot(root_/*: RootComponentMetadata*/) {
   _unloadUnusedComponents(root_.component, !root_.gcFlag);
 }
 
 // sizes
-/*export type Size = "small" | "normal" | "big" | "bigger";*/
+/*export type Size = "small" | "normal" | "big" | "bigger"*/;
 export const SIZES/*: Record<Size, Size>*/ = {
   small: "small",
   normal: "normal",
@@ -772,7 +813,7 @@ export const SIZES/*: Record<Size, Size>*/ = {
   bigger: "bigger",
 };
 // default colors
-/*export type BaseColor = "gray" | "secondary" | "red";*/
+/*export type BaseColor = "gray" | "secondary" | "red"*/;
 export const BASE_COLORS/*: Record<BaseColor, string>*/ = {
   gray: "0, 0, 0",
   secondary: "20, 80, 160", // TODO: find a better secondary color
@@ -796,15 +837,12 @@ TODO: documentation
       }
     }
   useLocalStorage()
-  useNavigate()
 */
 // TODO: more input components (icon button, radio, checkbox/switch, select, date/date range input, file input)
 // TODO: badgeWrapper
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-/* basics.mts */
-// basic components
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
@@ -870,7 +908,7 @@ export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
 });
 /*export type TextAreaProps = BaseProps & {
   onPaste?: (event: ClipboardEvent, clipboardData: DataTransfer) => string;
-};*/
+}*/;
 export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/ = {}) {
   const {onPaste = (_event, clipboardData) => {
     return clipboardData.getData("Text");
@@ -879,8 +917,8 @@ export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/
   node.contentEditable = "true";
   this.baseProps.events.paste = (event) => {
     event.preventDefault();
-    const replaceString = onPaste(event, event.clipboardData/* as DataTransfer*/)
-    const selection = window.getSelection()/* as Selection*/;
+    const replaceString = onPaste(event, event.clipboardData /*as DataTransfer*/)
+    const selection = window.getSelection() /*as Selection*/;
     const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
     const selectionStart = Math.min(selectionA, selectionB);
     const selectionEnd = Math.max(selectionA, selectionB);
@@ -899,7 +937,7 @@ export const svg = makeComponent(function svg(svgText/*: string*/, _props/*: Bas
   this.useNode(() => {
     const tmp = document.createElement("span");
     tmp.innerHTML = svgText;
-    return (tmp.children[0] ?? document.createElement("svg"))/* as NodeType*/;
+    return (tmp.children[0] ?? document.createElement("svg")) /*as NodeType*/;
   });
 });
 export const audio = makeComponent(function audio(src/*: string*/, _props/*: BaseProps*/ = {}) {
@@ -939,9 +977,9 @@ export const legend = makeComponent(function legend(text/*: string*/, _props/*: 
   id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
-};*/
+}*/;
 export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, download, navigate, id, selfLink, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, download, navigate: navigateInner, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
@@ -958,8 +996,8 @@ export const span = makeComponent(function _span(text/*: string | number | null 
   if (color) style.color = `var(--${color})`;
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
-  if (isLink) (e/* as HTMLAnchorElement*/).href = href;
-  navigate = (navigate ?? this.useNavigate().pushRoute);
+  if (isLink) (e /*as HTMLAnchorElement*/).href = href;
+  navigateInner = (navigateInner ?? navigate);
   if (onClick || href) {
     if (!isLink) {
       attribute.tabindex = "-1";
@@ -969,491 +1007,63 @@ export const span = makeComponent(function _span(text/*: string | number | null 
       if (onClick) onClick(event);
       if (href && !download) {
         event.preventDefault();
-        navigate(href);
+        navigateInner(href);
       }
     });
   }
   this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });
 // https://fonts.google.com/icons
-/*export type IconProps = SpanProps;*/
+/*export type IconProps = SpanProps*/;
 export const icon = makeComponent(function icon(iconName/*: string*/, props/*: IconProps*/ = {}) {
   let {size, style = {}, ...extraProps} = props;
   this.baseProps.attribute.dataIcon = iconName;
   this.append(span("", {iconName, size, style, ...extraProps}));
 });
-/* displays.mts */
-// spinners
-export const loadingSpinner = makeComponent(function loadingSpinner(props/*: IconProps*/ = {}) {
-  this.append(icon("progress_activity", props));
-});
-/*export type ProgressProps = {
-  color?: string;
-  fraction?: number;
-} & BaseProps;*/
-export const progress = makeComponent(function progress(props/*: ProgressProps*/ = {}) {
-  const {color, fraction} = props;
-  if (color) this.baseProps.style.color = `var(--${color})`;
-  const wrapper = this.append(div({}));
-  wrapper.append(div(fraction == null
-    ? {className: 'progress-bar progress-bar-indeterminate'}
-    : {className: 'progress-bar', style: {width: `${fraction * 100}%`}}
-  ));
-});
-// tabs
-/*export type TabsOptionComponentProps = {key: string, className: string};*/
-/*export type TabsOption = {
-  id?: string | number;
-  label: string;
-  href?: string;
-};*/
-/*export type TabsProps = {
-  options: TabsOption[];
-  selectedId: string | number;
-  setSelectedId: (newId: string | number) => void;
-};*/
-export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
-  const {options, setSelectedId} = props;
-  let {selectedId} = props;
-  if (selectedId == null) selectedId = options[0].id ?? 0;
-  const tabsHeader = this.append(div({className: "tabs-header"}));
-  options.forEach((option, i) => {
-    const optionId = option.id ?? i;
-    tabsHeader.append(span(option.label, {
-      key: optionId,
-      href: option.href,
-      className: "tabs-option",
-      attribute: {dataSelected: optionId === selectedId, title: option.label},
-      events: {click: () => setSelectedId(optionId)},
-    }));
-  });
-});
-/* popup.mts */
-// dialog
-/*export type DialogProps = BaseProps & ({
-  open: boolean;
-  onClose?: () => void;
-  closeOnClickBackdrop?: boolean;
-});*/
-export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
-  const {open, onClose, closeOnClickBackdrop} = props;
-  const [state] = this.useState({ prevOpen: false });
-  const e = this.useNode(() => document.createElement("dialog"));
-  e.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
+function generateFontSizeCssVars(names/*: string[]*/ = Object.values(SIZES)) {
+  /*type SizeDef = {
+    fontSize: number;
+    iconSize: number;
+    size: number;
+  }*/;
+  const getSizeDef = (i/*: number*/) => ({
+    size: 16 + i*8,
+    iconSize: 14 + i*4,
+    fontSize: 12 + i*4,
+  }) /*as SizeDef*/;
+  let acc = "  /* generated by generateFontSizeCssVars */";
+  for (let i = 0; i < names.length; i++) {
+    const name = names[i];
+    const {size, fontSize, iconSize} = getSizeDef(i);
+    acc += `\n  --size-${name}: ${size}px;`;
+    acc += `\n  --iconSize-${name}: ${iconSize}px;`;
+    acc += `\n  --fontSize-${name}: ${fontSize}px;`;
   }
-  return {
-    onMount: () => {
-      if (open !== state.prevOpen) {
-        if (open) {
-          e.showModal();
-        } else {
-          e.close();
-        }
-        state.prevOpen = open;
-      }
-    },
-  };
-});
-
-// popup
-/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse";*/
-export function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
-  mouse: {x: number, y: number},
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  const {mouse, popupRect, wrapperRect} = props;
-  switch (direction) {
-    case "up":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top - popupRect.height
-      ];
-    case "right":
-      return [
-        wrapperRect.left + wrapperRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "down":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top + wrapperRect.height
-      ]
-    case "left":
-      return [
-        wrapperRect.left - popupRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "mouse":
-      return [
-        mouse.x,
-        mouse.y - popupRect.height
-      ];
-  }
+  return acc;
 }
-export function _getPopupLeftTopWithFlipAndClamp(props/*: {
-  direction: PopupDirection,
-  mouse: {x: number, y: number},
-  windowRight: number;
-  windowBottom: number;
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  let {direction, windowBottom, windowRight, popupRect} = props;
-  // flip
-  let [left, top] = _getPopupLeftTop(direction, props);
-  switch (direction) {
-    case "up":
-      if (top < 0) {
-        direction = "down";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "down": {
-      const bottom = top + popupRect.height;
-      if (bottom >= windowBottom) {
-        direction = "up";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-    case "left":
-      if (left < 0) {
-        direction = "right";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "right": {
-      const right = left + popupRect.width;
-      if (right >= windowRight) {
-        direction = "left";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
+function generateColorCssVars(colors/*: StringMap<string>*/ = BASE_COLORS, n/*: number*/ = 7) {
+  let acc = "  /* generated by generateColorCssVars */";
+  for (let [colorName, color] of Object.entries(colors)) {
+    for (let i = 0; i < n; i++) {
+      const alpha = 1 - (i / n);
+      const shadeSuffix = `-${i}`;
+      acc += `\n  --${colorName}${shadeSuffix}: rgba(${color}, ${alpha.toFixed(3)});`
     }
   }
-  // clamp
-  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
-  left = clamp(left, 0, maxLeft);
-  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
-  top = clamp(top, 0, maxTop);
-  return [left, top]/* as [number, number]*/;
+  return acc;
 }
-/*export type PopupWrapperProps = {
-  content: Component;
-  direction?: PopupDirection;
-  // TODO: arrow?: boolean;
-  /** NOTE: open on hover if undefined *//*
-  open?: boolean;
-  interactable?: boolean;
-};*/
-export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
-  const {content, direction: _direction = "up", open, interactable = false} = props;
-  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null/* as EventListener | null*/});
-  const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
-  const movePopup = () => {
-    if (!state.open) return;
-    const popupNode = popup._.prevNode/* as HTMLDivElement*/;
-    const popupContentWrapperNode = popupContentWrapper._.prevNode/* as HTMLDivElement*/;
-    const wrapperRect = wrapper.getBoundingClientRect();
-    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
-    popupNode.style.top = "0px";
-    const popupRect = popupContentWrapperNode.getBoundingClientRect();
-    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
-      direction: _direction,
-      mouse: state.mouse,
-      popupRect,
-      windowBottom,
-      windowRight,
-      wrapperRect
-    });
-    popupNode.style.left = addPx(left);
-    popupNode.style.top = addPx(top);
-  }
-  const openPopup = () => {
-    state.open = true;
-    (popup._.prevNode/* as HTMLDivElement | null*/)?.showPopover();
-    movePopup();
-  }
-  const closePopup = () => {
-    state.open = false;
-    (popup._.prevNode/* as HTMLDivElement | null*/)?.hidePopover();
-  };
-  if (open == null) {
-    wrapper.onmouseenter = openPopup;
-    wrapper.onmouseleave = closePopup;
-  }
-  if (_direction === "mouse") {
-    wrapper.onmousemove = (event) => {
-      state.mouse = {x: event.clientX, y: event.clientY};
-      movePopup();
-    }
-  }
-  const popup = this.append(div({
-    className: "popup",
-    attribute: {popover: "manual", dataInteractable: interactable},
-  }));
-  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
-  popupContentWrapper.append(content);
-  return {
-    onMount: () => {
-      for (let acc = (this._.prevNode/* as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-        acc.addEventListener("scroll", movePopup, {passive: true});
-      }
-      state.prevOnScroll = movePopup;
-      if (open == null) return;
-      if (open != state.open) {
-        if (open) {
-          openPopup();
-        } else {
-          closePopup();
-        }
-      }
-    },
-    onUnmount: () => {
-      for (let acc = (this._.prevNode/* as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-      }
-    },
-  };
-});
-/* router.mts */
-/*export type Route = {
-  path: string;
-  defaultPath?: string;
-  component: (props?: BaseProps) => Component;
-  roles?: string[];
-  wrapper?: boolean;
-  showInNavigation?: boolean;
-  label?: string;
-  group?: string;
-};*/
-/*export type FallbackRoute = Omit<Route, "path">;*/
-/*export type RouterProps = {
-  routes: Route[];
-  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
-  contentWrapperComponent?: ComponentFunction<any>,
-  currentRoles?: string[];
-  isLoggedIn?: boolean;
-  notLoggedInRoute?: FallbackRoute;
-  notFoundRoute?: FallbackRoute;
-  unauthorizedRoute?: FallbackRoute;
-};*/
-/*export type PageWrapperProps = {
-  routes: Route[];
-  currentRoute: Route;
-  contentWrapperComponent: ComponentFunction<any>,
-};*/
-// TODO: colon params
-// TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
-export const router = makeComponent(function router(props/*: RouterProps*/) {
-  const {
-    routes,
-    pageWrapperComponent = () => fragment(),
-    contentWrapperComponent = () => div({ className: "page-content" }),
-    currentRoles,
-    isLoggedIn,
-    notLoggedInRoute = { component: fragment },
-    notFoundRoute = { component: () => span("404 Not found") },
-    unauthorizedRoute = { component: fragment },
-  } = props;
-  let currentPath = location.pathname;
-  if (currentPath.endsWith("/index.html")) currentPath = currentPath.slice(0, -10);
-  const currentPathWithHash = `${currentPath}${location.hash}`
-  let currentRoute/*: Route | null*/ = null; // TODO: save params in rootComponent?
-  let currentRouteParams/*: Record<string, string>*/ = {};
-  for (let route of routes) {
-    const regex = new RegExp(`^${
-      route.path.replace(/:([^/]+)/g, (_match, g1) => `(?<${g1}>[^/]*)`)
-    }$`);
-    const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
-    if (match != null) {
-      currentRouteParams = match.groups ?? {};
-      const roles = route.roles ?? [];
-      const needSomeRole = (roles.length > 0);
-      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
-      if (!needSomeRole || haveSomeRole) {
-        currentRoute = route;
-      } else {
-        currentRoute = {
-          path: ".*",
-          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
-        };
-      }
-      break;
-    }
-  }
-  if (!currentRoute) {
-    console.warn(`Route '${currentPath}' not found.`);
-    currentRoute = { path: ".*", ...notFoundRoute};
-  }
-  this._.root.routeParams = currentRouteParams;
-  if (currentRoute.wrapper ?? true) {
-    this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
-  } else {
-    const contentWrapper = this.append(contentWrapperComponent());
-    contentWrapper.append(currentRoute.component());
-  }
-});
-/* table.mts */
-/*export type TableColumn = {
-  label: string;
-  render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
-  minWidth?: string | number;
-  maxWidth?: string | number;
-  flex?: string | number;
-};*/
-/*export type TableProps = {
-  label?: string;
-  columns: TableColumn[];
-  rows: any[];
-  isLoading?: boolean;
-  minHeight?: number;
-  useMaxHeight?: boolean;
-} & BaseProps;*/
-export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
-  // TODO: actions, filters, search, paging, selection
-  // TODO: make gray fully opaque?
-  const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
-  const tableWrapper = this.append(div({
-    attribute: {useMaxHeight, isLoading},
-    style: {minHeight},
-  }));
-  const makeRow = (className/*: string*/, key/*: string*/) => div({className, key});
-  const makeCell = (column/*: TableColumn*/) => div({
-    className: "table-cell",
-    style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
-  });
-  if (label) {
-    tableWrapper.append(span(label, {className: "table-label"}));
-  }
-  if (isLoading) {
-    tableWrapper.append(loadingSpinner());
-  } else {
-    const headerWrapper = tableWrapper.append(makeRow("table-row table-header", "header"));
-    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
-      const column = columns[columnIndex];
-      const cellWrapper = headerWrapper.append(makeCell(column));
-      cellWrapper.append(span(column.label));
-    }
-    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
-      let row = rows[rowIndex];
-      const rowWrapper = tableWrapper.append(makeRow("table-row table-body", `row-${rowIndex}`));
-      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
-        let column = columns[columnIndex];
-        const cellWrapper = rowWrapper.append(makeCell(column));
-        cellWrapper.append(column.render({row, rowIndex, column, columnIndex}));
-      }
-    }
-  }
-});
-/* webgpu.mts */
-/*type GPUType = {
-  requestAdapter(): Promise<AdapterType>;
-  getPreferredCanvasFormat(): any;
-};*/
-/*type AdapterType = {
-  requestDevice(): Promise<DeviceType>;
-};*/
-/*type DeviceType = {
-  createShaderModule(options: {code: string}): ShaderModuleType;
-};*/
-/*type ShaderModuleType = {};*/
-/*declare global {
-  interface Window {
-    GPUBufferUsage: {
-      COPY_DST: number;
-      COPY_SRC: number;
-      INDEX: number;
-      INDIRECT: number;
-      MAP_READ: number;
-      MAP_WRITE: number;
-      QUERY_RESOLVE: number;
-      STORAGE: number;
-      UNIFORM: number;
-      VERTEX: number;
-    }
-  }
-  interface Navigator {
-    gpu: GPUType | undefined;
-  }
-}*/
-
-/*type ContextType = any;*/
-/*type WebgpuRenderProps = {
-  context: ContextType;
-  device: any;
-  shaderModule: any;
-};*/
-/*type WebgpuProps = {
-  width: number;
-  height: number;
-  shaderCode: string;
-  render: (renderProps: WebgpuRenderProps) => void
-} & BaseProps;*/
-export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
-  const {width, height, shaderCode, render} = props;
-  const [state] = this.useState({
-    _isDeviceInitialized: false,
-    context: null/* as ContextType | null*/,
-    device: null/* as DeviceType | null*/,
-    shaderModule: null/* as any*/,
-  });
-  const node = this.useNode(() => document.createElement("canvas"));
-  node.width = width;
-  node.height = height;
-  this.baseProps.style.width = width;
-  this.baseProps.style.height = height;
-  // WebGPU
-  const renderIfNeeded = () => {
-    if (!state.context && state.device) {
-      state.context = node.getContext("webgpu");
-      (state.context/* as any*/).configure({
-        device: state.device,
-        format: (navigator/* as any*/).gpu?.getPreferredCanvasFormat(),
-        alphaMode: 'premultiplied',
-      });
-    }
-    if (state.context && state.device && state.shaderModule) render({context: state.context, device: state.device, shaderModule: state.shaderModule});
-  };
-  if (!state._isDeviceInitialized) {
-    state._isDeviceInitialized = true;
-    const gpu = (navigator/* as any*/).gpu;
-    if (!gpu) {
-      console.error("WebGPU is not supported in this browser.")
-      return;
-    }
-    gpu.requestAdapter().then((adapter/*: any*/) => {
-      if (!adapter) {
-        console.error("Couldn't request WebGPU adapter.");
-        return;
-      }
-      adapter.requestDevice().then((device/*: any*/) => {
-        state.device = device;
-        // TODO: create/delete shaders dynamically (device.destroy()?)?
-        state.shaderModule = device.createShaderModule({code: shaderCode});
-        renderIfNeeded();
-      });
-    });
-  }
-  return {
-    onMount: () => {
-      renderIfNeeded();
-    }
-  }
-});
-/* inputs.mts */
+setTimeout(() => {
+  //console.log(generateFontSizeCssVars());
+  //console.log(generateColorCssVars());
+})
 /*export type ButtonProps = {
   size?: Size;
   color?: BaseColor;
   onClick?: () => void;
   disabled?: boolean;
-}*/
+}
 // inputs
-export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
+*/export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
   const {size, color, onClick, disabled} = props;
   const e = this.useNode(() => document.createElement("button"));
   if (text) this.append(span(text));
@@ -1480,7 +1090,7 @@ export const coloredButton = makeComponent(function coloredButton(text/*: string
   onChange?: (event: ChangeEventWithTarget) => void;
   allowDisplayString?: (value: string) => boolean;
   allowString?: (value: string) => string | undefined;
-} & BaseProps;*/
+} & BaseProps*/;
 export const controlledInput = makeComponent(function controlledInput(props/*: InputProps*/) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onRawInput, onInput, onChange,
     allowDisplayString = () => true,
@@ -1493,11 +1103,11 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   if (placeholder) e.placeholder = placeholder;
   if (autoFocus) e.autofocus = true;
   if (value != null) e.value = String(value);
-  e.onfocus = onFocus/* as _EventListener*/;
-  e.onblur = onBlur/* as _EventListener*/;
-  e.onkeydown = onKeyDown/* as _EventListener*/;
+  e.onfocus = onFocus /*as _EventListener*/;
+  e.onblur = onBlur /*as _EventListener*/;
+  e.onkeydown = onKeyDown /*as _EventListener*/;
   e.oninput = (_event) => {
-    const event = _event/* as InputEventWithTarget*/;
+    const event = _event /*as InputEventWithTarget*/;
     if (event.data != null && !allowDisplayString(e.value)) {
       event.preventDefault();
       event.stopPropagation();
@@ -1510,14 +1120,14 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
     if (allowedString === e.value && onInput) onInput(event);
   }
   e.onchange = (_event) => { // NOTE: called only on blur
-    const event = _event/* as ChangeEventWithTarget*/;
+    const event = _event /*as ChangeEventWithTarget*/;
     const allowedString = allowString(e.value) ?? state.prevAllowedString;
     state.prevAllowedString = allowedString;
     if (e.value !== allowedString) {
       e.value = allowedString;
       const target = event.target;
-      if (onRawInput) onRawInput({target}/* as InputEventWithTarget*/);
-      if (onInput) onInput({target}/* as InputEventWithTarget*/);
+      if (onRawInput) onRawInput({target} /*as InputEventWithTarget*/);
+      if (onInput) onInput({target} /*as InputEventWithTarget*/);
     }
     if (onChange) onChange(event);
   };
@@ -1527,19 +1137,19 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   leftComponent?: Component;
   inputComponent: Component;
   rightComponent?: Component;
-} & BaseProps;*/
+} & BaseProps*/;
 export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
   fieldset.onmousedown = (_event/*: any*/) => {
-    const event = _event/* as MouseEvent*/;
+    const event = _event /*as MouseEvent*/;
     if (event.target !== inputComponent._.prevNode) {
       event.preventDefault();
     }
   }
   fieldset.onclick = (_event/*: any*/) => {
-    const event = _event/* as MouseEvent*/;
-    const prevNode = inputComponent._.prevNode/* as ParentNodeType*/;
+    const event = _event /*as MouseEvent*/;
+    const prevNode = inputComponent._.prevNode /*as ParentNodeType*/;
     if (prevNode && (event.target !== prevNode)) {
       prevNode.focus();
     }
@@ -1555,7 +1165,7 @@ export const errorMessage = makeComponent(function errorMessage(error/*: string*
 /*export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
   value: string | null | undefined;
-};*/
+}*/;
 export const textInput = makeComponent(function textInput(props/*: TextInputProps*/) {
   const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
@@ -1569,7 +1179,7 @@ export const textInput = makeComponent(function textInput(props/*: TextInputProp
 /*export type NumberArrowProps = {
   onClickUp?: (event: MouseEvent) => void;
   onClickDown?: (event: MouseEvent) => void;
-} & BaseProps;*/
+} & BaseProps*/;
 export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
   const { onClickUp, onClickDown } = props;
   this.useNode(() => document.createElement("div"));
@@ -1586,7 +1196,7 @@ export const numberArrows = makeComponent(function numberArrows(props/*: NumberA
   onRawInput?: ((event: InputEventWithTarget) => void);
   onInput?: ((event: InputEventWithTarget) => void);
   onChange?: ((event: ChangeEventWithTarget) => void)
-};*/
+}*/;
 export const numberInput = makeComponent(function numberInput(props/*: NumberInputProps*/) {
   const {
     label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
@@ -1605,11 +1215,11 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   const incrementValue = (by/*: number*/) => {
     const number = stepAndClamp(+(value ?? 0) + by);
     const newValue = String(number);
-    const target = inputComponent._.prevNode/* as HTMLInputElement*/;
+    const target = inputComponent._.prevNode /*as HTMLInputElement*/;
     target.value = newValue;
-    if (onRawInput) onRawInput({target}/* as unknown as InputEventWithTarget*/);
-    if (onInput) onInput({target}/* as unknown as InputEventWithTarget*/);
-    if (onChange) onChange({target}/* as ChangeEventWithTarget*/);
+    if (onRawInput) onRawInput({target} /*as unknown as InputEventWithTarget*/);
+    if (onInput) onInput({target} /*as unknown as InputEventWithTarget*/);
+    if (onChange) onChange({target} /*as ChangeEventWithTarget*/);
   };
   const inputComponent = controlledInput({
     value,
@@ -1664,44 +1274,475 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   }));
   if (error) this.append(errorMessage(error));
 });
-/* generateFontVars.mts */
-export function generateFontSizeCssVars(names/*: string[]*/ = Object.values(SIZES)) {
-  /*type SizeDef = {
-    fontSize: number;
-    iconSize: number;
-    size: number;
-  };*/
-  const getSizeDef = (i/*: number*/) => ({
-    size: 16 + i*8,
-    iconSize: 14 + i*4,
-    fontSize: 12 + i*4,
-  })/* as SizeDef*/;
-  let acc = "  /* generated by generateFontSizeCssVars */";
-  for (let i = 0; i < names.length; i++) {
-    const name = names[i];
-    const {size, fontSize, iconSize} = getSizeDef(i);
-    acc += `\n  --size-${name}: ${size}px;`;
-    acc += `\n  --iconSize-${name}: ${iconSize}px;`;
-    acc += `\n  --fontSize-${name}: ${fontSize}px;`;
-  }
-  return acc;
-}
-export function generateColorCssVars(colors/*: StringMap<string>*/ = BASE_COLORS, n/*: number*/ = 7) {
-  let acc = "  /* generated by generateColorCssVars */";
-  for (let [colorName, color] of Object.entries(colors)) {
-    for (let i = 0; i < n; i++) {
-      const alpha = 1 - (i / n);
-      const shadeSuffix = `-${i}`;
-      acc += `\n  --${colorName}${shadeSuffix}: rgba(${color}, ${alpha.toFixed(3)});`
+/*type GPUType = {
+  requestAdapter(): Promise<AdapterType>;
+  getPreferredCanvasFormat(): any;
+}*/;
+/*type AdapterType = {
+  requestDevice(): Promise<DeviceType>;
+}*/;
+/*type DeviceType = {
+  createShaderModule(options: {code: string}): ShaderModuleType;
+}*/;
+/*type ShaderModuleType = {}*/;
+/*declare global {
+  interface Window {
+    GPUBufferUsage: {
+      COPY_DST: number;
+      COPY_SRC: number;
+      INDEX: number;
+      INDIRECT: number;
+      MAP_READ: number;
+      MAP_WRITE: number;
+      QUERY_RESOLVE: number;
+      STORAGE: number;
+      UNIFORM: number;
+      VERTEX: number;
     }
   }
-  return acc;
+  interface Navigator {
+    gpu: GPUType | undefined;
+  }
+}*/
+
+/*type ContextType = any*/;
+/*type WebgpuRenderProps = {
+  context: ContextType;
+  device: any;
+  shaderModule: any;
+}*/;
+/*type WebgpuProps = {
+  width: number;
+  height: number;
+  shaderCode: string;
+  render: (renderProps: WebgpuRenderProps) => void
+} & BaseProps*/;
+export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
+  const {width, height, shaderCode, render} = props;
+  const [state] = this.useState({
+    _isDeviceInitialized: false,
+    context: null /*as ContextType | null*/,
+    device: null /*as DeviceType | null*/,
+    shaderModule: null /*as any*/,
+  });
+  const node = this.useNode(() => document.createElement("canvas"));
+  node.width = width;
+  node.height = height;
+  this.baseProps.style.width = width;
+  this.baseProps.style.height = height;
+  // WebGPU
+  const renderIfNeeded = () => {
+    if (!state.context && state.device) {
+      state.context = node.getContext("webgpu");
+      (state.context /*as any*/).configure({
+        device: state.device,
+        format: (navigator /*as any*/).gpu?.getPreferredCanvasFormat(),
+        alphaMode: 'premultiplied',
+      });
+    }
+    if (state.context && state.device && state.shaderModule) render({context: state.context, device: state.device, shaderModule: state.shaderModule});
+  };
+  if (!state._isDeviceInitialized) {
+    state._isDeviceInitialized = true;
+    const gpu = (navigator /*as any*/).gpu;
+    if (!gpu) {
+      console.error("WebGPU is not supported in this browser.")
+      return;
+    }
+    gpu.requestAdapter().then((adapter/*: any*/) => {
+      if (!adapter) {
+        console.error("Couldn't request WebGPU adapter.");
+        return;
+      }
+      adapter.requestDevice().then((device/*: any*/) => {
+        state.device = device;
+        // TODO: create/delete shaders dynamically (device.destroy()?)?
+        state.shaderModule = device.createShaderModule({code: shaderCode});
+        renderIfNeeded();
+      });
+    });
+  }
+  return {
+    onMount: () => {
+      renderIfNeeded();
+    }
+  }
+});
+export const loadingSpinner = makeComponent(function loadingSpinner(props/*: IconProps*/ = {}) {
+  this.append(icon("progress_activity", props));
+});
+/*export type ProgressProps = {
+  color?: string;
+  fraction?: number;
+} & BaseProps*/;
+export const progress = makeComponent(function progress(props/*: ProgressProps*/ = {}) {
+  const {color, fraction} = props;
+  if (color) this.baseProps.style.color = `var(--${color})`;
+  const wrapper = this.append(div({}));
+  wrapper.append(div(fraction == null
+    ? {className: 'progress-bar progress-bar-indeterminate'}
+    : {className: 'progress-bar', style: {width: `${fraction * 100}%`}}
+  ));
+});
+// tabs
+/*export type TabsOptionComponentProps = {key: string, className: string}*/;
+/*export type TabsOption = {
+  id?: string | number;
+  label: string;
+  href?: string;
+}*/;
+/*export type TabsProps = {
+  options: TabsOption[];
+  selectedId: string | number;
+  setSelectedId: (newId: string | number) => void;
+}*/;
+export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
+  const {options, setSelectedId} = props;
+  let {selectedId} = props;
+  if (selectedId == null) selectedId = options[0].id ?? 0;
+  const tabsHeader = this.append(div({className: "tabs-header"}));
+  options.forEach((option, i) => {
+    const optionId = option.id ?? i;
+    tabsHeader.append(span(option.label, {
+      key: optionId,
+      href: option.href,
+      className: "tabs-option",
+      attribute: {dataSelected: optionId === selectedId, title: option.label},
+      events: {click: () => setSelectedId(optionId)},
+    }));
+  });
+});
+/*export type Route = {
+  path: string;
+  defaultPath?: string;
+  component: (props?: BaseProps) => Component;
+  roles?: string[];
+  wrapper?: boolean;
+  showInNavigation?: boolean;
+  label?: string;
+  group?: string;
+}*/;
+/*export type FallbackRoute = Omit<Route, "path">*/;
+/*export type RouterProps = {
+  prefix?: string;
+  routes: Route[];
+  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
+  contentWrapperComponent?: ComponentFunction<any>,
+  currentRoles?: string[];
+  isLoggedIn?: boolean;
+  notLoggedInRoute?: FallbackRoute;
+  notFoundRoute?: FallbackRoute;
+  unauthorizedRoute?: FallbackRoute;
+}*/;
+/*export type PageWrapperProps = {
+  routes: Route[];
+  currentRoute: Route;
+  contentWrapperComponent: ComponentFunction<any>,
+}*/;
+// TODO: colon params
+// TODO: normalize pathnames so that "/jsgui/" and "/jsgui" are the same
+export const router = makeComponent(function router(props/*: RouterProps*/) {
+  const {
+    prefix = "",
+    routes,
+    pageWrapperComponent = () => fragment(),
+    contentWrapperComponent = () => div({ className: "page-content" }),
+    currentRoles,
+    isLoggedIn,
+    notLoggedInRoute = { component: fragment },
+    notFoundRoute = { component: () => span("404 Not found") },
+    unauthorizedRoute = { component: fragment },
+  } = props;
+  this.useLocation(); // rerender on location change
+  let currentPath = makePath({origin: '', query: '', hash: ''});
+  const currentPathWithHash = `${currentPath}${location.hash}`
+  let currentRoute/*: Route | null*/ = null; // TODO: save params in rootComponent?
+  let currentRouteParams/*: Record<string, string>*/ = {};
+  for (let route of routes) {
+    const routeParamNames = [] /*as string[]*/;
+    const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
+    const regex = new RegExp(`^${routePrefix}${
+      makePath({
+        origin: '',
+        pathname: route.path,
+        query: '',
+        hash: '',
+      }).replace(/:([^/]*)/g, (_m, g1) => {
+        routeParamNames.push(g1);
+        return `[^/?]*`;
+      })
+    }$`);
+    const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
+    if (match != null) {
+      const routeParamsEntries = makeArray(routeParamNames.length, (v, i) => [v, match[i]]);
+      currentRouteParams = Object.fromEntries(routeParamsEntries);
+      const roles = route.roles ?? [];
+      const needSomeRole = (roles.length > 0);
+      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
+      if (!needSomeRole || haveSomeRole) {
+        currentRoute = route;
+      } else {
+        currentRoute = {
+          path: ".*",
+          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
+        };
+      }
+      break;
+    }
+  }
+  if (!currentRoute) {
+    console.warn(`Route '${currentPath}' not found.`);
+    currentRoute = { path: ".*", ...notFoundRoute};
+  }
+  this._.root.routeParams = currentRouteParams;
+  if (currentRoute.wrapper ?? true) {
+    this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
+  } else {
+    const contentWrapper = this.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component());
+  }
+});
+/*export type DialogProps = BaseProps & ({
+  open: boolean;
+  onClose?: () => void;
+  closeOnClickBackdrop?: boolean;
+})*/;
+export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
+  const {open, onClose, closeOnClickBackdrop} = props;
+  const [state] = this.useState({ prevOpen: false });
+  const e = this.useNode(() => document.createElement("dialog"));
+  e.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
+  }
+  return {
+    onMount: () => {
+      if (open !== state.prevOpen) {
+        if (open) {
+          e.showModal();
+        } else {
+          e.close();
+        }
+        state.prevOpen = open;
+      }
+    },
+  };
+});
+
+// popup
+/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
+function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
+  mouse: {x: number, y: number},
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  const {mouse, popupRect, wrapperRect} = props;
+  switch (direction) {
+    case "up":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top - popupRect.height
+      ];
+    case "right":
+      return [
+        wrapperRect.left + wrapperRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "down":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top + wrapperRect.height
+      ]
+    case "left":
+      return [
+        wrapperRect.left - popupRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "mouse":
+      return [
+        mouse.x,
+        mouse.y - popupRect.height
+      ];
+  }
 }
-setTimeout(() => {
-  //console.log(generateFontSizeCssVars());
-  //console.log(generateColorCssVars());
-})
-/* dialogPage.mts */
+function _getPopupLeftTopWithFlipAndClamp(props/*: {
+  direction: PopupDirection,
+  mouse: {x: number, y: number},
+  windowRight: number;
+  windowBottom: number;
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  let {direction, windowBottom, windowRight, popupRect} = props;
+  // flip
+  let [left, top] = _getPopupLeftTop(direction, props);
+  switch (direction) {
+    case "up":
+      if (top < 0) {
+        direction = "down";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "down": {
+      const bottom = top + popupRect.height;
+      if (bottom >= windowBottom) {
+        direction = "up";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "left":
+      if (left < 0) {
+        direction = "right";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "right": {
+      const right = left + popupRect.width;
+      if (right >= windowRight) {
+        direction = "left";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+  }
+  // clamp
+  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+  left = clamp(left, 0, maxLeft);
+  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+  top = clamp(top, 0, maxTop);
+  return [left, top] /*as [number, number]*/;
+}
+/*export type PopupWrapperProps = {
+  content: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+  /** NOTE: open on hover if undefined *//*
+  open?: boolean;
+  interactable?: boolean;
+}*/;
+export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
+  const {content, direction: _direction = "up", open, interactable = false} = props;
+  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
+  const wrapper = this.useNode(() => document.createElement("div"));
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
+  const movePopup = () => {
+    if (!state.open) return;
+    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
+    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+    popupNode.style.top = "0px";
+    const popupRect = popupContentWrapperNode.getBoundingClientRect();
+    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
+      direction: _direction,
+      mouse: state.mouse,
+      popupRect,
+      windowBottom,
+      windowRight,
+      wrapperRect
+    });
+    popupNode.style.left = addPx(left);
+    popupNode.style.top = addPx(top);
+  }
+  const openPopup = () => {
+    state.open = true;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
+    movePopup();
+  }
+  const closePopup = () => {
+    state.open = false;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
+  };
+  if (open == null) {
+    wrapper.onmouseenter = openPopup;
+    wrapper.onmouseleave = closePopup;
+  }
+  if (_direction === "mouse") {
+    wrapper.onmousemove = (event) => {
+      state.mouse = {x: event.clientX, y: event.clientY};
+      movePopup();
+    }
+  }
+  const popup = this.append(div({
+    className: "popup",
+    attribute: {popover: "manual", dataInteractable: interactable},
+  }));
+  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
+  popupContentWrapper.append(content);
+  return {
+    onMount: () => {
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+        acc.addEventListener("scroll", movePopup, {passive: true});
+      }
+      state.prevOnScroll = movePopup;
+      if (open == null) return;
+      if (open != state.open) {
+        if (open) {
+          openPopup();
+        } else {
+          closePopup();
+        }
+      }
+    },
+    onUnmount: () => {
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+      }
+    },
+  };
+});
+/*export type TableColumn = {
+  label: string;
+  render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
+  minWidth?: string | number;
+  maxWidth?: string | number;
+  flex?: string | number;
+}*/;
+/*export type TableProps = {
+  label?: string;
+  columns: TableColumn[];
+  rows: any[];
+  isLoading?: boolean;
+  minHeight?: number;
+  useMaxHeight?: boolean;
+} & BaseProps*/;
+export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
+  // TODO: actions, filters, search, paging, selection
+  // TODO: make gray fully opaque?
+  const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
+  const tableWrapper = this.append(div({
+    attribute: {useMaxHeight, isLoading},
+    style: {minHeight},
+  }));
+  const makeRow = (className/*: string*/, key/*: string*/) => div({className, key});
+  const makeCell = (column/*: TableColumn*/) => div({
+    className: "table-cell",
+    style: {flex: String(column.flex ?? 1), minWidth: column.minWidth, maxWidth: column.maxWidth},
+  });
+  if (label) {
+    tableWrapper.append(span(label, {className: "table-label"}));
+  }
+  if (isLoading) {
+    tableWrapper.append(loadingSpinner());
+  } else {
+    const headerWrapper = tableWrapper.append(makeRow("table-row table-header", "header"));
+    for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+      const column = columns[columnIndex];
+      const cellWrapper = headerWrapper.append(makeCell(column));
+      cellWrapper.append(span(column.label));
+    }
+    for (let rowIndex = 0; rowIndex < rows.length; rowIndex++) {
+      let row = rows[rowIndex];
+      const rowWrapper = tableWrapper.append(makeRow("table-row table-body", `row-${rowIndex}`));
+      for (let columnIndex = 0; columnIndex < columns.length; columnIndex++) {
+        let column = columns[columnIndex];
+        const cellWrapper = rowWrapper.append(makeCell(column));
+        cellWrapper.append(column.render({row, rowIndex, column, columnIndex}));
+      }
+    }
+  }
+});
 export const dialogPage = makeComponent(function dialogPage() {
     const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
     const [state, setState] = this.useState({dialogOpen: false});
@@ -1711,7 +1752,272 @@ export const dialogPage = makeComponent(function dialogPage() {
     const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
     dialogWrapper.append(span("Hello world"));
 });
-/* mediaQueryPage.mts */
+/*export type DocsSection = {
+  id: string;
+  label: string;
+  pages: DocsPage[];
+}
+*//*export type DocsPage = {
+  id: string;
+  label: string;
+  component: ComponentFunction<[]>;
+}
+*/function getSizeLabel(size/*: string*/) {
+  return size[0].toUpperCase() + size.slice(1);
+}
+export const GITHUB_PAGES_PREFIX = "/jsgui";
+function getGithubPagesPrefix()/*: string*/ {
+  const githubPrefix = "/jsgui";
+  return window.location.pathname.startsWith(githubPrefix) ? githubPrefix : "";
+}
+function solveLinearSystem(rows/*: number[][]*/) {
+  const width = rows[0].length;
+  const height = rows.length;
+  const normalizeRow = (x/*: number*/, y/*: number*/) => {
+    const m = 1 / rows[y][x];
+    for (let k = 0; k < width; k++) {
+        rows[y][k] *= m;
+    }
+  }
+  const subtractRow = (x/*: number*/, y/*: number*/) => {
+      const m = rows[y][x]; // NOTE: source is always 1
+      for(let k = 0; k < width; k++) {
+          rows[y][k] -= rows[x][k] * m; // NOTE: source is always at (x, x)
+      }
+  }
+  for (let i = 0; i < height; i++) {
+    // prevent zeros
+    if (rows[i][i] === 0) {
+        const nonZeroRow = rows.findIndex(v => v[i] !== 0.0);
+        if (nonZeroRow === -1) throw `Invalid linear system: ${rows}`;
+        for (let k = 0; k < width; k++) {rows[i][k] += rows[nonZeroRow][k]}
+    }
+    // normalize
+    normalizeRow(i, i);
+    // subtract below
+    for (let j = i+1; j < height; j++) {
+        subtractRow(i, j);
+    }
+  }
+  for (let i = height - 1; i >= 0; i--) {
+    // subtract above
+    for (let j = i-1; j >= 0; j--) {
+        subtractRow(i, j);
+    }
+  }
+  return rows.map(row => row[row.length - 1]);
+}
+const PHI_INV = (Math.sqrt(5) - 1) / 2;
+/*export type GoldenSectionSearchOptions = {
+  f: (x: number) => number;
+  range: [number, number];
+  findMaximum: boolean;
+}*/;
+function goldenSectionSearch(options/*: GoldenSectionSearchOptions*/) {
+    const {f, range, findMaximum} = options;
+    let [a, b] = range;
+    if (findMaximum) {
+        while (true) {
+            let c = b - (b - a) * PHI_INV;
+            let d = a + (b - a) * PHI_INV;
+            if (c === a) return a;
+            if (f(c) >= f(d)) {
+                b = d;
+            } else {
+                a = c;
+            }
+        }
+    } else {
+        while (true) {
+            let c = b - (b - a) * PHI_INV;
+            let d = a + (b - a) * PHI_INV;
+            if (c === a) return a;
+            if (f(c) <= f(d)) {
+                b = d;
+            } else {
+                a = c;
+            }
+        }
+    }
+    return a;
+}
+/*goldenSectionSearch({
+    f: v => Math.cos(v),
+    range: [0, Math.PI/4],
+    findMaximum: true,
+})*/
+/*export type MinimaxOptions = {
+  reference: (x: number) => number;
+  range: [number, number];
+  /** approximation(x) = sum(params.map(x)) *//*
+  params: ((x: number) => number)[];
+  matchEnds?: boolean;
+}*/;
+function minimax(options/*: MinimaxOptions*/) {
+  const {reference, range, params, matchEnds = true} = options;
+  const nodeCount = params.length + 1;
+  let nodes = makeArray(nodeCount, (i) => {
+    const t = matchEnds ? i / (nodeCount - 1) : (i + 1) / (nodeCount + 1);
+    return lerp(t, range[0], range[1])
+  });
+  let coefficients/*: number[]*/ = [];
+  let maxSolveError = 0;
+  let pastErrors = Array(20).fill(Infinity);
+  for (let iteration = 0; iteration < 300; iteration++) {
+    // solve
+    const matrixToSolve = nodes.map((node, i) => {
+        let errorCoefficient = (-1)**i;
+        if (matchEnds && (i === 0 || (i === nodes.length - 1))) {
+            errorCoefficient = 0;
+        }
+        return [...params.map(param => param(node)), errorCoefficient, reference(node)]
+    });
+    let solve = solveLinearSystem(matrixToSolve);
+    coefficients = solve.slice(0, -1);
+    maxSolveError = solve[params.length];
+    if (pastErrors.includes(maxSolveError)) break; // NOTE: we accumulate rounding errors while solving, so we would otherwise never converge when (matchEnds == true)
+    pastErrors[iteration % pastErrors.length] = maxSolveError;
+    //console.log(JSON.stringify({iteration, nodes, coefficients, maxSolveError}))
+    // exchange nodes with extremum
+    let extremum = {i: -1, x: 0, absError: 0};
+    const f = (x/*: number*/) => params.reduce((acc, param, i) => acc + coefficients[i] * param(x), 0);
+    const error = (x/*: number*/) => f(x) - reference(x);
+    const extremumSearchStart = matchEnds ? 1 : 0;
+    const extremumSearchEnd = matchEnds ? nodes.length - 1 : nodes.length;
+    for (let i = extremumSearchStart; i < extremumSearchEnd; i++) {
+      const left = i === 0 ? range[0] : nodes[i-1];
+      const right = i === nodes.length - 1 ? range[1] : nodes[i+1];
+      let findMaximum = i % 2 === 0;
+      if (matchEnds) findMaximum = !findMaximum;
+      const x = goldenSectionSearch({
+        f: error,
+        range: [left, right],
+        findMaximum,
+      });
+      //console.log({x, left, right, findMaximum})
+      const absError = Math.abs(error(x));
+      if (absError >= extremum.absError) {
+        extremum = {i, x, absError}
+      }
+    }
+    //console.log(JSON.stringify({extremum}))
+    if (nodes[extremum.i] === extremum.x) {break}
+    nodes[extremum.i] = extremum.x;
+  }
+  return {coefficients, maxError: maxSolveError};
+}
+/*minimax({
+  reference: v => Math.cos(v),
+  range: [0, Math.PI/4],
+  params: [() => 1, (v) => v*v, (v) => v*v*v*v],
+  matchEnds: true,
+})*/ // {"coefficients": [1, -0.49974056901418235, 0.040398729230590104], "maxError": 0.000015342201404119158}
+export const themeCreatorPage = makeComponent(function themeCreatorPage() {
+  const [state, setState] = this.useState({
+    color: '#1450a0',
+    count: 7,
+  });
+  this.append(textInput({
+    value: state.color,
+    allowString: (value) => {
+      if (value.match("#[0-9a-zA-Z]{6}")) return value;
+    },
+    onInput: (event) => {
+      setState({color: event.target.value});
+    },
+    label: 'Color',
+  }));
+  this.append(numberInput({
+    value: state.count,
+    min: 0,
+    onInput: (event) => {
+      setState({count: +event.target.value});
+    },
+    label: 'Count',
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "Exponential",
+    alphaFunction: (i, N) => {
+      return 2 - 2**(i/N);
+    },
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "Chebyshev roots",
+    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "lerp(Chebyshev, linear)",
+    alphaFunction: (i, N) => {
+      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
+      return lerp(i/(N-1), v, (N-i)/N)
+    },
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "linear",
+    alphaFunction: (i, N) => {
+      return (N-i)/N;
+    },
+  }));
+  this.append(colorPalette({
+    color: state.color,
+    count: state.count,
+    name: "Sigmoid",
+    alphaFunction: (i, N) => {
+      const v = (i / (0.59*N));
+      return Math.exp(-v*v);
+    },
+  }));
+});
+/*type ColorPaletteProps = BaseProps & {
+  color: string;
+  count: number;
+  name: string;
+  alphaFunction: (i: number, count: number) => number;
+}*/;
+const colorPalette = makeComponent(function colorPalette(props/*: ColorPaletteProps*/) {
+  const {color, count, name, alphaFunction} = props;
+  this.append(span(name, {style: {marginTop: 4}}));
+  // color
+  const appendColorRow = (color/*: string*/) => {
+    const colorRow = this.append(div({
+      style: {display: "flex"},
+    }));
+    for (let i = 0; i < count; i++) {
+      const colorRgb = rgbFromHexString(color);
+      const alpha = alphaFunction(i, count);
+      colorRow.append(div({
+        key: `box-${i}`,
+        style: {
+          width: 30,
+          height: 24,
+          background: `rgba(${colorRgb}, ${alpha})`,
+        },
+      }));
+    }
+    for (let i = 0; i < count; i++) {
+      const colorRgb = rgbFromHexString(color);
+      const alpha = alphaFunction(i, count);
+      colorRow.append(span("text", {
+        key: `text-${i}`,
+        style: {
+          width: 30,
+          textAlign: "right",
+          color: `rgba(${colorRgb}, ${alpha})`,
+        },
+      }));
+    }
+  }
+  appendColorRow(color);
+  appendColorRow("#000000");
+});
 export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     const smOrBigger = this.useMedia({minWidth: 600});
     const mdOrBigger = this.useMedia({minWidth: 900});
@@ -1723,9 +2029,11 @@ export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     column.append(span(`lgOrBigger: ${lgOrBigger}`));
     column.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
-/* popupPage.mts */
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
+});
 export const popupPage = makeComponent(function popupPage() {
-    for (let direction of ["up", "right", "down", "left", "mouse"]/* as PopupDirection[]*/) {
+    for (let direction of ["up", "right", "down", "left", "mouse"] /*as PopupDirection[]*/) {
         const row = this.append(div({className: "wide-display-row"}));
         const leftPopup = row.append(popupWrapper({
             content: span("Tiny"),
@@ -1754,91 +2062,58 @@ export const popupPage = makeComponent(function popupPage() {
         },
     }));
 });
-/* progressPage.mts */
-export const progressPage = makeComponent(function progressPage() {
-    // loading spinner
-    let row = this.append(div({className: "display-row"}));
-    for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
-    // linear progress indeterminate
-    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
-    row.append(progress({color: 'secondary-0'}));
-    // linear progress determinate
-    const [state, setState] = this.useState({ progress: 0.0 });
-    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
-    row.append(progress({fraction: state.progress, color: 'secondary-0'}));
-    row = this.append(div({className: "display-row", style: {marginTop: 0}}));
-    row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
-        color: "secondary",
-        onClick: () => {
-            setState({progress: (state.progress + 0.2) % 1.2});
-        }
-    }));
-});
-/* tablePage.mts */
-export const tablePage = makeComponent(function tablePage() {
-    const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-    this.append(
-      numberInput({
-        label: "Count",
-        value: count,
-        onInput: (event) => {
-          const newCount = event.target.value;
-          setCount(newCount === "" ? null : +newCount);
-          this.rerender();
-        },
-        min: 0,
-        clearable: false,
-      })
-    );
-    const rows = Array(clamp(+(count ?? 0), 0, 100))
-      .fill(0)
-      .map((_, i) => i);
-    this.append(
-      table({
-        label: "Stuff",
-        rows,
-        columns: [
-          {
-            label: "#",
-            render: (props) => span(props.rowIndex + 1),
-          },
-          {
-            label: "Name",
-            render: (props) => span(`foo ${props.row}`),
-          },
-          {
-            label: "Count",
-            render: (props) => span(props.row),
-          },
-        ],
-      })
-    );
-    if ((count ?? 0) % 2 === 0) {
-      this.append(testKeysComponent({key: "testKeysComponent"}));
-    }
+export const debugKeysPage = makeComponent(function debugKeysPage() {
+  const [state, setState] = this.useState({
+    toggle: false,
   });
-  const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
-    this.append(span(""));
-  });
-/* tabsPage.mts */
-export const tabsPage = makeComponent(function tabsPage() {
-    const [state, setState] = this.useState({selectedTab: 0/* as string | number*/});
-    const tabOptions/*: TabsOption[]*/ = [
-        {label: "foo"},
-        {label: "bar"},
-        {id: "customId", label: "zoo"},
-    ];
-    this.append(tabs({
-        options: tabOptions,
-        selectedId: state.selectedTab,
-        setSelectedId: (newId) => setState({selectedTab: newId}),
-    }));
-    const selectedTab = tabOptions.find((option, i) => (option.id ?? i) === state.selectedTab);
-    if (selectedTab) {
-        this.append(span(selectedTab.label, {key: state.selectedTab}))
+  this.append(button("Toggle", {events: {
+    click: () => {
+      setState({toggle: !state.toggle});
     }
+  }}));
+  if (state.toggle) {
+    //this.append(span("wow"));
+    this.append(span("wow", {key: undefined}));
+    //this.append(span("wow", {key: null}));
+    //this.append(span("wow", {key: ''}));
+  }
 });
-/* webgpuPage.mts */
+export const textInputPage = makeComponent(function textInputPage() {
+  const [state, setState] = this.useState({username: ""});
+  // username
+  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
+  row.append(
+    textInput({
+      label: "Username",
+      value: state.username,
+      onInput: (event) => {
+        setState({username: event.target.value});
+      },
+      //autoFocus: true,
+    })
+  );
+  row.append(span("This input is stored in the component state."));
+  row = this.append(div({className: "display-row"}));
+  row.append(span(`state: ${JSON.stringify(state)}`));
+  // count
+  row = this.append(div({className: "display-row"}));
+  const [count, setCount] = this.useLocalStorage("count", 0 /*as number | null*/);
+  row.append(
+    numberInput({
+      label: "Count",
+      value: count,
+      onInput: (event) => {
+        const newCount = event.target.value;
+        setCount(newCount === "" ? null : +newCount);
+      },
+      min: 0,
+      clearable: false,
+    })
+  );
+  row.append(span("This input is stored in local storage (synced across tabs and components)."));
+  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
+  row.append(span(`count: ${count}`));
+});
 export const webgpuPage = makeComponent(function webgpuPage() {
   let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
   const shaderCode = `
@@ -1951,190 +2226,87 @@ export const webgpuPage = makeComponent(function webgpuPage() {
     }
   }))
 });
-/* textInputPage.mts */
-export const textInputPage = makeComponent(function textInputPage() {
-  const [state, setState] = this.useState({username: ""});
-  // username
-  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
-  row.append(
-    textInput({
-      label: "Username",
-      value: state.username,
-      onInput: (event) => {
-        setState({username: event.target.value});
-      },
-      //autoFocus: true,
-    })
-  );
-  row.append(span("This input is stored in the component state."));
-  row = this.append(div({className: "display-row"}));
-  row.append(span(`state: ${JSON.stringify(state)}`));
-  // count
-  row = this.append(div({className: "display-row"}));
-  const [count, setCount] = this.useLocalStorage("count", 0/* as number | null*/);
-  row.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (event) => {
-        const newCount = event.target.value;
-        setCount(newCount === "" ? null : +newCount);
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  row.append(span("This input is stored in local storage (synced across tabs and components)."));
-  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
-  row.append(span(`count: ${count}`));
-});
-/* debugKeysPage.mts */
-export const debugKeysPage = makeComponent(function debugKeysPage() {
-  const [state, setState] = this.useState({
-    toggle: false,
-  });
-  this.append(button("Toggle", {events: {
-    click: () => {
-      setState({toggle: !state.toggle});
-    }
-  }}));
-  if (state.toggle) {
-    //this.append(span("wow"));
-    this.append(span("wow", {key: undefined}));
-    //this.append(span("wow", {key: null}));
-    //this.append(span("wow", {key: ''}));
-  }
-});
-/* notFoundPage.mts */
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
-/* themeCreatorPage.mts */
-export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const [state, setState] = this.useState({
-    color: '#1450a0',
-    count: 7,
-  });
-  this.append(textInput({
-    value: state.color,
-    allowString: (value) => {
-      if (value.match("#[0-9a-zA-Z]{6}")) return value;
-    },
-    onInput: (event) => {
-      setState({color: event.target.value});
-    },
-    label: 'Color',
-  }));
-  this.append(numberInput({
-    value: state.count,
-    min: 0,
-    onInput: (event) => {
-      setState({count: +event.target.value});
-    },
-    label: 'Count',
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Exponential",
-    alphaFunction: (i, N) => {
-      return 2 - 2**(i/N);
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Chebyshev roots",
-    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "lerp(Chebyshev, linear)",
-    alphaFunction: (i, N) => {
-      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
-      return lerp(i/(N-1), v, (N-i)/N)
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "linear",
-    alphaFunction: (i, N) => {
-      return (N-i)/N;
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Sigmoid",
-    alphaFunction: (i, N) => {
-      const v = (i / (0.59*N));
-      return Math.exp(-v*v);
-    },
-  }));
-});
-/*type ColorPaletteProps = BaseProps & {
-  color: string;
-  count: number;
-  name: string;
-  alphaFunction: (i: number, count: number) => number;
-};*/
-const colorPalette = makeComponent(function colorPalette(props/*: ColorPaletteProps*/) {
-  const {color, count, name, alphaFunction} = props;
-  this.append(span(name, {style: {marginTop: 4}}));
-  // color
-  const appendColorRow = (color/*: string*/) => {
-    const colorRow = this.append(div({
-      style: {display: "flex"},
+export const tabsPage = makeComponent(function tabsPage() {
+    const [state, setState] = this.useState({selectedTab: 0 /*as string | number*/});
+    const tabOptions/*: TabsOption[]*/ = [
+        {label: "foo"},
+        {label: "bar"},
+        {id: "customId", label: "zoo"},
+    ];
+    this.append(tabs({
+        options: tabOptions,
+        selectedId: state.selectedTab,
+        setSelectedId: (newId) => setState({selectedTab: newId}),
     }));
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(div({
-        key: `box-${i}`,
-        style: {
-          width: 30,
-          height: 24,
-          background: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
+    const selectedTab = tabOptions.find((option, i) => (option.id ?? i) === state.selectedTab);
+    if (selectedTab) {
+        this.append(span(selectedTab.label, {key: state.selectedTab}))
     }
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(span("text", {
-        key: `text-${i}`,
-        style: {
-          width: 30,
-          textAlign: "right",
-          color: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
-    }
-  }
-  appendColorRow(color);
-  appendColorRow("#000000");
 });
-/* utils.mts */
-/*export type DocsSection = {
-  id: string;
-  label: string;
-  pages: DocsPage[];
-}*/
-/*export type DocsPage = {
-  id: string;
-  label: string;
-  component: ComponentFunction<[]>;
-}*/
-export function getSizeLabel(size/*: string*/) {
-  return size[0].toUpperCase() + size.slice(1);
-}
-export function getGithubPrefix()/*: string*/ {
-  const githubPrefix = "/jsgui";
-  return window.location.pathname.startsWith(githubPrefix) ? githubPrefix : "";
-}
-/* basicsSection.mts */
+export const tablePage = makeComponent(function tablePage() {
+    const [count, setCount] = this.useLocalStorage("count", 0 /*as number | null*/);
+    this.append(
+      numberInput({
+        label: "Count",
+        value: count,
+        onInput: (event) => {
+          const newCount = event.target.value;
+          setCount(newCount === "" ? null : +newCount);
+          this.rerender();
+        },
+        min: 0,
+        clearable: false,
+      })
+    );
+    const rows = Array(clamp(+(count ?? 0), 0, 100))
+      .fill(0)
+      .map((_, i) => i);
+    this.append(
+      table({
+        label: "Stuff",
+        rows,
+        columns: [
+          {
+            label: "#",
+            render: (props) => span(props.rowIndex + 1),
+          },
+          {
+            label: "Name",
+            render: (props) => span(`foo ${props.row}`),
+          },
+          {
+            label: "Count",
+            render: (props) => span(props.row),
+          },
+        ],
+      })
+    );
+    if ((count ?? 0) % 2 === 0) {
+      this.append(testKeysComponent({key: "testKeysComponent"}));
+    }
+  });
+  const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
+    this.append(span(""));
+  });
+export const progressPage = makeComponent(function progressPage() {
+    // loading spinner
+    let row = this.append(div({className: "display-row"}));
+    for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
+    // linear progress indeterminate
+    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+    row.append(progress({color: 'secondary-0'}));
+    // linear progress determinate
+    const [state, setState] = this.useState({ progress: 0.0 });
+    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+    row.append(progress({fraction: state.progress, color: 'secondary-0'}));
+    row = this.append(div({className: "display-row", style: {marginTop: 0}}));
+    row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
+        color: "secondary",
+        onClick: () => {
+            setState({progress: (state.progress + 0.2) % 1.2});
+        }
+    }));
+});
 const htmlPage = makeComponent(function htmlPage() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
@@ -2152,7 +2324,7 @@ const htmlPage = makeComponent(function htmlPage() {
       <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
         <circle cx="50" cy="50" r="50" />
       </svg>`, {style: {width: "1em", height: "1em"}}));
-    row.append(img("/assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
+    row.append(img("/jsgui/assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
     row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
       controls: true,
       title: "audio",
@@ -2222,7 +2394,6 @@ export const BASICS_SECTION/*: DocsSection*/ = {
         {id: "icon", label: "Icon", component: iconPage},
     ],
 };
-/* docsPage.mts */
 export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   BASICS_SECTION,
   {
@@ -2249,18 +2420,21 @@ export const DOCS_SECTIONS/*: DocsSection[]*/ = [
 ];
 
 export const docsPage = makeComponent(function docsPage() {
+  const params = this.useParams/*<{
+    selectedSectionId: string,
+    selectedPageId: string,
+  }>*/();
+  const [state, setState] = this.useState({
+    selectedSectionId: params.selectedSectionId ?? DOCS_SECTIONS[0].id,
+    selectedPageId: params.selectedPageId ?? DOCS_SECTIONS[0].pages[0].id,
+  });
   const column = this.append(
     div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
   );
-  const [state, setState] = this.useState({
-    selectedSectionId: DOCS_SECTIONS[0].id,
-    selectedPageId: DOCS_SECTIONS[0].pages[0].id,
-  });
-  const {replaceHistory} = this.useNavigate();
   column.append(tabs({
     options: DOCS_SECTIONS,
     selectedId: state.selectedSectionId,
-    setSelectedId: (newId) => setState({selectedSectionId: newId/* as string*/}),
+    setSelectedId: (newId) => setState({selectedSectionId: newId /*as string*/}),
   }));
   const selectedSection = DOCS_SECTIONS.find(v => v.id === state.selectedSectionId);
   const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.selectedPageId);
@@ -2270,7 +2444,7 @@ export const docsPage = makeComponent(function docsPage() {
   column.append(tabs({
     options: selectedSection?.pages ?? [],
     selectedId: state.selectedPageId,
-    setSelectedId: (newId) => setState({selectedPageId: newId/* as string*/}),
+    setSelectedId: (newId) => setState({selectedPageId: newId /*as string*/}),
   }));
   const tabsContent = column.append(div({className: "display-column", style: {width: "100%", padding: "0 8px"}}));
   const selectedPageComponent = getSelectedPage()?.component();
@@ -2285,13 +2459,18 @@ export const docsPage = makeComponent(function docsPage() {
       borderRadius: 8,
     }}));
   }
-  replaceHistory(`${window.location.origin}${getGithubPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`);
+  const wantPathname = `/${state.selectedSectionId}/${state.selectedPageId}`;
+  if (window.location.pathname !== wantPathname) {
+    navigate({
+      pathname: `${getGithubPagesPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`,
+      query: '',
+      hash: '',
+    });
+  }
 });
-/* routes.mts */
-export const GITHUB_PAGES_PREFIX = "/jsgui";
 export const ROUTES = [
   {
-    path: `${GITHUB_PAGES_PREFIX}/`,
+    path: `/`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,
@@ -2299,7 +2478,7 @@ export const ROUTES = [
     label: "Docs",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/([^/]*)/([^/]*)`,
+    path: `/:selectedSectionId/:selectedSectionId`,
     defaultPath: "/",
     component: () => docsPage(),
     wrapper: true,
@@ -2307,7 +2486,7 @@ export const ROUTES = [
     label: "Docs",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/themeCreator`,
+    path: `/themeCreator`,
     defaultPath: "/themeCreator",
     component: () => themeCreatorPage(),
     wrapper: true,
@@ -2315,7 +2494,7 @@ export const ROUTES = [
     label: "Theme creator",
   },
   {
-    path: `${GITHUB_PAGES_PREFIX}/debugKeys`,
+    path: `/debugKeys`,
     defaultPath: "/debugKeys",
     component: () => debugKeysPage(),
     wrapper: false,
@@ -2326,6 +2505,7 @@ export const ROUTES = [
 export const root = makeComponent(function root() {
   this.append(
     router({
+      prefix: GITHUB_PAGES_PREFIX,
       pageWrapperComponent: pageWrapper,
       routes: ROUTES,
       notFoundRoute: {
@@ -2337,8 +2517,7 @@ export const root = makeComponent(function root() {
 export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapperProps*/) {
   const {routes, currentRoute, contentWrapperComponent} = props;
   // TODO: have router support routes including hash, and take longest matching route
-  const isGithubPages = window.location.pathname.startsWith("/jsgui");
-  const githubPagesPrefix = isGithubPages ? `/jsgui` : "";
+  const isGithubPages = window.location.pathname.startsWith(GITHUB_PAGES_PREFIX);
   const wrapper = this.append(div({
     style: {
       height: "100%",
@@ -2355,7 +2534,7 @@ export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapp
   navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
   ROUTES.forEach((route, i) => {
     if (route.showInNavigation) {
-      navigation.append(span(route.label, { href: `${githubPagesPrefix}${route.defaultPath ?? route.path}` }));
+      navigation.append(span(route.label, { href: `${getGithubPagesPrefix()}${route.defaultPath ?? route.path}` }));
     }
   });
   const contentWrapper = wrapper.append(contentWrapperComponent())
