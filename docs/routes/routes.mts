@@ -1,4 +1,4 @@
-import { div, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, router, span } from '../../jsgui/out/jsgui.mts';
+import { div, icon, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, router, span } from '../../jsgui/out/jsgui.mts';
 import { getGithubPagesPrefix, GITHUB_PAGES_PREFIX } from '../utils/utils.mts';
 import { debugKeysPage } from './debugKeysPage.mts';
 import {docsPage} from './docsPage.mts';
@@ -9,15 +9,23 @@ export const ROUTES = [
   {
     path: `/`,
     defaultPath: "/",
-    component: () => docsPage(),
+    component: docsPage,
     wrapper: true,
     showInNavigation: true,
     label: "Docs",
   },
   {
-    path: `/:selectedSectionId/:selectedSectionId`,
+    path: `/:sectionId`,
     defaultPath: "/",
-    component: () => docsPage(),
+    component: docsPage,
+    wrapper: true,
+    showInNavigation: false,
+    label: "Docs",
+  },
+  {
+    path: `/:sectionId/:subsectionId`,
+    defaultPath: "/",
+    component: docsPage,
     wrapper: true,
     showInNavigation: false,
     label: "Docs",
@@ -25,7 +33,7 @@ export const ROUTES = [
   {
     path: `/themeCreator`,
     defaultPath: "/themeCreator",
-    component: () => themeCreatorPage(),
+    component: themeCreatorPage,
     wrapper: true,
     showInNavigation: true,
     label: "Theme creator",
@@ -33,7 +41,7 @@ export const ROUTES = [
   {
     path: `/debugKeys`,
     defaultPath: "/debugKeys",
-    component: () => debugKeysPage(),
+    component: debugKeysPage,
     wrapper: false,
     showInNavigation: false,
     label: "Theme creator",
@@ -52,9 +60,7 @@ export const root = makeComponent(function root() {
   );
 });
 export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
-  const {routes, currentRoute, contentWrapperComponent} = props;
-  // TODO: have router support routes including hash, and take longest matching route
-  const isGithubPages = window.location.pathname.startsWith(GITHUB_PAGES_PREFIX);
+  const {currentRoute, contentWrapperComponent} = props;
   const wrapper = this.append(div({
     style: {
       height: "100%",
@@ -62,14 +68,14 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
       alignItems: "stretch",
     },
   }));
-  // TODO!: show version
+  wrapper.append(icon("link", {style: {position: "absolute", color: 'rgba(0 0 0 / 0%)'}})) // preload icon font
   // TODO!: highlight routes
   const navigation = wrapper.append(div({
     className: "nav-menu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
   navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
-  ROUTES.forEach((route, i) => {
+  ROUTES.forEach((route) => {
     if (route.showInNavigation) {
       navigation.append(span(route.label, { href: `${getGithubPagesPrefix()}${route.defaultPath ?? route.path}` }));
     }

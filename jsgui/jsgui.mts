@@ -416,7 +416,6 @@ export function navigate(urlOrParts: string | PathParts, navType: NavType = NavT
       if (isExternalLink) {navType = NavType.AddAndReload}
     }
   }
-  console.log(newPath, navType);
   switch (navType) {
   case "Add":
     history.pushState(null, "", newPath)
