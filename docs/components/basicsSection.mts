@@ -1,4 +1,4 @@
-import { audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, div, icon, img, input, makeComponent, SIZES, span, svg, textarea, video } from "../../jsgui/out/jsgui.mts";
+import { audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, div, icon, img, input, makeComponent, NavType, SIZES, span, svg, textarea, video } from "../../jsgui/out/jsgui.mts";
 import { DocsSection, getSizeLabel } from "../utils/utils.mts";
 
 const htmlPage = makeComponent(function htmlPage() {
@@ -51,10 +51,12 @@ const anchorPage = makeComponent(function anchorPage() {
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
+    row.append(span("Open in new tab", {size: "small", href, navType: NavType.OpenInNewTab}));
   }
   for (let href of ["assets/test_image.bmp"]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
-    row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
+    row.append(span("Download image", {size: "small", href, download: "test_image.bmp"}));
+    row.append(span("Open in new tab", {size: "small", href, navType: NavType.OpenInNewTab}));
   }
 });
 const buttonPage = makeComponent(function buttonPage() {

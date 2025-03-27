@@ -57,7 +57,7 @@ debug_print_start :: proc(parser: ^Parser, name: string) -> int {
 	}
 	return prev_debug_indent
 }
-debug_print :: proc(parser: ^Parser, name: string) {
+debug_print :: #force_inline proc(parser: ^Parser, name: string) {
 	if DEBUG_MODE {
 		fmt.printfln("%v %v", parser.debug_indent, name)
 	}
@@ -152,6 +152,7 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 	case .Alphanumeric:
 		switch parser.token {
 		case "type":
+			// SPEC: edgecase: we fail when assigning to a variable named `type`
 			debug_print(parser, "statement.type")
 			start_comment(parser, sb)
 			print_prev_token(parser, sb, statement_start)
@@ -169,6 +170,25 @@ parse_statement :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseE
 			parse_extends_type(parser, sb) or_return
 			parse_until_end_of_bracket(parser, sb)
 			end_comment(parser, sb)
+		case "enum":
+			debug_print(parser, "statement.enum")
+			print_prev_token(parser, sb, statement_start)
+			replace_token(parser, sb, "const")
+			parse_name(parser, sb)
+			fmt.sbprint(sb, "= ")
+			parse_left_bracket_curly(parser, sb) or_return
+			for parser.token_type != .BracketRightCurly {
+				if parser.token_type != .Alphanumeric {return .ExpectedName}
+				next_token(parser, sb, .Whitespace)
+				next_token(parser, nil)
+				if parser.token_type != .Equals {return .ExpectedEquals}
+				replace_token(parser, sb, ":")
+				parse_value(parser, sb, .Comma)
+				if parser.token_type == .Comma {
+					next_token(parser, sb)
+				}
+			}
+			parse_right_bracket_curly(parser, sb) or_return
 		case "class":
 			debug_print(parser, "statement.class")
 			next_token(parser, sb)
@@ -474,7 +494,7 @@ parse_right_bracket_angle :: proc(parser: ^Parser, sb: ^strings.Builder) -> (err
 parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
 	prev_debug_indent := debug_print_start(parser, "type")
 	for {
-		if parser.token == "infer" {
+		if parser.token == "infer" || parser.token == "keyof" || parser.token == "typeof" {
 			next_token(parser, sb)
 		}
 		#partial switch parser.token_type {

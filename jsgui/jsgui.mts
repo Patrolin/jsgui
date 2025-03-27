@@ -399,24 +399,42 @@ export function _scrollToLocationHash() {
   if (element) element.scrollIntoView();
 }
 export type NavigateFunction = (parts: string | PathParts) => void;
-type NavigateOptions = {reload?: boolean, replaceHistory?: boolean};
-export function navigate(urlOrParts: string | PathParts, options: NavigateOptions = {}) {
+export enum NavType {
+  Add = "Add",
+  Replace = "Replace",
+  AddAndReload = "AddAndReload",
+  ReplaceAndReload = "ReplaceAndReload",
+  OpenInNewTab = "OpenInNewTab",
+};
+export function navigate(urlOrParts: string | PathParts, navType: NavType = NavType.Add) {
   const newPath = makePath(urlOrParts);
-  const {reload, replaceHistory} = options;
-  if (reload) {
-    if (replaceHistory) {
-      location.replace(newPath);
-    } else {
-      location.href = newPath;
+  switch (navType) {
+  case "Add":
+  case "Replace":
+    {
+      const isExternalLink = !newPath.startsWith("/") && !newPath.startsWith(window.location.origin);
+      if (isExternalLink) {navType = NavType.AddAndReload}
     }
-  } else {
-    if (replaceHistory) {
-      history.replaceState(null, "", newPath)
-      _dispatchTargets.location.dispatch();
-    } else {
-      history.pushState(null, "", newPath)
-      _dispatchTargets.location.dispatch();
-    }
+  }
+  console.log(newPath, navType);
+  switch (navType) {
+  case "Add":
+    history.pushState(null, "", newPath)
+    _dispatchTargets.location.dispatch();
+    break;
+  case "Replace":
+    history.replaceState(null, "", newPath)
+    _dispatchTargets.location.dispatch();
+    break;
+  case "AddAndReload":
+    location.href = newPath;
+    break;
+  case "ReplaceAndReload":
+    location.replace(newPath);
+    break;
+  case "OpenInNewTab":
+    window.open(newPath);
+    break;
   }
 }
 

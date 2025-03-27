@@ -558,24 +558,42 @@ function _scrollToLocationHash() {
   if (element) element.scrollIntoView();
 }
 /*export type NavigateFunction = (parts: string | PathParts) => void*/;
-/*type NavigateOptions = {reload?: boolean, replaceHistory?: boolean}*/;
-function navigate(urlOrParts/*: string | PathParts*/, options/*: NavigateOptions*/ = {}) {
+export const NavType = {
+  Add: "Add",
+  Replace: "Replace",
+  AddAndReload: "AddAndReload",
+  ReplaceAndReload: "ReplaceAndReload",
+  OpenInNewTab: "OpenInNewTab",
+};
+function navigate(urlOrParts/*: string | PathParts*/, navType/*: NavType*/ = NavType.Add) {
   const newPath = makePath(urlOrParts);
-  const {reload, replaceHistory} = options;
-  if (reload) {
-    if (replaceHistory) {
-      location.replace(newPath);
-    } else {
-      location.href = newPath;
+  switch (navType) {
+  case "Add":
+  case "Replace":
+    {
+      const isExternalLink = !newPath.startsWith("/") && !newPath.startsWith(window.location.origin);
+      if (isExternalLink) {navType = NavType.AddAndReload}
     }
-  } else {
-    if (replaceHistory) {
-      history.replaceState(null, "", newPath)
-      _dispatchTargets.location.dispatch();
-    } else {
-      history.pushState(null, "", newPath)
-      _dispatchTargets.location.dispatch();
-    }
+  }
+  console.log(newPath, navType);
+  switch (navType) {
+  case "Add":
+    history.pushState(null, "", newPath)
+    _dispatchTargets.location.dispatch();
+    break;
+  case "Replace":
+    history.replaceState(null, "", newPath)
+    _dispatchTargets.location.dispatch();
+    break;
+  case "AddAndReload":
+    location.href = newPath;
+    break;
+  case "ReplaceAndReload":
+    location.replace(newPath);
+    break;
+  case "OpenInNewTab":
+    window.open(newPath);
+    break;
   }
 }
 
@@ -973,13 +991,13 @@ export const legend = makeComponent(function legend(text/*: string*/, _props/*: 
   fontFamily?: string;
   href?: string;
   download?: string;
-  navigate?: NavigateFunction;
+  navType?: NavType;
   id?: string;
   selfLink?: string;
   onClick?: (event: MouseEvent) => void;
 }*/;
 export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
-  let { iconName, size, color, singleLine, fontFamily, href, download, navigate: navigateInner, id, selfLink, onClick } = props;
+  let { iconName, size, color, singleLine, fontFamily, href, download, navType, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
@@ -997,7 +1015,6 @@ export const span = makeComponent(function _span(text/*: string | number | null 
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
   if (isLink) (e /*as HTMLAnchorElement*/).href = href;
-  navigateInner = (navigateInner ?? navigate);
   if (onClick || href) {
     if (!isLink) {
       attribute.tabindex = "-1";
@@ -1007,7 +1024,7 @@ export const span = makeComponent(function _span(text/*: string | number | null 
       if (onClick) onClick(event);
       if (href && !download) {
         event.preventDefault();
-        navigateInner(href);
+        navigate(href, navType);
       }
     });
   }
@@ -2357,10 +2374,12 @@ const anchorPage = makeComponent(function anchorPage() {
     row.append(span("Normal", {size: "normal", href}));
     row.append(span("Big", {size: "big", href}));
     row.append(span("Bigger", {size: "bigger", href}));
+    row.append(span("Open in new tab", {size: "small", href, navType: NavType.OpenInNewTab}));
   }
   for (let href of ["assets/test_image.bmp"]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
-    row.append(span("download", {size: "small", href, download: "test_image.bmp"}));
+    row.append(span("Download image", {size: "small", href, download: "test_image.bmp"}));
+    row.append(span("Open in new tab", {size: "small", href, navType: NavType.OpenInNewTab}));
   }
 });
 const buttonPage = makeComponent(function buttonPage() {
@@ -2404,7 +2423,7 @@ export const DOCS_SECTIONS/*: DocsSection[]*/ = [
         {id: "popup", label: "Popup", component: popupPage},
         {id: "progress", label: "Progress", component: progressPage},
         {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
-        // TODO: document router
+        // TODO: document the router
         {id: "table", label: "Table", component: tablePage},
         {id: "tabs", label: "Tabs", component: tabsPage},
         {id: "webgpu", label: "WebGPU", component: webgpuPage},
@@ -2465,7 +2484,7 @@ export const docsPage = makeComponent(function docsPage() {
       pathname: `${getGithubPagesPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`,
       query: '',
       hash: '',
-    });
+    }, NavType.Replace);
   }
 });
 export const ROUTES = [

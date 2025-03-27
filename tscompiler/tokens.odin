@@ -420,3 +420,8 @@ print_prev_token :: proc(
 	assert(sb != nil, "sb cannot be nil", loc = loc)
 	fmt.sbprint(sb, parser.file[prev_i:parser.i])
 }
+replace_token :: proc(parser: ^Parser, sb: ^strings.Builder, replace_with: string) {
+	fmt.sbprint(sb, replace_with)
+	next_token(parser, nil, .Whitespace)
+	if parser.token_group == .Whitespace {next_token(parser, sb)}
+}

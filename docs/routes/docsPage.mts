@@ -1,4 +1,4 @@
-import { code, div, makeComponent, navigate, tabs } from '../../jsgui/out/jsgui.mts';
+import { code, div, makeComponent, navigate, NavType, tabs } from '../../jsgui/out/jsgui.mts';
 import { BASICS_SECTION } from '../components/basicsSection.mts';
 import {DocsSection, getGithubPagesPrefix} from '../utils/utils.mts';
 import { textInputPage } from '../components/inputs/textInputPage.mts';
@@ -20,7 +20,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
         {id: "popup", label: "Popup", component: popupPage},
         {id: "progress", label: "Progress", component: progressPage},
         {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
-        // TODO: document router
+        // TODO: document the router
         {id: "table", label: "Table", component: tablePage},
         {id: "tabs", label: "Tabs", component: tabsPage},
         {id: "webgpu", label: "WebGPU", component: webgpuPage},
@@ -81,6 +81,6 @@ export const docsPage = makeComponent(function docsPage() {
       pathname: `${getGithubPagesPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`,
       query: '',
       hash: '',
-    });
+    }, NavType.Replace);
   }
 });
