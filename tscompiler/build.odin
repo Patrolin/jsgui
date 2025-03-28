@@ -17,7 +17,7 @@ BuildTask :: struct {
 	out:  string,
 }
 BUILD_TASKS :: []BuildTask {
-	BuildTask{BuildTaskType.Copy, "jsgui/jsgui.css", "jsgui/out"},
+	BuildTask{BuildTaskType.Copy, "jsgui/jsgui.css", "jsgui/out/jsgui.css"},
 	BuildTask{BuildTaskType.MtsCompile, "jsgui", "jsgui/out"},
 	BuildTask{BuildTaskType.MtsCompile, "docs", "docs/out"},
 }
@@ -27,13 +27,21 @@ main :: proc() {
 		win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
 	}
 	for task in BUILD_TASKS {
-		os.make_directory(task.out)
-		remove_files_under(task.out)
+		if task.type == .MtsCompile {
+			os.make_directory(task.out)
+			remove_files_under(task.out)
+		}
 	}
 	for task in BUILD_TASKS {
 		switch task.type {
 		case .Copy:
-		// TODO copy file
+			{
+				file, ok := os.read_entire_file_from_filename(task.src)
+				assert(ok)
+				ok = os.write_entire_file(task.out, file)
+				assert(ok)
+				fmt.printfln("+ %v", task.out)
+			}
 		case .MtsCompile:
 			{
 				// TODO: cache files by mtime?

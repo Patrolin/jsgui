@@ -160,7 +160,7 @@ setTimeout(() => {
   console.log('ayaya.dateString', a.toLocaleString());
 })
 */
-export const JSGUI_VERSION = "v0.18-dev";
+export const JSGUI_VERSION = "v0.19";
 function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
