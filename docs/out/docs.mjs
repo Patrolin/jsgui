@@ -268,7 +268,6 @@ function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*: Diff<
 /*export type SetState<T> = (newValue: T) => void*/;
 /*export type UseNodeState = {nodeDependOn?: any}*/;
 /*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void*/;
-/*export type DefaultUseParamsReturn = {[key: string]: string}*/;
 /*export type UseWindowResize = { windowBottom: number, windowRight: number }*/;
 // component
 function _setDefaultChildKey(component/*: Component*/, child/*: Component*/) {
@@ -389,11 +388,6 @@ class Component {
     }
     return [value, setValueAndDispatch, setValue];
   }
-  /* TODO!: rewrite as actual compiler
-  useParams<T = Record<string, string>>(): T {
-    return this._.root.routeParams as T;
-  } */
-  // TODO: useParams()?
   useLocation()/*: PathParts*/ {
     _dispatchTargets.location.addComponent(this);
     return {}; // TODO: useLocation()
@@ -405,9 +399,6 @@ class Component {
   useWindowResize()/*: UseWindowResize*/ {
     _dispatchTargets.windowResize.addComponent(this);
     return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
-  }
-  useParams/*<T = DefaultUseParamsReturn>*/()/*: T*/ {
-    return this._.root.routeParams /*as T*/;
   }
   rerender() {
     const root_ = this._.root;
@@ -623,14 +614,12 @@ class ComponentMetadata {
 class RootComponentMetadata extends ComponentMetadata {
   component/*: Component*/;
   parentNode/*: ParentNodeType*/;
-  routeParams/*: Record<string, string>*/;
   willRerenderNextFrame/*: boolean*/ = false;
   constructor(component/*: Component*/, parentNode/*: ParentNodeType*/) {
     super(null);
     this.root = this;
     this.component = component;
     this.parentNode = parentNode;
-    this.routeParams = {};
   }
 }
 
@@ -1431,7 +1420,7 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
 /*export type Route = {
   path: string;
   defaultPath?: string;
-  component: (props?: BaseProps) => Component;
+  component: ComponentFunction<[routeParams: any]>
   roles?: string[];
   wrapper?: boolean;
   showInNavigation?: boolean;
@@ -1453,6 +1442,7 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
 /*export type PageWrapperProps = {
   routes: Route[];
   currentRoute: Route;
+  routeParams: Record<string, string>,
   contentWrapperComponent: ComponentFunction<any>,
 }*/;
 export const router = makeComponent(function router(props/*: RouterProps*/) {
@@ -1464,32 +1454,46 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     currentRoles,
     isLoggedIn,
     notLoggedInRoute = { component: fragment },
-    notFoundRoute = { component: () => span("404 Not found") },
+    notFoundRoute,
     unauthorizedRoute = { component: fragment },
   } = props;
   this.useLocation(); // rerender on location change
   let currentPath = makePath({origin: '', query: '', hash: ''});
-  const currentPathWithHash = `${currentPath}${location.hash}`
-  let currentRoute/*: Route | null*/ = null; // TODO: save params in rootComponent?
+  let currentRoute/*: Route | null*/ = null;
   let currentRouteParams/*: Record<string, string>*/ = {};
-  for (let route of routes) {
-    const routeParamNames = [] /*as string[]*/;
+  /*type RouteInfo = {
+    route: Route;
+    paramNames: string[];
+    pathRegex: string;
+    sortKey: string;
+  }*/;
+  const routeInfos/*: RouteInfo[]*/ = routes.map(route => {
     const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
-    const regex = new RegExp(`^${
-      makePath({
-        origin: '',
-        pathname: routePrefix + route.path,
-        query: '',
-        hash: '',
-      }).replace(/:([^/]*)/g, (_m, g1) => {
-        routeParamNames.push(g1);
-        return `[^/?]*`;
-      })
-    }$`);
-    const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
+    const path = makePath({
+      origin: '',
+      pathname: routePrefix + route.path,
+      query: '',
+      hash: '',
+    });
+    const paramNames/*: string[]*/ = [];
+    const pathRegex = path.replace(/:([^/]*)/g, (_m, g1) => {
+      paramNames.push(g1);
+      return `([^/?]*)`;
+    });
+    const sortKey = path.replace(/:([^/]*)/g, '');
+    return {route, paramNames, pathRegex, sortKey};
+  }).sort((a, b) => {
+    const aKey = a.sortKey;
+    const bKey = b.sortKey;
+    return +(aKey < bKey) - +(aKey > bKey); // NOTE: sort descending
+  });
+  for (let routeInfo of routeInfos) {
+    const regex = new RegExp(`^${routeInfo.pathRegex}$`);
+    const match = currentPath.match(regex);
     if (match != null) {
-      const routeParamsEntries = makeArray(routeParamNames.length, (v, i) => [v, match[i]]);
-      currentRouteParams = Object.fromEntries(routeParamsEntries);
+      const routeParamEntries = routeInfo.paramNames.map((key, i) => [key, match[i + 1]]);
+      currentRouteParams = Object.fromEntries(routeParamEntries);
+      const route = routeInfo.route;
       const roles = route.roles ?? [];
       const needSomeRole = (roles.length > 0);
       const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
@@ -1505,15 +1509,18 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     }
   }
   if (!currentRoute) {
-    console.warn(`Route '${currentPath}' not found.`);
-    currentRoute = { path: ".*", ...notFoundRoute};
+    currentRoute = {path: '*', component: () => span("404 Not found")};
+    if (notFoundRoute) {
+      currentRoute = {...currentRoute, ...notFoundRoute};
+    } else {
+      console.warn(`Route '${currentPath}' not found. routes:`, routes);
+    }
   }
-  this._.root.routeParams = currentRouteParams;
   if (currentRoute.wrapper ?? true) {
-    this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
+    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
   } else {
     const contentWrapper = this.append(contentWrapperComponent());
-    contentWrapper.append(currentRoute.component());
+    contentWrapper.append(currentRoute.component(currentRouteParams));
   }
 });
 /*export type DialogProps = BaseProps & ({
@@ -2302,17 +2309,70 @@ export const tablePage = makeComponent(function tablePage() {
   const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
     this.append(span(""));
   });
+export const routerPage = makeComponent(function routerPage() {
+  // routes
+  /*type RouteParams = {
+    routerDemoId: string;
+  }*/;
+  const someComponent = makeComponent(function someComponent(routeParams/*: RouteParams*/) {
+    this.append(`routeParams: ${JSON.stringify(routeParams)}`);
+    // location
+    const location = this.useLocation();
+    const locationDiv = this.append(div())
+    locationDiv.append(`location: ${JSON.stringify(location)}`);
+  });
+  const notFoundComponent = makeComponent(function notFoundComponent() {
+    this.append("notFoundComponent");
+  });
+  const DEMO_ROUTES/*: Route[]*/ = [
+    {
+      path: "/displays/router/:routerDemoId",
+      component: someComponent,
+      showInNavigation: true,
+      defaultPath: "/displays/router/foo",
+      label: "foo",
+    },
+    {
+      path: "/displays/router/:routerDemoId",
+      component: someComponent,
+      showInNavigation: true,
+      defaultPath: "/displays/router/foobar",
+      label: "foobar",
+    },
+  ];
+  // pageWrapperComponent
+  const pageWrapperComponent = makeComponent(function pageWrapperComponent(props/*: PageWrapperProps*/) {
+    const {routes, currentRoute, contentWrapperComponent, routeParams} = props;
+    const navmenu = this.append(div({style: {display: "flex", gap: 8}}));
+    for (let route of routes) {
+      if (route.showInNavigation) {
+        navmenu.append(span(route.label, {href: route.defaultPath ?? route.path}));
+      }
+    }
+    const contentWrapper = this.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component(routeParams));
+  });
+  // router
+  this.append(router({
+    routes: DEMO_ROUTES,
+    pageWrapperComponent: pageWrapperComponent,
+    notFoundRoute: {
+      component: notFoundComponent,
+    },
+  }))
+});
 export const progressPage = makeComponent(function progressPage() {
     // loading spinner
     let row = this.append(div({className: "display-row"}));
     for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
     // linear progress indeterminate
-    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4, maxWidth: 900}}));
     row.append(progress({color: 'secondary-0'}));
     // linear progress determinate
     const [state, setState] = this.useState({ progress: 0.0 });
-    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4}}));
+    row = this.append(div({className: "wide-display-row", style: {marginBottom: 4, maxWidth: 900}}));
     row.append(progress({fraction: state.progress, color: 'secondary-0'}));
+    // button
     row = this.append(div({className: "display-row", style: {marginTop: 0}}));
     row.append(coloredButton("progress = (progress + 0.2) % 1.2", {
         color: "secondary",
@@ -2321,7 +2381,7 @@ export const progressPage = makeComponent(function progressPage() {
         }
     }));
 });
-const htmlPage = makeComponent(function htmlPage() {
+export const htmlPage = makeComponent(function htmlPage() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
     row.append(input({
@@ -2348,7 +2408,7 @@ const htmlPage = makeComponent(function htmlPage() {
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
     ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
-const spanPage = makeComponent(function spanPage() {
+export const spanPage = makeComponent(function spanPage() {
   for (let href of [undefined]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
@@ -2364,7 +2424,7 @@ const spanPage = makeComponent(function spanPage() {
     }
   }
 });
-const anchorPage = makeComponent(function anchorPage() {
+export const anchorPage = makeComponent(function anchorPage() {
   for (let href of ["https://www.google.com"]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
@@ -2379,7 +2439,7 @@ const anchorPage = makeComponent(function anchorPage() {
     row.append(span("Open in new tab", {size: "small", href, navType: NavType.OpenInNewTab}));
   }
 });
-const buttonPage = makeComponent(function buttonPage() {
+export const buttonPage = makeComponent(function buttonPage() {
   let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {size}));
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
@@ -2387,7 +2447,7 @@ const buttonPage = makeComponent(function buttonPage() {
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   for (let size of Object.values(SIZES)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-const iconPage = makeComponent(function iconPage() {
+export const iconPage = makeComponent(function iconPage() {
   let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(icon("link", {size}));
   row = this.append(div({className: "display-row"}));
@@ -2398,8 +2458,8 @@ const iconPage = makeComponent(function iconPage() {
   }
   // TODO: circle buttons
 });
-
-export const BASICS_SECTION/*: DocsSection*/ = {
+export const DOCS_SECTIONS/*: DocsSection[]*/ = [
+  {
     id: "basics",
     label: "Basics",
     pages: [
@@ -2409,18 +2469,16 @@ export const BASICS_SECTION/*: DocsSection*/ = {
         {id: "button", label: "Button", component: buttonPage},
         {id: "icon", label: "Icon", component: iconPage},
     ],
-};
-export const DOCS_SECTIONS/*: DocsSection[]*/ = [
-  BASICS_SECTION,
+  },
   {
     id: "displays",
     label: "Displays",
     pages: [
+        {id: "router", label: "Router", component: routerPage},
         {id: "dialog", label: "Dialog", component: dialogPage},
         {id: "popup", label: "Popup", component: popupPage},
         {id: "progress", label: "Progress", component: progressPage},
         {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
-        // TODO: document the router
         {id: "table", label: "Table", component: tablePage},
         {id: "tabs", label: "Tabs", component: tabsPage},
         {id: "webgpu", label: "WebGPU", component: webgpuPage},
@@ -2435,32 +2493,33 @@ export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   },
 ];
 
-export const docsPage = makeComponent(function docsPage() {
-  const params = this.useParams/*<{
-    selectedSectionId: string,
-    selectedPageId: string,
-  }>*/();
+/*type RouteParams = {
+  sectionId: string,
+  subsectionId: string,
+  routerDemoId: string,
+}*/;
+export const docsPage = makeComponent(function docsPage(routeParams/*: RouteParams*/) {
   const [state, setState] = this.useState({
-    selectedSectionId: params.selectedSectionId ?? DOCS_SECTIONS[0].id,
-    selectedPageId: params.selectedPageId ?? DOCS_SECTIONS[0].pages[0].id,
+    sectionId: routeParams.sectionId ?? DOCS_SECTIONS[0].id,
+    subsectionId: routeParams.subsectionId ?? DOCS_SECTIONS[0].pages[0].id,
   });
   const column = this.append(
     div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
   );
   column.append(tabs({
     options: DOCS_SECTIONS,
-    selectedId: state.selectedSectionId,
-    setSelectedId: (newId) => setState({selectedSectionId: newId /*as string*/}),
+    selectedId: state.sectionId,
+    setSelectedId: (newId) => setState({sectionId: newId /*as string*/}),
   }));
-  const selectedSection = DOCS_SECTIONS.find(v => v.id === state.selectedSectionId);
-  const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.selectedPageId);
+  const selectedSection = DOCS_SECTIONS.find(v => v.id === state.sectionId);
+  const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.subsectionId);
   if (selectedSection && getSelectedPage() == null) { // TODO: restore from local storage
-    state.selectedPageId = selectedSection.pages[0].id;
+    state.subsectionId = selectedSection.pages[0].id;
   }
   column.append(tabs({
     options: selectedSection?.pages ?? [],
-    selectedId: state.selectedPageId,
-    setSelectedId: (newId) => setState({selectedPageId: newId /*as string*/}),
+    selectedId: state.subsectionId,
+    setSelectedId: (newId) => setState({subsectionId: newId /*as string*/}),
   }));
   const tabsContent = column.append(div({className: "display-column", style: {width: "100%", padding: "0 8px"}}));
   const selectedPageComponent = getSelectedPage()?.component();
@@ -2475,56 +2534,57 @@ export const docsPage = makeComponent(function docsPage() {
       borderRadius: 8,
     }}));
   }
-  const wantPathname = `/${state.selectedSectionId}/${state.selectedPageId}`;
+  let wantPathname = `/${state.sectionId}/${state.subsectionId}`;
+  if (routeParams.routerDemoId) {
+    wantPathname += `/${routeParams.routerDemoId}`;
+  }
   if (window.location.pathname !== wantPathname) {
     navigate({
-      pathname: `${getGithubPagesPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`,
+      pathname: `${getGithubPagesPrefix()}/${state.sectionId}/${state.subsectionId}`,
       query: '',
       hash: '',
     }, NavType.Replace);
   }
 });
-export const ROUTES = [
+export const ROUTES/*: Route[]*/ = [
   {
     path: `/`,
-    defaultPath: "/",
     component: docsPage,
-    wrapper: true,
     showInNavigation: true,
+    wrapper: true,
     label: "Docs",
   },
   {
     path: `/:sectionId`,
-    defaultPath: "/",
     component: docsPage,
     wrapper: true,
-    showInNavigation: false,
     label: "Docs",
   },
   {
     path: `/:sectionId/:subsectionId`,
-    defaultPath: "/",
     component: docsPage,
     wrapper: true,
-    showInNavigation: false,
+    label: "Docs",
+  },
+  {
+    path: `/:sectionId/:subsectionId/:routerDemoId`,
+    component: docsPage,
+    wrapper: true,
     label: "Docs",
   },
   {
     path: `/themeCreator`,
-    defaultPath: "/themeCreator",
     component: themeCreatorPage,
-    wrapper: true,
     showInNavigation: true,
+    wrapper: true,
     label: "Theme creator",
   },
   {
     path: `/debugKeys`,
-    defaultPath: "/debugKeys",
     component: debugKeysPage,
     wrapper: false,
-    showInNavigation: false,
     label: "Theme creator",
-  }
+  },
 ];
 export const root = makeComponent(function root() {
   this.append(
@@ -2539,7 +2599,7 @@ export const root = makeComponent(function root() {
   );
 });
 export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapperProps*/) {
-  const {currentRoute, contentWrapperComponent} = props;
+  const {currentRoute, routeParams, contentWrapperComponent} = props;
   const wrapper = this.append(div({
     style: {
       height: "100%",
@@ -2560,6 +2620,6 @@ export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapp
     }
   });
   const contentWrapper = wrapper.append(contentWrapperComponent())
-  contentWrapper.append(currentRoute.component());
+  contentWrapper.append(currentRoute.component(routeParams));
 })
 renderRoot(root());

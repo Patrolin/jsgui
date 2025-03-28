@@ -109,7 +109,6 @@ export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: 
 export type SetState<T> = (newValue: T) => void;
 export type UseNodeState = {nodeDependOn?: any};
 export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
-export type DefaultUseParamsReturn = {[key: string]: string};
 export type UseWindowResize = { windowBottom: number, windowRight: number };
 // component
 export function _setDefaultChildKey(component: Component, child: Component) {
@@ -230,11 +229,6 @@ export class Component {
     }
     return [value, setValueAndDispatch, setValue];
   }
-  /* TODO!: rewrite as actual compiler
-  useParams<T = Record<string, string>>(): T {
-    return this._.root.routeParams as T;
-  } */
-  // TODO: useParams()?
   useLocation(): PathParts {
     _dispatchTargets.location.addComponent(this);
     return {}; // TODO: useLocation()
@@ -246,9 +240,6 @@ export class Component {
   useWindowResize(): UseWindowResize {
     _dispatchTargets.windowResize.addComponent(this);
     return { windowBottom: window.innerHeight, windowRight: window.innerWidth };
-  }
-  useParams<T = DefaultUseParamsReturn>(): T {
-    return this._.root.routeParams as T;
   }
   rerender() {
     const root_ = this._.root;
@@ -464,14 +455,12 @@ export class ComponentMetadata {
 export class RootComponentMetadata extends ComponentMetadata {
   component: Component;
   parentNode: ParentNodeType;
-  routeParams: Record<string, string>;
   willRerenderNextFrame: boolean = false;
   constructor(component: Component, parentNode: ParentNodeType) {
     super(null);
     this.root = this;
     this.component = component;
     this.parentNode = parentNode;
-    this.routeParams = {};
   }
 }
 

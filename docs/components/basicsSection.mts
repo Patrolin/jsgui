@@ -1,7 +1,7 @@
 import { audio, BASE_COLORS, button, COLOR_SHADES, coloredButton, div, icon, img, input, makeComponent, NavType, SIZES, span, svg, textarea, video } from "../../jsgui/out/jsgui.mts";
-import { DocsSection, getSizeLabel } from "../utils/utils.mts";
+import { getSizeLabel } from "../utils/utils.mts";
 
-const htmlPage = makeComponent(function htmlPage() {
+export const htmlPage = makeComponent(function htmlPage() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
     row.append(input({
@@ -28,7 +28,7 @@ const htmlPage = makeComponent(function htmlPage() {
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
     ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
-const spanPage = makeComponent(function spanPage() {
+export const spanPage = makeComponent(function spanPage() {
   for (let href of [undefined]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
@@ -44,7 +44,7 @@ const spanPage = makeComponent(function spanPage() {
     }
   }
 });
-const anchorPage = makeComponent(function anchorPage() {
+export const anchorPage = makeComponent(function anchorPage() {
   for (let href of ["https://www.google.com"]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: "small", href}));
@@ -59,7 +59,7 @@ const anchorPage = makeComponent(function anchorPage() {
     row.append(span("Open in new tab", {size: "small", href, navType: NavType.OpenInNewTab}));
   }
 });
-const buttonPage = makeComponent(function buttonPage() {
+export const buttonPage = makeComponent(function buttonPage() {
   let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(coloredButton(getSizeLabel(size), {size}));
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
@@ -67,7 +67,7 @@ const buttonPage = makeComponent(function buttonPage() {
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   for (let size of Object.values(SIZES)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-const iconPage = makeComponent(function iconPage() {
+export const iconPage = makeComponent(function iconPage() {
   let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(SIZES)) row.append(icon("link", {size}));
   row = this.append(div({className: "display-row"}));
@@ -78,15 +78,3 @@ const iconPage = makeComponent(function iconPage() {
   }
   // TODO: circle buttons
 });
-
-export const BASICS_SECTION: DocsSection = {
-    id: "basics",
-    label: "Basics",
-    pages: [
-        {id: "html", label: "HTML", component: htmlPage},
-        {id: "span", label: "Span", component: spanPage},
-        {id: "anchor", label: "Anchor", component: anchorPage},
-        {id: "button", label: "Button", component: buttonPage},
-        {id: "icon", label: "Icon", component: iconPage},
-    ],
-};

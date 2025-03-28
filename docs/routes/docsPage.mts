@@ -1,5 +1,4 @@
 import { code, div, makeComponent, navigate, NavType, tabs } from '../../jsgui/out/jsgui.mts';
-import { BASICS_SECTION } from '../components/basicsSection.mts';
 import {DocsSection, getGithubPagesPrefix} from '../utils/utils.mts';
 import { textInputPage } from '../components/inputs/textInputPage.mts';
 import { dialogPage } from '../components/displays/dialogPage.mts';
@@ -9,18 +8,30 @@ import { mediaQueryPage } from '../components/displays/mediaQueryPage.mts';
 import { tablePage } from '../components/displays/tablePage.mts';
 import { tabsPage } from '../components/displays/tabsPage.mts';
 import { webgpuPage } from '../components/displays/webgpuPage.mts';
+import { anchorPage, buttonPage, htmlPage, iconPage, spanPage } from '../components/basicsSection.mts';
+import { routerPage } from '../components/displays/routerPage.mts';
 
 export const DOCS_SECTIONS: DocsSection[] = [
-  BASICS_SECTION,
+  {
+    id: "basics",
+    label: "Basics",
+    pages: [
+        {id: "html", label: "HTML", component: htmlPage},
+        {id: "span", label: "Span", component: spanPage},
+        {id: "anchor", label: "Anchor", component: anchorPage},
+        {id: "button", label: "Button", component: buttonPage},
+        {id: "icon", label: "Icon", component: iconPage},
+    ],
+  },
   {
     id: "displays",
     label: "Displays",
     pages: [
+        {id: "router", label: "Router", component: routerPage},
         {id: "dialog", label: "Dialog", component: dialogPage},
         {id: "popup", label: "Popup", component: popupPage},
         {id: "progress", label: "Progress", component: progressPage},
         {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
-        // TODO: document the router
         {id: "table", label: "Table", component: tablePage},
         {id: "tabs", label: "Tabs", component: tabsPage},
         {id: "webgpu", label: "WebGPU", component: webgpuPage},
@@ -35,32 +46,33 @@ export const DOCS_SECTIONS: DocsSection[] = [
   },
 ];
 
-export const docsPage = makeComponent(function docsPage() {
-  const params = this.useParams<{
-    selectedSectionId: string,
-    selectedPageId: string,
-  }>();
+type RouteParams = {
+  sectionId: string,
+  subsectionId: string,
+  routerDemoId: string,
+};
+export const docsPage = makeComponent(function docsPage(routeParams: RouteParams) {
   const [state, setState] = this.useState({
-    selectedSectionId: params.selectedSectionId ?? DOCS_SECTIONS[0].id,
-    selectedPageId: params.selectedPageId ?? DOCS_SECTIONS[0].pages[0].id,
+    sectionId: routeParams.sectionId ?? DOCS_SECTIONS[0].id,
+    subsectionId: routeParams.subsectionId ?? DOCS_SECTIONS[0].pages[0].id,
   });
   const column = this.append(
     div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
   );
   column.append(tabs({
     options: DOCS_SECTIONS,
-    selectedId: state.selectedSectionId,
-    setSelectedId: (newId) => setState({selectedSectionId: newId as string}),
+    selectedId: state.sectionId,
+    setSelectedId: (newId) => setState({sectionId: newId as string}),
   }));
-  const selectedSection = DOCS_SECTIONS.find(v => v.id === state.selectedSectionId);
-  const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.selectedPageId);
+  const selectedSection = DOCS_SECTIONS.find(v => v.id === state.sectionId);
+  const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.subsectionId);
   if (selectedSection && getSelectedPage() == null) { // TODO: restore from local storage
-    state.selectedPageId = selectedSection.pages[0].id;
+    state.subsectionId = selectedSection.pages[0].id;
   }
   column.append(tabs({
     options: selectedSection?.pages ?? [],
-    selectedId: state.selectedPageId,
-    setSelectedId: (newId) => setState({selectedPageId: newId as string}),
+    selectedId: state.subsectionId,
+    setSelectedId: (newId) => setState({subsectionId: newId as string}),
   }));
   const tabsContent = column.append(div({className: "display-column", style: {width: "100%", padding: "0 8px"}}));
   const selectedPageComponent = getSelectedPage()?.component();
@@ -75,10 +87,13 @@ export const docsPage = makeComponent(function docsPage() {
       borderRadius: 8,
     }}));
   }
-  const wantPathname = `/${state.selectedSectionId}/${state.selectedPageId}`;
+  let wantPathname = `/${state.sectionId}/${state.subsectionId}`;
+  if (routeParams.routerDemoId) {
+    wantPathname += `/${routeParams.routerDemoId}`;
+  }
   if (window.location.pathname !== wantPathname) {
     navigate({
-      pathname: `${getGithubPagesPrefix()}/${state.selectedSectionId}/${state.selectedPageId}`,
+      pathname: `${getGithubPagesPrefix()}/${state.sectionId}/${state.subsectionId}`,
       query: '',
       hash: '',
     }, NavType.Replace);

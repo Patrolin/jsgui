@@ -1,51 +1,49 @@
-import { div, icon, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, router, span } from '../../jsgui/out/jsgui.mts';
+import { div, icon, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
 import { getGithubPagesPrefix, GITHUB_PAGES_PREFIX } from '../utils/utils.mts';
 import { debugKeysPage } from './debugKeysPage.mts';
 import {docsPage} from './docsPage.mts';
 import { notFoundPage } from './notFoundPage.mts';
 import {themeCreatorPage} from './themeCreatorPage.mts'
 
-export const ROUTES = [
+export const ROUTES: Route[] = [
   {
     path: `/`,
-    defaultPath: "/",
     component: docsPage,
-    wrapper: true,
     showInNavigation: true,
+    wrapper: true,
     label: "Docs",
   },
   {
     path: `/:sectionId`,
-    defaultPath: "/",
     component: docsPage,
     wrapper: true,
-    showInNavigation: false,
     label: "Docs",
   },
   {
     path: `/:sectionId/:subsectionId`,
-    defaultPath: "/",
     component: docsPage,
     wrapper: true,
-    showInNavigation: false,
+    label: "Docs",
+  },
+  {
+    path: `/:sectionId/:subsectionId/:routerDemoId`,
+    component: docsPage,
+    wrapper: true,
     label: "Docs",
   },
   {
     path: `/themeCreator`,
-    defaultPath: "/themeCreator",
     component: themeCreatorPage,
-    wrapper: true,
     showInNavigation: true,
+    wrapper: true,
     label: "Theme creator",
   },
   {
     path: `/debugKeys`,
-    defaultPath: "/debugKeys",
     component: debugKeysPage,
     wrapper: false,
-    showInNavigation: false,
     label: "Theme creator",
-  }
+  },
 ];
 export const root = makeComponent(function root() {
   this.append(
@@ -60,7 +58,7 @@ export const root = makeComponent(function root() {
   );
 });
 export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
-  const {currentRoute, contentWrapperComponent} = props;
+  const {currentRoute, routeParams, contentWrapperComponent} = props;
   const wrapper = this.append(div({
     style: {
       height: "100%",
@@ -81,6 +79,6 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
     }
   });
   const contentWrapper = wrapper.append(contentWrapperComponent())
-  contentWrapper.append(currentRoute.component());
+  contentWrapper.append(currentRoute.component(routeParams));
 })
 renderRoot(root());

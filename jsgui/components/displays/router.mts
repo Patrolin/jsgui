@@ -1,12 +1,11 @@
-import { BaseProps, Component, ComponentFunction, makeComponent } from "../../jsgui.mts";
-import { makeArray } from "../../utils/arrayUtils.mts";
+import { ComponentFunction, makeComponent } from "../../jsgui.mts";
 import { makePath } from "../../utils/stringUtils.mts";
 import { div, fragment, span } from "../basics.mts";
 
 export type Route = {
   path: string;
   defaultPath?: string;
-  component: (props?: BaseProps) => Component;
+  component: ComponentFunction<[routeParams: any]>
   roles?: string[];
   wrapper?: boolean;
   showInNavigation?: boolean;
@@ -28,6 +27,7 @@ export type RouterProps = {
 export type PageWrapperProps = {
   routes: Route[];
   currentRoute: Route;
+  routeParams: Record<string, string>,
   contentWrapperComponent: ComponentFunction<any>,
 };
 export const router = makeComponent(function router(props: RouterProps) {
@@ -39,32 +39,46 @@ export const router = makeComponent(function router(props: RouterProps) {
     currentRoles,
     isLoggedIn,
     notLoggedInRoute = { component: fragment },
-    notFoundRoute = { component: () => span("404 Not found") },
+    notFoundRoute,
     unauthorizedRoute = { component: fragment },
   } = props;
   this.useLocation(); // rerender on location change
   let currentPath = makePath({origin: '', query: '', hash: ''});
-  const currentPathWithHash = `${currentPath}${location.hash}`
-  let currentRoute: Route | null = null; // TODO: save params in rootComponent?
+  let currentRoute: Route | null = null;
   let currentRouteParams: Record<string, string> = {};
-  for (let route of routes) {
-    const routeParamNames = [] as string[];
+  type RouteInfo = {
+    route: Route;
+    paramNames: string[];
+    pathRegex: string;
+    sortKey: string;
+  };
+  const routeInfos: RouteInfo[] = routes.map(route => {
     const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
-    const regex = new RegExp(`^${
-      makePath({
-        origin: '',
-        pathname: routePrefix + route.path,
-        query: '',
-        hash: '',
-      }).replace(/:([^/]*)/g, (_m, g1) => {
-        routeParamNames.push(g1);
-        return `[^/?]*`;
-      })
-    }$`);
-    const match = currentPathWithHash.match(regex) ?? currentPath.match(regex);
+    const path = makePath({
+      origin: '',
+      pathname: routePrefix + route.path,
+      query: '',
+      hash: '',
+    });
+    const paramNames: string[] = [];
+    const pathRegex = path.replace(/:([^/]*)/g, (_m, g1) => {
+      paramNames.push(g1);
+      return `([^/?]*)`;
+    });
+    const sortKey = path.replace(/:([^/]*)/g, '');
+    return {route, paramNames, pathRegex, sortKey};
+  }).sort((a, b) => {
+    const aKey = a.sortKey;
+    const bKey = b.sortKey;
+    return +(aKey < bKey) - +(aKey > bKey); // NOTE: sort descending
+  });
+  for (let routeInfo of routeInfos) {
+    const regex = new RegExp(`^${routeInfo.pathRegex}$`);
+    const match = currentPath.match(regex);
     if (match != null) {
-      const routeParamsEntries = makeArray(routeParamNames.length, (v, i) => [v, match[i]]);
-      currentRouteParams = Object.fromEntries(routeParamsEntries);
+      const routeParamEntries = routeInfo.paramNames.map((key, i) => [key, match[i + 1]]);
+      currentRouteParams = Object.fromEntries(routeParamEntries);
+      const route = routeInfo.route;
       const roles = route.roles ?? [];
       const needSomeRole = (roles.length > 0);
       const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
@@ -80,14 +94,17 @@ export const router = makeComponent(function router(props: RouterProps) {
     }
   }
   if (!currentRoute) {
-    console.warn(`Route '${currentPath}' not found.`);
-    currentRoute = { path: ".*", ...notFoundRoute};
+    currentRoute = {path: '*', component: () => span("404 Not found")};
+    if (notFoundRoute) {
+      currentRoute = {...currentRoute, ...notFoundRoute};
+    } else {
+      console.warn(`Route '${currentPath}' not found. routes:`, routes);
+    }
   }
-  this._.root.routeParams = currentRouteParams;
   if (currentRoute.wrapper ?? true) {
-    this.append(pageWrapperComponent({routes, currentRoute, contentWrapperComponent}));
+    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
   } else {
     const contentWrapper = this.append(contentWrapperComponent());
-    contentWrapper.append(currentRoute.component());
+    contentWrapper.append(currentRoute.component(currentRouteParams));
   }
 });
