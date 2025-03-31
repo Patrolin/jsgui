@@ -24,7 +24,7 @@ enum JSTokenType {
   String,
   // TODO: InterpolatedString
   // TODO: "false", "true"
-  // TODO: stop parsing alphanumeric on brackets
+  Brackets,
   Alphanumeric,
   Keyword,
 }
@@ -36,6 +36,7 @@ const JS_TOKEN_TYPE_TO_GROUP: Record<JSTokenType, string> = {
   [JSTokenType.SingleLineComment]: "single-line-comment",
   [JSTokenType.MultiLineComment]: "multi-line-comment",
   [JSTokenType.String]: "string",
+  [JSTokenType.Brackets]: "brackets",
   [JSTokenType.Alphanumeric]: "alphanumeric",
   [JSTokenType.Keyword]: "keyword",
 };
@@ -70,6 +71,13 @@ function jsGetTokenType(text: string, i: number): JSTokenType {
     case ",":
     case "=":
       return JSTokenType.Operator;
+    case "(":
+    case ")":
+    case "[":
+    case "]":
+    case "{":
+    case "}":
+      return JSTokenType.Brackets;
     case "/":
       {
         const is_single_line_comment = text[i + 1] === "/";
@@ -141,6 +149,8 @@ function jsGetTokens(text: string): Component[] {
     case "let":
     case "var":
     case "for":
+    case "in":
+    case "of":
     case "switch":
     case "function":
     case "new":
