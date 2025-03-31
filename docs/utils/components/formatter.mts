@@ -18,13 +18,12 @@ enum JSTokenType {
   Whitespace,
   Newline,
   Number,
-  Operator,
+  Symbols,
   SingleLineComment,
   MultiLineComment,
   String,
   // TODO: InterpolatedString
   // TODO: "false", "true"
-  Brackets,
   Alphanumeric,
   Keyword,
 }
@@ -32,11 +31,10 @@ const JS_TOKEN_TYPE_TO_GROUP: Record<JSTokenType, string> = {
   [JSTokenType.Whitespace]: "whitespace",
   [JSTokenType.Newline]: "newline",
   [JSTokenType.Number]: "number",
-  [JSTokenType.Operator]: "operator",
+  [JSTokenType.Symbols]: "symbols",
   [JSTokenType.SingleLineComment]: "single-line-comment",
   [JSTokenType.MultiLineComment]: "multi-line-comment",
   [JSTokenType.String]: "string",
-  [JSTokenType.Brackets]: "brackets",
   [JSTokenType.Alphanumeric]: "alphanumeric",
   [JSTokenType.Keyword]: "keyword",
 };
@@ -69,21 +67,24 @@ function jsGetTokenType(text: string, i: number): JSTokenType {
     case "|":
     case "&":
     case ",":
+    case "<":
+    case ">":
     case "=":
-      return JSTokenType.Operator;
     case "(":
     case ")":
     case "[":
     case "]":
     case "{":
     case "}":
-      return JSTokenType.Brackets;
+    case "?":
+    case ";":
+      return JSTokenType.Symbols;
     case "/":
       {
         const is_single_line_comment = text[i + 1] === "/";
         const is_multi_line_comment = text[i + 1] === "*";
         if (is_single_line_comment) return JSTokenType.SingleLineComment;
-        return is_multi_line_comment ? JSTokenType.MultiLineComment : JSTokenType.Operator;
+        return is_multi_line_comment ? JSTokenType.MultiLineComment : JSTokenType.Symbols;
       }
     default:
       return JSTokenType.Alphanumeric;
