@@ -10,6 +10,7 @@ import { tabsPage } from '../components/displays/tabsPage.mts';
 import { webgpuPage } from '../components/displays/webgpuPage.mts';
 import { anchorPage, buttonPage, htmlPage, iconPage, spanPage } from '../components/basicsSection.mts';
 import { routerPage } from '../components/displays/routerPage.mts';
+import { jsFormatter } from '../utils/components/formatter.mts';
 
 export const DOCS_SECTIONS: DocsSection[] = [
   {
@@ -56,37 +57,41 @@ export const docsPage = makeComponent(function docsPage(routeParams: RouteParams
     sectionId: routeParams.sectionId ?? DOCS_SECTIONS[0].id,
     subsectionId: routeParams.subsectionId ?? DOCS_SECTIONS[0].pages[0].id,
   });
+  // section
   const column = this.append(
-    div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start"}})
+    div({style: {display: "flex", flexDirection: "column", alignItems: "flex-start", rowGap: 8}})
   );
-  column.append(tabs({
+  const navigationColumn = column.append(div());
+  navigationColumn.append(tabs({
     options: DOCS_SECTIONS,
     selectedId: state.sectionId,
     setSelectedId: (newId) => setState({sectionId: newId as string}),
   }));
+  // subsection
   const selectedSection = DOCS_SECTIONS.find(v => v.id === state.sectionId);
   const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.subsectionId);
   if (selectedSection && getSelectedPage() == null) { // TODO: restore from local storage
     state.subsectionId = selectedSection.pages[0].id;
   }
-  column.append(tabs({
+  navigationColumn.append(tabs({
     options: selectedSection?.pages ?? [],
     selectedId: state.subsectionId,
     setSelectedId: (newId) => setState({subsectionId: newId as string}),
+    style: {marginTop: 4},
   }));
+  // content
   const tabsContent = column.append(div({className: "display-column", style: {width: "100%", padding: "0 8px"}}));
   const selectedPageComponent = getSelectedPage()?.component();
   if (selectedPageComponent) {
     tabsContent.append(selectedPageComponent);
     const selectedOnRender = selectedPageComponent.onRender;
     const codeString = `const ${selectedOnRender?.name} = makeComponent(${selectedOnRender});`;
-    column.append(code(codeString, {style: {
-      marginTop: 8,
+    column.append(jsFormatter(codeString, {style: {
       padding: "4px 8px",
-      background: "rgba(0, 0, 0, 0.1)",
       borderRadius: 8,
     }}));
   }
+  // update url
   let wantPathname = `/${state.sectionId}/${state.subsectionId}`;
   if (routeParams.routerDemoId) {
     wantPathname += `/${routeParams.routerDemoId}`;

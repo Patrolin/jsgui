@@ -2,6 +2,8 @@ import { makeComponent, span, tabs, TabsOption } from "../../../jsgui/out/jsgui.
 
 export const tabsPage = makeComponent(function tabsPage() {
     const [state, setState] = this.useState({selectedTab: 0 as string | number});
+
+    // tabs
     const tabOptions: TabsOption[] = [
         {label: "foo"},
         {label: "bar"},
@@ -12,6 +14,8 @@ export const tabsPage = makeComponent(function tabsPage() {
         selectedId: state.selectedTab,
         setSelectedId: (newId) => setState({selectedTab: newId}),
     }));
+
+    // content
     const selectedTab = tabOptions.find((option, i) => (option.id ?? i) === state.selectedTab);
     if (selectedTab) {
         this.append(span(selectedTab.label, {key: state.selectedTab}))

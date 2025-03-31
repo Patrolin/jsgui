@@ -53,6 +53,9 @@ export const em = makeComponent(function em(text: string, _props: BaseProps = {}
   this.useNode(() => document.createElement("em"));
   this.append(text);
 });
+export const br = makeComponent(function br(_props: BaseProps = {}) {
+  this.useNode(() => document.createElement("br"));
+});
 export const code = makeComponent(function code(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("code"));
   this.append(text);

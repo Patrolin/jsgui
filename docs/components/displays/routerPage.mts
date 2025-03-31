@@ -1,20 +1,24 @@
-import { div, fragment, makeComponent, PageWrapperProps, Route, router, span } from "../../../jsgui/out/jsgui.mts";
+import { div, makeComponent, PageWrapperProps, Route, router, span } from "../../../jsgui/out/jsgui.mts";
 
 export const routerPage = makeComponent(function routerPage() {
-  // routes
-  type RouteParams = {
+  // someComponent
+  type SomeComponentParams = {
     routerDemoId: string;
   };
-  const someComponent = makeComponent(function someComponent(routeParams: RouteParams) {
+  const someComponent = makeComponent(function someComponent(routeParams: SomeComponentParams) {
     this.append(`routeParams: ${JSON.stringify(routeParams)}`);
     // location
     const location = this.useLocation();
     const locationDiv = this.append(div())
     locationDiv.append(`location: ${JSON.stringify(location)}`);
   });
+
+  // default component
   const notFoundComponent = makeComponent(function notFoundComponent() {
     this.append("notFoundComponent");
   });
+
+  // routes
   const DEMO_ROUTES: Route[] = [
     {
       path: "/displays/router/:routerDemoId",
@@ -31,6 +35,7 @@ export const routerPage = makeComponent(function routerPage() {
       label: "foobar",
     },
   ];
+
   // pageWrapperComponent
   const pageWrapperComponent = makeComponent(function pageWrapperComponent(props: PageWrapperProps) {
     const {routes, currentRoute, contentWrapperComponent, routeParams} = props;
@@ -43,6 +48,7 @@ export const routerPage = makeComponent(function routerPage() {
     const contentWrapper = this.append(contentWrapperComponent());
     contentWrapper.append(currentRoute.component(routeParams));
   });
+
   // router
   this.append(router({
     routes: DEMO_ROUTES,
@@ -50,5 +56,6 @@ export const routerPage = makeComponent(function routerPage() {
     notFoundRoute: {
       component: notFoundComponent,
     },
-  }))
+  }));
+  // TODO: document navigate() function
 });

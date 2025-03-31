@@ -16,7 +16,9 @@ export const popupPage = makeComponent(function popupPage() {
         }));
         rightPopup.append(span(`direction: "${direction}"`));
     }
+
     const [state, setState] = this.useState({buttonPopupOpen: false});
+
     const row = this.append(div({className: "wide-display-row"}));
     const popup = row.append(popupWrapper({
         content: span("Tiny"),
@@ -24,6 +26,7 @@ export const popupPage = makeComponent(function popupPage() {
         open: state.buttonPopupOpen,
         interactable: true,
     }));
+
     popup.append(coloredButton(`Toggle popup`, {
         onClick: () => {
             setState({buttonPopupOpen: !state.buttonPopupOpen});

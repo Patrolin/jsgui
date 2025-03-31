@@ -1,6 +1,7 @@
 /* nav menu */
 .nav-menu {
   padding: 2px 4px;
+  row-gap: 4px;
 }
 .nav-menu .divider {
   margin-block: 2px;
@@ -36,3 +37,27 @@
   gap: 4px;
   border-radius: 8px;
 }
+
+/* js formatter */
+code {
+  background: #121212;
+  color: #AAAAAA;
+  font-family: 'Consolas', monospace;
+}
+code * {
+  font-size: 18px;
+  line-height: 23px;
+}
+[data-token-group="keyword"] {
+  color: #CCCCCC;
+}
+[data-token-group="number"] {
+  color: #98DFBA;
+}
+[data-token-group="string"] {
+  color: #00AB6F;
+}
+[data-token-group="single-line-comment"], [data-token-group="multi-line-comment"] {
+  color: #57A90A;
+}
+/* TODO: bracket colors */

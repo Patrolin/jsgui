@@ -25,7 +25,7 @@ export type TabsOption = {
   label: string;
   href?: string;
 };
-export type TabsProps = {
+export type TabsProps = BaseProps & {
   options: TabsOption[];
   selectedId: string | number;
   setSelectedId: (newId: string | number) => void;

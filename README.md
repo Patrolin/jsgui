@@ -25,23 +25,11 @@ https://patrolin.github.io/jsgui/
 
 ## Commands
 
-### build docs
+### build jsgui and docs
 ```
-npm i -g typescript
-tsc
-```
-### build docs and watch
-```
-npm i -g typescript
-tsc -w
+odin run tscompiler
 ```
 ### serve docs
 ```
 python serve.py
-```
-### build just jsgui.js
-```
-npm i -g typescript
-cd jsgui
-tsc
 ```
