@@ -104,7 +104,7 @@ function jsGetTokens(text: string): Component[] {
     j = i + 1;
     let isNewline = startTokenType === JSTokenType.Newline;
     if (isNewline) {
-      if (text[j] === "\r" && text[j+1] === "\n") {
+      if (text[i] === "\r" && text[j] === "\n") {
         j += 1;
       }
       tokens.push(br({
