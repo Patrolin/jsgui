@@ -652,22 +652,22 @@ export function unloadRoot(root_: RootComponentMetadata) {
 }
 
 // sizes
-export type Size = "small" | "normal" | "big" | "bigger";
-export const SIZES: Record<Size, Size> = {
-  small: "small",
-  normal: "normal",
-  big: "big",
-  bigger: "bigger",
+export enum Size {
+  small =  "small",
+  normal = "normal",
+  big =    "big",
+  bigger = "bigger",
 };
 // default colors
-export type BaseColor = "gray" | "secondary" | "red";
-export const BASE_COLORS: Record<BaseColor, string> = {
-  gray: "0, 0, 0",
-  secondary: "20, 80, 160", // TODO: find a better secondary color
-  red: "200, 50, 50",
-  // TODO: yellow, green
+export const BASE_COLORS = {
+  gray: "0.0, 0.85, 0, 0",
+  secondary: "0.85, 0.45, 0.127, 250",
+  red: "0.45, 0.85, 0.127, 25",
+  //yellow: "0.45, 0.85, 0.127, 95", // TODO: yellow, green
+  //green: "0.45, 0.85, 0.127, 145",
 };
-export const COLOR_SHADES = ["0", "1", "2", "3", "4", "5", "6"];
+export type BaseColor = keyof typeof BASE_COLORS;
+export const COLOR_SHADE_COUNT = 7;
 
 /*
 TODO: documentation

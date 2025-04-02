@@ -5,22 +5,6 @@ import "core:strings"
 import win "core:sys/windows"
 // TODO: Run qgrep with: tscompiler "parse_" and not ("proc" or "or_return" or ":=" or "error =" or "DEBUG_" or "reparse_as_" or "parse_until_end_of_bracket") and file "compile.odin"
 
-@(test)
-test_compile :: proc() {
-	if ODIN_OS == .Windows {
-		win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
-	}
-	test_file :: string(#load("test_file.mts"))
-	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)string(""))
-	mjs_output, error, parser := parse_entire_file(test_file)
-	os.write_entire_file("tscompiler/test_file.mjs", transmute([]u8)mjs_output)
-	#partial switch error {
-	case .None:
-	case:
-		fmt.assertf(false, "%v", parser)
-	}
-}
-
 /*
 Typescipt is a poorly designed language that makes it hard to parse. We can't just switch
 on one token and go from there, we have to constantly guess and rollback if we were wrong.

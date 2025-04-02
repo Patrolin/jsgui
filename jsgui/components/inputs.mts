@@ -1,4 +1,4 @@
-import { fragment, icon, legend, span, SpanProps } from "./basics.mts";
+import { div, fragment, icon, legend, span, SpanProps } from "./basics.mts";
 import { _EventListener, BaseColor, BaseProps, ChangeEventWithTarget, Component, InputEventWithTarget, makeComponent, ParentNodeType, Size } from "../jsgui.mts";
 
 export type ButtonProps = {
@@ -105,7 +105,7 @@ export const labeledInput = makeComponent(function labeledInput(props: LabeledIn
   if (rightComponent) this.append(rightComponent);
 });
 export const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
-  this.append(span(error, {color: "red", size: "small", ...props}));
+  this.append(span(error, {color: "red", size: Size.small, ...props}));
 });
 export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
@@ -128,8 +128,9 @@ export type NumberArrowProps = {
 export const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
   this.useNode(() => document.createElement("div"));
-  this.append(icon("arrow_drop_up", {size: "small", onClick: onClickUp}));
-  this.append(icon("arrow_drop_down", {size: "small", onClick: onClickDown}));
+  this.append(icon("arrow_drop_up", {size: Size.small, onClick: onClickUp}));
+  this.append(icon("arrow_drop_down", {size: Size.small, onClick: onClickDown}));
+  this.append(div({className: "number-arrows-divider"}));
 });
 export type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,

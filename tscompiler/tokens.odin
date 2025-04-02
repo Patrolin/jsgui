@@ -113,7 +113,6 @@ _parse_until_next_token :: proc(
 ) {
 	i := parser.i
 	j := i
-	// TODO: TokenGroup.WhitespaceAndToken?
 	for j < len(parser.file) {
 		// .Whitespace
 		if get_is_whitespace(parser.file[j]) {

@@ -70,7 +70,7 @@ export const docsPage = makeComponent(function docsPage(routeParams: RouteParams
   // subsection
   const selectedSection = DOCS_SECTIONS.find(v => v.id === state.sectionId);
   const getSelectedPage = () => selectedSection?.pages.find(v => v.id === state.subsectionId);
-  if (selectedSection && getSelectedPage() == null) { // TODO: restore from local storage
+  if (selectedSection && getSelectedPage() == null) {
     state.subsectionId = selectedSection.pages[0].id;
   }
   navigationColumn.append(tabs({
@@ -89,13 +89,13 @@ export const docsPage = makeComponent(function docsPage(routeParams: RouteParams
     column.append(jsFormatter(codeString));
   }
   // update url
-  let wantPathname = `/${state.sectionId}/${state.subsectionId}`;
+  let wantPathname = `${getGithubPagesPrefix()}/${state.sectionId}/${state.subsectionId}`;
   if (routeParams.routerDemoId) {
     wantPathname += `/${routeParams.routerDemoId}`;
   }
   if (window.location.pathname !== wantPathname) {
     navigate({
-      pathname: `${getGithubPagesPrefix()}/${state.sectionId}/${state.subsectionId}`,
+      pathname: wantPathname,
       query: '',
       hash: '',
     }, NavType.Replace);

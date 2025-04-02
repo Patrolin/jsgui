@@ -1,9 +1,9 @@
-import { coloredButton, div, loadingSpinner, makeComponent, progress, SIZES } from "../../../jsgui/out/jsgui.mts";
+import { coloredButton, div, loadingSpinner, makeComponent, progress, Size } from "../../../jsgui/out/jsgui.mts";
 
 export const progressPage = makeComponent(function progressPage() {
     // loading spinner
     let row = this.append(div({className: "display-row"}));
-    for (let size of Object.values(SIZES)) row.append(loadingSpinner({size, color: 'secondary-1'}));
+    for (let size of Object.values(Size)) row.append(loadingSpinner({size, color: 'secondary-1'}));
 
     // linear progress indeterminate
     row = this.append(div({className: "wide-display-row", style: {marginBottom: 4, maxWidth: 900}}));

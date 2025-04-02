@@ -1,4 +1,4 @@
-import { div, icon, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, span } from '../../jsgui/out/jsgui.mts';
+import { div, icon, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, Size, span } from '../../jsgui/out/jsgui.mts';
 import { getGithubPagesPrefix, GITHUB_PAGES_PREFIX } from '../utils/utils.mts';
 import { debugKeysPage } from './debugKeysPage.mts';
 import {docsPage} from './docsPage.mts';
@@ -72,7 +72,7 @@ export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapper
     className: "nav-menu", // TODO: styles
     style: {display: "flex", flexDirection: "column"},
   }));
-  navigation.append(span(`version: ${JSGUI_VERSION}`, {size: "small"}));
+  navigation.append(span(`version: ${JSGUI_VERSION}`, {size: Size.small}));
   ROUTES.forEach((route) => {
     if (route.showInNavigation) {
       navigation.append(span(route.label, { href: `${getGithubPagesPrefix()}${route.defaultPath ?? route.path}` }));

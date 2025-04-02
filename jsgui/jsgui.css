@@ -115,6 +115,7 @@ body, [data-size="normal"] {
 span, a, button {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
+  line-height: var(--size-x);
 }
 [data-size] {
   font-size: var(--fontSize-x);
@@ -148,9 +149,6 @@ code, code * {
 .icon {
   box-sizing: content-box;
   font-size: var(--iconSize-x);
-  padding-inline: calc(0.5*(var(--size-x) - var(--iconSize-x)));
-  padding-top: 3px;
-  padding-bottom: 2px;
   line-height: 1;
   width: 1em;
   height: 1em;
@@ -275,8 +273,14 @@ dialog::backdrop {
   cursor: text;
   display: flex;
   justify-content: space-between;
+  --labelSize: var(--fontSize-small);
+  --labelColor: var(--gray-3);
+  --labelColorFocus: var(--secondary-0);
+  --labelColorError: var(--red-0);
+  --labelColor-x: var(--labelColor);
+  --labelMarginLeft: 8px;
   --fieldsetWidth: 194px;
-  --fieldsetHeight: calc(2*var(--size-small) + 0.5*var(--labelSize));
+  --fieldsetHeight: calc(2*var(--size-normal) - 0.5*var(--labelSize));
   --fieldsetMargin: 0 1px 6px 1px;
   --fieldsetMarginFocus: 0 0 6px 0;
   --fieldsetBorder: 1px solid var(--gray-4);
@@ -284,12 +288,6 @@ dialog::backdrop {
   --fieldsetBorderFocus: 2px solid var(--secondary-0);
   --fieldsetBorderError: 1px solid var(--red-0);
   --fieldsetBorderErrorFocus: 2px solid var(--red-0);
-  --labelSize: var(--fontSize-small);
-  --labelColor: var(--gray-3);
-  --labelColorFocus: var(--secondary-0);
-  --labelColorError: var(--red-0);
-  --labelColor-x: var(--labelColor);
-  --labelMarginLeft: 8px;
 }
 .labeled-input:hover {
   border: var(--fieldsetBorderHover);
@@ -320,37 +318,41 @@ dialog::backdrop {
 .labeled-input > :not(legend) {
   position: relative;
   background: none;
-  top: -3px;
-  height: calc(var(--fieldsetHeight) - 6px);
+  top: -7px;
+  height: calc(var(--fieldsetHeight) - 7px);
+}
+.labeled-input input {
+  width: 100%;
+  outline: none;
+  border: none;
+  flex: 1;
+  padding: 0 calc(4px + var(--labelMarginLeft)) 0 9px;
+  font-family: var(--fontFamily-sans);
+  font-size: var(--fontSize-normal);
 }
 .number-arrows {
-  top: -6px !important;
   display: flex;
   flex-direction: column;
   color: var(--gray-3);
   --numberArtableRowPadding: calc(var(--size-x) - var(--iconSize-x));
 }
 .number-arrows .icon {
-  padding-left: calc(0.5*(var(--size-x) - var(--iconSize-x)) - 1px);
+  --iconSize-x: calc(0.5*(var(--fieldsetHeight) - 7px));
   border-left: 1px solid var(--gray-6);
-}
-.number-arrows .icon[data-icon="arrow_drop_up"] {
-  padding-bottom: calc(0.5*(var(--size-x) - var(--iconSize-x)) - 1px);
-  border-bottom: 1px solid var(--gray-6);
 }
 .number-arrows .icon:hover {
   color: var(--gray-0);
   background: var(--gray-6);
 }
-.labeled-input input {
-  width: 100%;
-  height: calc(var(--fieldsetHeight) - 9px);
-  outline: none;
-  border: none;
-  flex: 1;
-  padding-inline: calc(4px + var(--labelMarginLeft)) 9px;
-  font-family: var(--fontFamily-sans);
-  font-size: var(--fontSize-normal);
+.number-arrows .number-arrows-divider {
+  position: relative;
+  left: 1px;
+  top: -50%;
+  width: calc(100% - 1px);
+  min-height: 1px;
+}
+.number-arrows .icon:hover ~ .number-arrows-divider {
+  background: red; /* TODO: pick a better color scheme */
 }
 /* table */
 .table {

@@ -1,7 +1,6 @@
 /* nav menu */
 .nav-menu {
   padding: 2px 4px;
-  row-gap: 4px;
 }
 .nav-menu .divider {
   margin-block: 2px;

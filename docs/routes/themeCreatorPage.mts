@@ -1,5 +1,6 @@
 import { BaseProps, div, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput } from "../../jsgui/out/jsgui.mts";
 
+// TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const [state, setState] = this.useState({
     color: '#1450a0',
