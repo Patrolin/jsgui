@@ -86,10 +86,7 @@ export const docsPage = makeComponent(function docsPage(routeParams: RouteParams
     tabsContent.append(selectedPageComponent);
     const selectedOnRender = selectedPageComponent.onRender;
     const codeString = `const ${selectedOnRender?.name} = makeComponent(${selectedOnRender});`;
-    column.append(jsFormatter(codeString, {style: {
-      padding: "4px 8px",
-      borderRadius: 8,
-    }}));
+    column.append(jsFormatter(codeString));
   }
   // update url
   let wantPathname = `/${state.sectionId}/${state.subsectionId}`;

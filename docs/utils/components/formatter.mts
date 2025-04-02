@@ -19,24 +19,28 @@ enum JSTokenType {
   Newline,
   Number,
   Symbols,
+  SymbolCurlyRight,
   SingleLineComment,
   MultiLineComment,
   String,
-  // TODO: InterpolatedString
-  // TODO: "false", "true"
+  InterpolatedString,
   Alphanumeric,
   Keyword,
+  Boolean, // "false" | "true"
 }
 const JS_TOKEN_TYPE_TO_GROUP: Record<JSTokenType, string> = {
   [JSTokenType.Whitespace]: "whitespace",
   [JSTokenType.Newline]: "newline",
   [JSTokenType.Number]: "number",
   [JSTokenType.Symbols]: "symbols",
+  [JSTokenType.SymbolCurlyRight]: "symbol-curly-right",
   [JSTokenType.SingleLineComment]: "single-line-comment",
   [JSTokenType.MultiLineComment]: "multi-line-comment",
   [JSTokenType.String]: "string",
+  [JSTokenType.InterpolatedString]: "interpolated-string",
   [JSTokenType.Alphanumeric]: "alphanumeric",
   [JSTokenType.Keyword]: "keyword",
+  [JSTokenType.Boolean]: "boolean",
 };
 function jsGetTokenType(text: string, i: number): JSTokenType {
   switch (text[i]) {
@@ -49,6 +53,8 @@ function jsGetTokenType(text: string, i: number): JSTokenType {
     case "\"":
     case "'":
       return JSTokenType.String;
+    case "`":
+      return JSTokenType.InterpolatedString;
     case "0":
     case "1":
     case "2":
@@ -75,10 +81,11 @@ function jsGetTokenType(text: string, i: number): JSTokenType {
     case "[":
     case "]":
     case "{":
-    case "}":
     case "?":
     case ";":
       return JSTokenType.Symbols;
+    case "}":
+      return JSTokenType.SymbolCurlyRight;
     case "/":
       {
         const is_single_line_comment = text[i + 1] === "/";
@@ -93,10 +100,12 @@ function jsGetTokenType(text: string, i: number): JSTokenType {
 function jsGetTokens(text: string): Component[] {
   let tokens: Component[] = [];
   type Context = {
-    inside_multiline_comment: boolean;
+    continue_as: JSTokenType | null,
+    interpolated_string_depth: number;
   };
   const context: Context = {
-    inside_multiline_comment: false,
+    continue_as: null,
+    interpolated_string_depth: 0,
   };
   let j = 0;
   for (let i = j; i < text.length; i = j) {
@@ -112,10 +121,7 @@ function jsGetTokens(text: string): Component[] {
       }));
       continue;
     }
-    if (context.inside_multiline_comment) {
-      startTokenType = JSTokenType.MultiLineComment;
-      console.log('ayaya', {token: text.slice(i, i+20), context, startTokenType})
-    }
+    startTokenType = context.continue_as ?? startTokenType;
     switch (startTokenType) {
       case JSTokenType.String:
         for (; j < text.length && (jsGetTokenType(text, j) !== JSTokenType.String);) {
@@ -124,22 +130,80 @@ function jsGetTokens(text: string): Component[] {
         }
         j += 1;
         break;
+      case JSTokenType.SymbolCurlyRight:
+        if (context.interpolated_string_depth > 0) {
+          context.interpolated_string_depth -= 1;
+          context.continue_as = null;
+          startTokenType = JSTokenType.InterpolatedString;
+          // fallthrough to .InterpolatedString
+        } else {
+          break;
+        }
+      case JSTokenType.InterpolatedString:
+        for (; j < text.length; j++) {
+          const tokenType = jsGetTokenType(text, j);
+          if (tokenType === JSTokenType.InterpolatedString) {
+            j += 1;
+            context.continue_as = null;
+            break;
+          };
+          if (tokenType === JSTokenType.Newline) {
+            context.continue_as = JSTokenType.InterpolatedString;
+            break;
+          }
+          if (text.slice(j-2, j) === "${") {
+            context.interpolated_string_depth += 1;
+            break
+          };
+        }
+        break;
       case JSTokenType.SingleLineComment:
         for (; j < text.length && jsGetTokenType(text, j) !== JSTokenType.Newline; j++) {}
         break;
       case JSTokenType.MultiLineComment:
         for (; j < text.length; j++) {
           if (text[j-1] === "*" && text[j] === "/") {
-            context.inside_multiline_comment = false;
+            context.continue_as = null;
             j++;
             break;
           }
           if (jsGetTokenType(text, j) === JSTokenType.Newline) {
-            context.inside_multiline_comment = true;
+            context.continue_as = JSTokenType.MultiLineComment;
             break
           }
         }
         break;
+      case JSTokenType.Alphanumeric:
+        for (; j < text.length; j++) {
+          const tokenType = jsGetTokenType(text, j);
+          if (tokenType !== JSTokenType.Alphanumeric && tokenType !== JSTokenType.Number) {
+            break;
+          }
+        }
+        break;
+      case JSTokenType.Symbols:
+        if (text[i] === '+' || text[i] === '-' && jsGetTokenType(text, j) === JSTokenType.Number) {
+          startTokenType = JSTokenType.Number;
+          // fallthrough to .Number
+        } else {
+          break;
+        }
+      case JSTokenType.Number:
+        {
+          let is_first_dot = true;
+          for (; j < text.length; j++) {
+            if (text[j] === '.') {
+              if (is_first_dot) {
+                is_first_dot = false;
+                continue;
+              } else {
+                break;
+              }
+            }
+            if (jsGetTokenType(text, j) !== JSTokenType.Number) break;
+          }
+          break;
+        }
       default:
         for (; j < text.length && jsGetTokenType(text, j) === startTokenType; j++) {}
         break;
@@ -157,8 +221,13 @@ function jsGetTokens(text: string): Component[] {
     case "new":
     case "delete":
       startTokenType = JSTokenType.Keyword;
+      break;
+    case "true":
+    case "false":
+      startTokenType = JSTokenType.Boolean;
+      break;
     }
-    tokens.push(span(text.slice(i, j), {
+    tokens.push(span(token, {
       attribute: {"data-token-group": JS_TOKEN_TYPE_TO_GROUP[startTokenType]},
     }));
     if (j === i) {

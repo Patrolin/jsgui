@@ -40,7 +40,9 @@
 
 /* js formatter */
 code {
+  border-radius: 8px;
   background: #121212;
+  padding: 4px 24px 4px 8px;
   color: #AAAAAA;
   font-family: 'Consolas', monospace;
 }
@@ -54,7 +56,10 @@ code * {
 [data-token-group="number"] {
   color: #98DFBA;
 }
-[data-token-group="string"] {
+[data-token-group="boolean"] {
+  color: #56B6C2;
+}
+[data-token-group="string"], [data-token-group="interpolated-string"] {
   color: #00AB6F;
 }
 [data-token-group="single-line-comment"], [data-token-group="multi-line-comment"] {

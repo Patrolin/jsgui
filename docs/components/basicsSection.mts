@@ -22,12 +22,15 @@ export const htmlPage = makeComponent(function htmlPage() {
         <circle cx="50" cy="50" r="50" />
       </svg>`, {style: {width: "1em", height: "1em"}}));
 
-    row.append(img("/jsgui/assets/test_image.bmp", {style: {width: 24}, attribute: {title: "img"}}));
+    row.append(img(
+      "/jsgui/assets/test_image.bmp",
+      {style: {width: 24}, attribute: {title: "img"}}
+    ));
 
-    row.append(audio("https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3", {attribute: {
-      controls: true,
-      title: "audio",
-    }}));
+    row.append(audio(
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
+      {attribute: {controls: true, title: "audio"}}
+    ));
 
     this.append(video([
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
