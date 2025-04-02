@@ -2353,8 +2353,9 @@ export const debugKeysPage = makeComponent(function debugKeysPage() {
   }
 });
 export const textInputPage = makeComponent(function textInputPage() {
-  const [state, setState] = this.useState({username: ""});
   // username
+  const [state, setState] = this.useState({username: ""});
+
   let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
   row.append(
     textInput({
@@ -2367,11 +2368,14 @@ export const textInputPage = makeComponent(function textInputPage() {
     })
   );
   row.append(span("This input is stored in the component state."));
+
   row = this.append(div({className: "display-row"}));
   row.append(span(`state: ${JSON.stringify(state)}`));
+
   // count
-  row = this.append(div({className: "display-row"}));
   const [count, setCount] = this.useLocalStorage("count", 0 /*as number | null*/);
+
+  row = this.append(div({className: "display-row"}));
   row.append(
     numberInput({
       label: "Count",
@@ -2385,6 +2389,7 @@ export const textInputPage = makeComponent(function textInputPage() {
     })
   );
   row.append(span("This input is stored in local storage (synced across tabs and components)."));
+
   row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
   row.append(span(`count: ${count}`));
 });
