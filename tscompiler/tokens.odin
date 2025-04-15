@@ -26,11 +26,6 @@ TokenType :: enum {
 	QuestionMarkColon,
 	// 1 length
 	QuestionMark,
-	// 2 length, postfix ops
-	POSTFIX_OPS_START,
-	DoublePlus,
-	DoubleMinus,
-	POSTFIX_OPS_END,
 	// 1 length, brackets
 	BRACKETS_START,
 	BracketLeft,
@@ -74,8 +69,14 @@ TokenType :: enum {
 	Plus,
 	Minus,
 	BINARY_OPS_END,
-	// 1 length, unary ops
-	ExclamationMark, // TODO: this shouldn't parse as a postfix op by default..
+	// 1 length, unary ops, postfix ops
+	POSTFIX_OPS_START,
+	ExclamationMark,
+	UNARY_OPS_END,
+	// 2 length, postfix ops
+	DoublePlus,
+	DoubleMinus,
+	POSTFIX_OPS_END,
 }
 
 Parser :: struct {

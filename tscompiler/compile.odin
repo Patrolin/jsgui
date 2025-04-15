@@ -72,12 +72,12 @@ start_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	}
 	parser.custom_comment_depth += 1
 }
-end_comment :: proc(parser: ^Parser, sb: ^strings.Builder) {
+end_comment :: proc(parser: ^Parser, sb: ^strings.Builder, keep_space := true) {
 	buffer := &sb.buf
 	comment_end := "*/"
 	parser.custom_comment_depth -= 1
 	if parser.custom_comment_depth == 0 {
-		if buffer[len(buffer) - 1] == ' ' {
+		if keep_space && buffer[len(buffer) - 1] == ' ' {
 			pop(buffer)
 			comment_end = "*/ "
 		}
@@ -586,7 +586,7 @@ parse_value :: proc(
 ) {
 	prev_debug_indent := debug_print_start(parser, "value")
 	outer: for {
-		for parser.token_type >= .UNARY_OPS_START ||
+		for (parser.token_type >= .UNARY_OPS_START && parser.token_type <= .UNARY_OPS_END) ||
 		    (parser.token_type == .Alphanumeric &&
 				    (parser.token == "typeof" || parser.token == "new")) ||
 		    parser.token_type == .TripleDot { 	// SPEC: cba to only parse .TripleDot inside function calls
@@ -699,6 +699,7 @@ parse_value :: proc(
 					parse_value(parser, sb, .Comma) or_return
 				}
 				if parser.token_type == .Comma {
+					debug_print(parser, "value.curly.cont")
 					next_token(parser, sb)
 				}
 			}
@@ -719,15 +720,25 @@ parse_value :: proc(
 			}
 			parse_right_bracket_square(parser, sb) or_return
 		}
-		// SPEC: is postfix allowed (syntactically speaking) after a function call?
+		// SPEC: is "++"|"--" allowed after a function call?
 		if (parser.token_type >= .POSTFIX_OPS_START && parser.token_type <= .POSTFIX_OPS_END) {
+			postfix_needs_comment := parser.token_type == .ExclamationMark
+			if postfix_needs_comment {start_comment(parser, sb)}
 			debug_print(parser, "value.postfix_op")
 			next_token(parser, sb)
+			if postfix_needs_comment {end_comment(parser, sb)}
 		}
+		for parser.token_type == .Alphanumeric && parser.token == "as" {
+			debug_print(parser, "value.as")
+			start_comment(parser, sb)
+			next_token(parser, sb)
+			parse_type(parser, sb) or_return
+			end_comment(parser, sb)
+		}
+		// REFACTOR: put .Comma, .Equals under .BINARY_OPS?
 		if parser.token_type <= stop_at {
 			break
 		}
-		// REFACTOR: put .Comma, .Equals under .BINARY_OPS
 		if (parser.token_type >= .BINARY_OPS_START && parser.token_type <= .BINARY_OPS_END) ||
 		   parser.token_type == .Comma ||
 		   parser.token_type == .Equals ||
@@ -744,13 +755,6 @@ parse_value :: proc(
 			parse_colon(parser, sb) or_return
 			continue
 		}
-		if parser.token_type == .Alphanumeric && parser.token == "as" {
-			debug_print(parser, "value.as")
-			start_comment(parser, sb)
-			next_token(parser, sb)
-			parse_value(parser, sb, stop_at) or_return
-			end_comment(parser, sb)
-		}
 		break
 	}
 	debug_print_end(parser, "value", prev_debug_indent)
@@ -765,16 +769,22 @@ parse_function_args :: proc(
 ) {
 	parse_left_bracket(parser, sb) or_return
 	for parser.token_type != .BracketRight {
+		is_this_type := false
 		if parser.token_type == .TripleDot {
 			next_token(parser, sb)
 			parse_name(parser, sb) or_return
 		} else {
+			is_this_type = parser.token == "this"
+			if is_this_type {start_comment(parser, sb)}
 			parse_destructuring(parser, sb) or_return
 		}
 		parse_question_mark_colon_equals_value(parser, sb) or_return
 		if parser.token_type == .Comma {
 			debug_print(parser, debug_name_cont)
-			next_token(parser, sb)
+			next_token(parser, sb, .Token)
+		}
+		if is_this_type {
+			end_comment(parser, sb, keep_space=false)
 		}
 	}
 	parse_right_bracket(parser, sb) or_return

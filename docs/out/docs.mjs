@@ -739,7 +739,7 @@ function _render(component/*: Component*/, parentNode/*: ParentNodeType*/, befor
         node.removeEventListener(key, oldValue /*as _EventListener*/);
         if (newValue) {
           const passive = key === "scroll" || key === "wheel";
-          node.addEventListener(key, newValue /*as _EventListener, {passive}*/);
+          node.addEventListener(key, newValue /*as _EventListener*/, {passive});
         }
       }
       _.prevBaseProps = inheritedBaseProps;
@@ -1214,8 +1214,8 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
     const newValue = String(number);
     const target = inputComponent._.prevNode /*as HTMLInputElement*/;
     target.value = newValue;
-    if (onRawInput) onRawInput({target} /*as unknown as InputEventWithTarget*/);
-    if (onInput) onInput({target} /*as unknown as InputEventWithTarget*/);
+    if (onRawInput) onRawInput({target} /*as unknown*/ /*as InputEventWithTarget*/);
+    if (onInput) onInput({target} /*as unknown*/ /*as InputEventWithTarget*/);
     if (onChange) onChange({target} /*as ChangeEventWithTarget*/);
   };
   const inputComponent = controlledInput({
@@ -1363,6 +1363,124 @@ export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
     onMount: () => {
       renderIfNeeded();
     }
+  }
+});
+function glCompileShader(gl/*: WebGL2RenderingContext*/, program/*: WebGLProgram*/, shaderType/*: number*/, shaderCode/*: string*/) {
+  const shader = gl.createShader(shaderType);
+  while (1) {
+    if (!shader) break;
+    gl.shaderSource(shader, shaderCode);
+    gl.compileShader(shader);
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) break;
+    gl.attachShader(program, shader);
+    return;
+  }
+  const ShaderTypeName/*: Record<any, string | undefined>*/ = {
+    [gl.VERTEX_SHADER]: ".VERTEX_SHADER",
+    [gl.FRAGMENT_SHADER]: ".FRAGMENT_SHADER",
+  };
+  const shaderLog = gl.getShaderInfoLog(shader/*!*/);
+  console.error(`Could not compile shader:\n${shaderLog}`, {
+    program,
+    shaderType: ShaderTypeName[shaderType] ?? shaderType,
+    shaderCode,
+    shader,
+  });
+}
+
+/*type GlBufferDescriptor = {
+  location: number;
+  count: 1 | 2 | 3 | 4;
+  type: number; // gl.FLOAT | ...
+}
+*//*type GlBufferInfo = GlBufferDescriptor & {
+  bufferIndex: WebGLBuffer;
+}*/;
+function glSetBuffer(gl/*: any*/, bufferInfo/*: GlBufferInfo*/, data/*: any*/) {
+  const {location, count, type, bufferIndex} = bufferInfo;
+  gl.bindBuffer(gl.ARRAY_BUFFER, bufferIndex);
+  gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
+
+  gl.enableVertexAttribArray(location);
+  gl.vertexAttribPointer(location, count, type, false, 0, 0);
+}
+
+/*type GLDataDescriptor = Record<string, GlBufferDescriptor>
+*//*type GLDataInfo = Record<string, GlBufferInfo> & {
+  _vao: WebGLVertexArrayObject;
+}*/;
+/*type WebGLState = {
+  vertexCode: string;
+  fragmentCode: string;
+  gl: WebGL2RenderingContext;
+  data: Record<string, GLDataInfo>;
+}*/;
+/*export type WebGLProps = {
+  vertex?: string;
+  fragment?: string;
+  data?: (state: WebGLState) => Record<string, GLDataDescriptor>;
+  render?: (state: WebGLState) => void;
+}
+*/export const webgl = makeComponent(function webgl(props/*: WebGLProps*/) {
+  const {
+    vertex,
+    fragment,
+    data,
+    render = ({gl}) => {
+    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+  }} = props;
+  const node = this.useNode(() => document.createElement("canvas"));
+  /*type PartiallyUninitialized<T, K extends keyof T> = Omit<T, K> & {[K2 in K]: T[K2] | null}*/;
+  /*type WebGlStateUninitialized = PartiallyUninitialized<WebGLState, 'gl' | 'data'>*/;
+  const [state] = this.useState/*<WebGlStateUninitialized>*/({
+    vertexCode: '',
+    fragmentCode: '',
+    gl: null,
+    data: null,
+  });
+  if (state.gl == null) {
+    const gl = node.getContext("webgl2");
+    if (!gl) return;
+    state.gl = gl;
+    // compile shaders
+    const DEFAULT_SHADER_VERSION = "#version 300 es\n";
+    const DEFAULT_FLOAT_PRECISION = "precision highp float;\n"
+    const program = gl.createProgram();
+    if (vertex) {
+      state.vertexCode = vertex.startsWith("#version ") ? vertex : DEFAULT_SHADER_VERSION + vertex;
+      glCompileShader(gl, program, gl.VERTEX_SHADER, state.vertexCode);
+    }
+    if (fragment) {
+      state.fragmentCode = fragment.startsWith("#version ") ? fragment : DEFAULT_SHADER_VERSION + DEFAULT_FLOAT_PRECISION + fragment;
+      glCompileShader(gl, program, gl.FRAGMENT_SHADER, state.fragmentCode);
+    }
+    gl.linkProgram(program);
+    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+      const programLog = gl.getProgramInfoLog(program);
+      console.error(`Error linking shader program:\n${programLog}`, {program});
+    }
+    gl.useProgram(program);
+    // init buffers
+    if (data) {
+      const newDataInfos = data(state /*as WebGLState*/) /*as Record<string, GLDataInfo>*/;
+      for (let dataInfo of Object.values(newDataInfos)) {
+        const vao = gl.createVertexArray();
+        gl.bindVertexArray(vao);
+        for (let b of Object.keys(dataInfo)) {
+          const bufferInfo = dataInfo[b];
+          bufferInfo.bufferIndex = gl.createBuffer();
+        }
+        dataInfo._vao = vao;
+      }
+      state.data = newDataInfos;
+    }
+  }
+  // render
+  const gl = state.gl;
+  if (gl != null) {
+    gl.viewport(0, 0, node.width, node.height);
+    render(state /*as WebGLState*/);
   }
 });
 export const loadingSpinner = makeComponent(function loadingSpinner(props/*: IconProps*/ = {}) {
@@ -2494,6 +2612,65 @@ export const webgpuPage = makeComponent(function webgpuPage() {
     }
   }))
 });
+export const webglPage = makeComponent(function webglPage() {
+  this.append(webgl({
+    vertex: `
+      in vec2 v_position;
+      in vec3 v_color;
+      out vec3 f_color;
+      void main() {
+        gl_Position = vec4(v_position, 0, 1);
+        f_color = v_color;
+      }
+    `,
+    fragment: `
+      in vec3 f_color;
+      out vec4 out_color;
+      void main() {
+        out_color = vec4(f_color, 1);
+      }
+    `,
+    data: ({gl}) => ({
+      triangle: {
+        position: {location: 0, count: 2, type: gl.FLOAT},
+        color: {location: 1, count: 3, type: gl.FLOAT},
+      },
+      square: {
+        position: {location: 0, count: 2, type: gl.FLOAT},
+      },
+    }),
+    render: ({gl, data}) => {
+      // triangle
+      gl.bindVertexArray(data.triangle._vao);
+      glSetBuffer(gl, data.triangle.position, new Float32Array([
+        -1, -1,
+        -1, +1,
+        +1, +1,
+      ]));
+      glSetBuffer(gl, data.triangle.color, new Float32Array([
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+      ]));
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+      // square
+      gl.bindVertexArray(data.square._vao);
+      glSetBuffer(gl, data.square.position, new Float32Array([
+        -0.3, -0.3,
+        -0.3, +0.3,
+        +0.3, +0.3,
+        +0.3, -0.3,
+      ]));
+      glSetBuffer(gl, data.triangle.color, new Float32Array([
+        1, 0, 0,
+        1, 0, 0,
+        1, 0, 0,
+        1, 0, 0,
+      ]));
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+    }
+  }));
+})
 export const tabsPage = makeComponent(function tabsPage() {
     const [state, setState] = this.useState({selectedTab: 0 /*as string | number*/});
 
@@ -2762,6 +2939,7 @@ export const DOCS_SECTIONS/*: DocsSection[]*/ = [
         {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
         {id: "table", label: "Table", component: tablePage},
         {id: "tabs", label: "Tabs", component: tabsPage},
+        {id: "webgl", label: "WebGL", component: webglPage},
         {id: "webgpu", label: "WebGPU", component: webgpuPage},
     ],
   },

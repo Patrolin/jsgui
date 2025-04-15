@@ -11,6 +11,7 @@ import { webgpuPage } from '../components/displays/webgpuPage.mts';
 import { anchorPage, buttonPage, htmlPage, iconPage, spanPage } from '../components/basicsSection.mts';
 import { routerPage } from '../components/displays/routerPage.mts';
 import { jsFormatter } from '../utils/components/formatter.mts';
+import { webglPage } from '../components/displays/webglPage.mts';
 
 export const DOCS_SECTIONS: DocsSection[] = [
   {
@@ -35,6 +36,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
         {id: "mediaQuery", label: "Media query", component: mediaQueryPage},
         {id: "table", label: "Table", component: tablePage},
         {id: "tabs", label: "Tabs", component: tabsPage},
+        {id: "webgl", label: "WebGL", component: webglPage},
         {id: "webgpu", label: "WebGPU", component: webgpuPage},
     ],
   },
