@@ -522,6 +522,9 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 			}
 		case .String:
 			next_token(parser, sb)
+		case .InterpolatedString:
+			// NOTE: you can do weird stuff like Record<`v_${string}`, number>
+			next_token(parser, sb)
 		case .BracketLeft:
 			lookahead := parser^
 			parse_until_end_of_bracket(&lookahead, nil) // NOTE: we can use the fast path here
@@ -555,6 +558,11 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		}
 		for parser.token_type == .BracketLeftSquare {
 			next_token(parser, sb)
+			#partial switch parser.token_type {
+			case .String:
+				next_token(parser, sb)
+			// TODO: also allow numbers
+			}
 			parse_right_bracket_square(parser, sb) or_return
 		}
 		if parser.token_type == .BinaryAnd ||

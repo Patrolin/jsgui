@@ -34,29 +34,84 @@ function glCompileProgram(gl: WebGL2RenderingContext, programInfo: GLProgramInfo
   }
   gl.useProgram(program);
 }
+function glDecodeVertexAttributeType(gl: WebGL2RenderingContext, flatType: GLenum): [GLenum, number] {
+  switch (flatType) {
+  /* WebGL */
+  case gl.FLOAT:
+    return [gl.FLOAT, 1];
+  case gl.FLOAT_VEC2:
+    return [gl.FLOAT, 2];
+  case gl.FLOAT_VEC3:
+    return [gl.FLOAT, 3];
+  case gl.FLOAT_VEC4:
+    return [gl.FLOAT, 4];
+  case gl.FLOAT_MAT2:
+    return [gl.FLOAT, 4];
+  case gl.FLOAT_MAT3:
+    return [gl.FLOAT, 9];
+  case gl.FLOAT_MAT4:
+    return [gl.FLOAT, 16];
+  // NOTE: non-square matrices are only valid as uniforms
+  /* WebGL2 */
+  case gl.INT:
+    return [gl.INT, 1];
+  case gl.INT_VEC2:
+    return [gl.INT, 2];
+  case gl.INT_VEC3:
+    return [gl.INT, 3];
+  case gl.INT_VEC4:
+    return [gl.INT, 4];
+  case gl.UNSIGNED_INT:
+    return [gl.UNSIGNED_INT, 1];
+  case gl.UNSIGNED_INT_VEC2:
+    return [gl.UNSIGNED_INT, 2];
+  case gl.UNSIGNED_INT_VEC3:
+    return [gl.UNSIGNED_INT, 3];
+  case gl.UNSIGNED_INT_VEC4:
+    return [gl.UNSIGNED_INT, 4];
+  }
+  console.error('Uknown vertexAttribute type:', {flatType});
+  return [-1, -1];
+}
+// user utils
+export function glUseProgram(gl: WebGL2RenderingContext, programInfo: GLProgramInfo) {
+  gl.useProgram(programInfo.program);
+  gl.bindVertexArray(programInfo.vao);
+}
 export function glSetBuffer(gl: WebGL2RenderingContext, bufferInfo: GLBufferInfo, data: any) {
   const {location, count, type, bufferIndex} = bufferInfo;
   gl.bindBuffer(gl.ARRAY_BUFFER, bufferIndex);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
-  gl.enableVertexAttribArray(location);
-  gl.vertexAttribPointer(location, count, type, false, 0, 0);
+  if (type === gl.FLOAT) {
+    let currentLocation = location;
+    let remainingCount = count;
+    while (remainingCount >= 4) {
+      gl.enableVertexAttribArray(currentLocation);
+      gl.vertexAttribPointer(currentLocation++, 4, type, false, 0, 0);
+      remainingCount -= 4;
+    }
+    if (remainingCount > 0) {
+      gl.enableVertexAttribArray(currentLocation);
+      gl.vertexAttribPointer(currentLocation++, remainingCount, type, false, 0, 0);
+    }
+  } else {
+    gl.enableVertexAttribArray(location);
+    gl.vertexAttribIPointer(location, count, type, 0, 0);
+  }
 }
 
 // data
-export type GLBufferDescriptor = {
+export type GLBufferInfo = {
   location: number;
-  count: 1 | 2 | 3 | 4;
-  type: number; // gl.FLOAT | ...
-}
-export type GLBufferInfo = GLBufferDescriptor & {
+  count: number; // can be >4 for matrices
+  type: GLenum; // gl.FLOAT | ...
   bufferIndex: WebGLBuffer;
 };
 
 export type GLProgramDescriptor = {
   vertex: string;
   fragment: string;
-  buffers: Record<string, GLBufferDescriptor>;
 };
 export type GLProgramInfo = {
   program: WebGLProgram;
@@ -64,18 +119,15 @@ export type GLProgramInfo = {
   fragment: string;
   vao: WebGLVertexArrayObject;
   buffers: Record<string, GLBufferInfo>;
-};
+} & Record<`v_${string}`, GLBufferInfo> & Record<`u_${string}`, WebGLUniformLocation>;
 
 // component
-type WebGLStateDescriptor = {
-  gl: WebGL2RenderingContext;
-};
 type WebGLState = {
   gl: WebGL2RenderingContext;
   programs: Record<string, GLProgramInfo>;
 };
 export type WebGLProps = {
-  programs: (state: WebGLStateDescriptor) => Record<string, GLProgramDescriptor>;
+  programs: Record<string, GLProgramDescriptor>;
   render?: (state: WebGLState) => void;
 }
 export const webgl = makeComponent(function webgl(props: WebGLProps) {
@@ -97,23 +149,58 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
     if (!gl) return;
     state.gl = gl;
     // init shaders
-    state.programs = programs(state as WebGLStateDescriptor) as Record<string, GLProgramInfo>;
+    state.programs = {};
     const DEFAULT_SHADER_VERSION = "#version 300 es\n";
     const DEFAULT_FLOAT_PRECISION = "precision highp float;\n"
     const addShaderHeader = (headerCode: string, shaderCode: string) => {
-      return shaderCode.startsWith("#version") ? shaderCode : headerCode + shaderCode
+      return shaderCode.trimStart().startsWith("#version") ? shaderCode : headerCode + shaderCode
     }
-    for (let programInfo of Object.values(state.programs)) {
+    for (let [k, _programInfo] of Object.entries(programs)) {
+      const programInfo = _programInfo as GLProgramInfo;
+      state.programs[k] = programInfo;
       // compile
       programInfo.program = gl.createProgram();
       programInfo.vertex = addShaderHeader(DEFAULT_SHADER_VERSION, programInfo.vertex);
       programInfo.fragment = addShaderHeader(DEFAULT_SHADER_VERSION + DEFAULT_FLOAT_PRECISION, programInfo.fragment);
       glCompileProgram(gl, programInfo);
-      // init buffers
-      programInfo.vao = gl.createVertexArray(); // vao means buffer[]
+      // init vertex buffers
+      programInfo.vao = gl.createVertexArray(); // vao means vertexBuffer[]
       gl.bindVertexArray(programInfo.vao);
-      for (let bufferInfo of Object.values(programInfo.buffers)) {
-        bufferInfo.bufferIndex = gl.createBuffer();
+      const vertexBufferCount = gl.getProgramParameter(programInfo.program, gl.ACTIVE_ATTRIBUTES);
+      for (let i = 0; i < vertexBufferCount; i++) {
+        const vertexAttribute = gl.getActiveAttrib(programInfo.program, i);
+        if (vertexAttribute == null) {
+          console.error(`Couldn't get vertexAttribute:`, {i});
+          continue
+        }
+        const vertexAttributeLocation = gl.getAttribLocation(programInfo.program, vertexAttribute.name);
+        if (vertexAttributeLocation == null) {
+          console.error(`Couldn't get vertexAttribute location:`, {i, vertexAttribute});
+          continue
+        }
+        const [type, count] = glDecodeVertexAttributeType(gl, vertexAttribute.type);
+        console.log('ayaya.vertexAttribute', {vertexAttribute, vertexAttributeLocation});
+        programInfo[vertexAttribute.name as `v_${string}`] = {
+          location: vertexAttributeLocation,
+          count,
+          type,
+          bufferIndex: gl.createBuffer(),
+        };
+      }
+      // get uniform locations
+      const uniformCount = gl.getProgramParameter(programInfo.program, gl.ACTIVE_UNIFORMS);
+      for (let i = 0; i < uniformCount; i++) {
+        const uniform = gl.getActiveUniform(programInfo.program, i);
+        if (uniform == null) {
+          console.error(`Couldn't get uniform:`, {i});
+          continue
+        }
+        const uniformLocation = gl.getUniformLocation(programInfo.program, uniform.name);
+        if (uniformLocation == null) {
+          console.error(`Couldn't get uniform location:`, {i, uniform});
+          continue
+        }
+        programInfo[uniform.name as `u_${string}`] = uniformLocation;
       }
     }
   }
