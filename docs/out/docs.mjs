@@ -1387,16 +1387,18 @@ function glCompileShader(gl/*: WebGL2RenderingContext*/, program/*: WebGLProgram
     shader,
   });
 }
-
-/*type GlBufferDescriptor = {
-  location: number;
-  count: 1 | 2 | 3 | 4;
-  type: number; // gl.FLOAT | ...
+function glCompileProgram(gl/*: WebGL2RenderingContext*/, programInfo/*: GLProgramInfo*/) {
+  const {program, vertex, fragment} = programInfo;
+  glCompileShader(gl, program, gl.VERTEX_SHADER, vertex);
+  glCompileShader(gl, program, gl.FRAGMENT_SHADER, fragment);
+  gl.linkProgram(program);
+  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    const programLog = gl.getProgramInfoLog(program);
+    console.error(`Error linking shader program:\n${programLog}`, {program});
+  }
+  gl.useProgram(program);
 }
-*//*type GlBufferInfo = GlBufferDescriptor & {
-  bufferIndex: WebGLBuffer;
-}*/;
-function glSetBuffer(gl/*: any*/, bufferInfo/*: GlBufferInfo*/, data/*: any*/) {
+function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*/, data/*: any*/) {
   const {location, count, type, bufferIndex} = bufferInfo;
   gl.bindBuffer(gl.ARRAY_BUFFER, bufferIndex);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
@@ -1405,75 +1407,78 @@ function glSetBuffer(gl/*: any*/, bufferInfo/*: GlBufferInfo*/, data/*: any*/) {
   gl.vertexAttribPointer(location, count, type, false, 0, 0);
 }
 
-/*type GLDataDescriptor = Record<string, GlBufferDescriptor>
-*//*type GLDataInfo = Record<string, GlBufferInfo> & {
-  _vao: WebGLVertexArrayObject;
+// data
+/*export type GLBufferDescriptor = {
+  location: number;
+  count: 1 | 2 | 3 | 4;
+  type: number; // gl.FLOAT | ...
+}
+*//*export type GLBufferInfo = GLBufferDescriptor & {
+  bufferIndex: WebGLBuffer;
+}*/;
+
+/*export type GLProgramDescriptor = {
+  vertex: string;
+  fragment: string;
+  buffers: Record<string, GLBufferDescriptor>;
+}*/;
+/*export type GLProgramInfo = {
+  program: WebGLProgram;
+  vertex: string;
+  fragment: string;
+  vao: WebGLVertexArrayObject;
+  buffers: Record<string, GLBufferInfo>;
+}*/;
+
+// component
+/*type WebGLStateDescriptor = {
+  gl: WebGL2RenderingContext;
 }*/;
 /*type WebGLState = {
-  vertexCode: string;
-  fragmentCode: string;
   gl: WebGL2RenderingContext;
-  data: Record<string, GLDataInfo>;
+  programs: Record<string, GLProgramInfo>;
 }*/;
 /*export type WebGLProps = {
-  vertex?: string;
-  fragment?: string;
-  data?: (state: WebGLState) => Record<string, GLDataDescriptor>;
+  programs: (state: WebGLStateDescriptor) => Record<string, GLProgramDescriptor>;
   render?: (state: WebGLState) => void;
 }
 */export const webgl = makeComponent(function webgl(props/*: WebGLProps*/) {
   const {
-    vertex,
-    fragment,
-    data,
+    programs,
     render = ({gl}) => {
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-  }} = props;
+      gl.clearColor(0.0, 0.0, 0.0, 1.0);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+    }} = props;
   const node = this.useNode(() => document.createElement("canvas"));
   /*type PartiallyUninitialized<T, K extends keyof T> = Omit<T, K> & {[K2 in K]: T[K2] | null}*/;
-  /*type WebGlStateUninitialized = PartiallyUninitialized<WebGLState, 'gl' | 'data'>*/;
+  /*type WebGlStateUninitialized = PartiallyUninitialized<WebGLState, 'gl' | 'programs'>*/;
   const [state] = this.useState/*<WebGlStateUninitialized>*/({
-    vertexCode: '',
-    fragmentCode: '',
     gl: null,
-    data: null,
+    programs: null,
   });
   if (state.gl == null) {
     const gl = node.getContext("webgl2");
     if (!gl) return;
     state.gl = gl;
-    // compile shaders
+    // init shaders
+    state.programs = programs(state /*as WebGLStateDescriptor*/) /*as Record<string, GLProgramInfo>*/;
     const DEFAULT_SHADER_VERSION = "#version 300 es\n";
     const DEFAULT_FLOAT_PRECISION = "precision highp float;\n"
-    const program = gl.createProgram();
-    if (vertex) {
-      state.vertexCode = vertex.startsWith("#version ") ? vertex : DEFAULT_SHADER_VERSION + vertex;
-      glCompileShader(gl, program, gl.VERTEX_SHADER, state.vertexCode);
+    const addShaderHeader = (headerCode/*: string*/, shaderCode/*: string*/) => {
+      return shaderCode.startsWith("#version") ? shaderCode : headerCode + shaderCode
     }
-    if (fragment) {
-      state.fragmentCode = fragment.startsWith("#version ") ? fragment : DEFAULT_SHADER_VERSION + DEFAULT_FLOAT_PRECISION + fragment;
-      glCompileShader(gl, program, gl.FRAGMENT_SHADER, state.fragmentCode);
-    }
-    gl.linkProgram(program);
-    if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      const programLog = gl.getProgramInfoLog(program);
-      console.error(`Error linking shader program:\n${programLog}`, {program});
-    }
-    gl.useProgram(program);
-    // init buffers
-    if (data) {
-      const newDataInfos = data(state /*as WebGLState*/) /*as Record<string, GLDataInfo>*/;
-      for (let dataInfo of Object.values(newDataInfos)) {
-        const vao = gl.createVertexArray();
-        gl.bindVertexArray(vao);
-        for (let b of Object.keys(dataInfo)) {
-          const bufferInfo = dataInfo[b];
-          bufferInfo.bufferIndex = gl.createBuffer();
-        }
-        dataInfo._vao = vao;
+    for (let programInfo of Object.values(state.programs)) {
+      // compile
+      programInfo.program = gl.createProgram();
+      programInfo.vertex = addShaderHeader(DEFAULT_SHADER_VERSION, programInfo.vertex);
+      programInfo.fragment = addShaderHeader(DEFAULT_SHADER_VERSION + DEFAULT_FLOAT_PRECISION, programInfo.fragment);
+      glCompileProgram(gl, programInfo);
+      // init buffers
+      programInfo.vao = gl.createVertexArray(); // vao means buffer[]
+      gl.bindVertexArray(programInfo.vao);
+      for (let bufferInfo of Object.values(programInfo.buffers)) {
+        bufferInfo.bufferIndex = gl.createBuffer();
       }
-      state.data = newDataInfos;
     }
   }
   // render
@@ -2614,58 +2619,72 @@ export const webgpuPage = makeComponent(function webgpuPage() {
 });
 export const webglPage = makeComponent(function webglPage() {
   this.append(webgl({
-    vertex: `
-      in vec2 v_position;
-      in vec3 v_color;
-      out vec3 f_color;
-      void main() {
-        gl_Position = vec4(v_position, 0, 1);
-        f_color = v_color;
-      }
-    `,
-    fragment: `
-      in vec3 f_color;
-      out vec4 out_color;
-      void main() {
-        out_color = vec4(f_color, 1);
-      }
-    `,
-    data: ({gl}) => ({
-      triangle: {
-        position: {location: 0, count: 2, type: gl.FLOAT},
-        color: {location: 1, count: 3, type: gl.FLOAT},
+    programs: ({gl}) => ({
+      gradient: {
+        vertex: `
+          in vec2 in_position;
+          in vec3 in_color;
+          out vec3 v_color;
+          void main() {
+            gl_Position = vec4(in_position, 0, 1);
+            v_color = in_color;
+          }
+        `,
+        fragment: `
+          in vec3 v_color;
+          out vec4 f_color;
+          void main() {
+            f_color = vec4(v_color, 1);
+          }
+        `,
+        buffers: {
+          position: {location: 0, count: 2, type: gl.FLOAT},
+          color: {location: 1, count: 3, type: gl.FLOAT},
+        },
       },
-      square: {
-        position: {location: 0, count: 2, type: gl.FLOAT},
+      flatColor: {
+        vertex: `
+          in vec2 in_position;
+          void main() {
+            gl_Position = vec4(in_position, 0, 1);
+          }
+        `,
+        fragment: `
+          out vec4 f_color;
+          void main() {
+            f_color = vec4(1, 0, 0, 1);
+          }
+        `,
+        buffers: {
+          position: {location: 0, count: 2, type: gl.FLOAT},
+        }
       },
     }),
-    render: ({gl, data}) => {
-      // triangle
-      gl.bindVertexArray(data.triangle._vao);
-      glSetBuffer(gl, data.triangle.position, new Float32Array([
+    render: ({gl, programs}) => {
+      // draw triangle
+      const gradient = programs.gradient;
+      gl.useProgram(gradient.program);
+      gl.bindVertexArray(gradient.vao);
+      glSetBuffer(gl, gradient.buffers.position, new Float32Array([
         -1, -1,
         -1, +1,
         +1, +1,
       ]));
-      glSetBuffer(gl, data.triangle.color, new Float32Array([
+      glSetBuffer(gl, gradient.buffers.color, new Float32Array([
         1, 0, 0,
         0, 1, 0,
         0, 0, 1,
       ]));
       gl.drawArrays(gl.TRIANGLES, 0, 3);
-      // square
-      gl.bindVertexArray(data.square._vao);
-      glSetBuffer(gl, data.square.position, new Float32Array([
+      // draw square
+      const flatColor = programs.flatColor;
+      gl.useProgram(flatColor.program);
+      gl.bindVertexArray(flatColor.vao);
+      glSetBuffer(gl, flatColor.buffers.position, new Float32Array([
         -0.3, -0.3,
         -0.3, +0.3,
         +0.3, +0.3,
         +0.3, -0.3,
-      ]));
-      glSetBuffer(gl, data.triangle.color, new Float32Array([
-        1, 0, 0,
-        1, 0, 0,
-        1, 0, 0,
-        1, 0, 0,
       ]));
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
