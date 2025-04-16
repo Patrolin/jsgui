@@ -83,17 +83,21 @@ export function glSetBuffer(gl: WebGL2RenderingContext, bufferInfo: GLBufferInfo
   gl.bindBuffer(gl.ARRAY_BUFFER, bufferIndex);
   gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);
 
+  const FLOAT_SIZE = 4; // we are assuming `#precision highp float;`
   if (type === gl.FLOAT) {
     let currentLocation = location;
     let remainingCount = count;
+    const stride = count * FLOAT_SIZE;
+    let currentOffset = 0;
     while (remainingCount >= 4) {
       gl.enableVertexAttribArray(currentLocation);
-      gl.vertexAttribPointer(currentLocation++, 4, type, false, 0, 0);
+      gl.vertexAttribPointer(currentLocation++, 4, type, false, stride, currentOffset);
       remainingCount -= 4;
+      currentOffset += 4 * FLOAT_SIZE;
     }
     if (remainingCount > 0) {
       gl.enableVertexAttribArray(currentLocation);
-      gl.vertexAttribPointer(currentLocation++, remainingCount, type, false, 0, 0);
+      gl.vertexAttribPointer(currentLocation++, remainingCount, type, false, stride, currentOffset);
     }
   } else {
     gl.enableVertexAttribArray(location);
