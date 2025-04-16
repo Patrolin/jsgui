@@ -179,7 +179,6 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
           continue
         }
         const [type, count] = glDecodeVertexAttributeType(gl, vertexAttribute.type);
-        console.log('ayaya.vertexAttribute', {vertexAttribute, vertexAttributeLocation});
         programInfo[vertexAttribute.name as `v_${string}`] = {
           location: vertexAttributeLocation,
           count,
