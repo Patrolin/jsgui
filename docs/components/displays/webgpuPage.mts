@@ -25,11 +25,10 @@ export const webgpuPage = makeComponent(function webgpuPage() {
     }
   `;
   row.append(webgpu({
-    width: 64,
-    height: 64,
+    style: {width: 150, height: 150},
     shaderCode,
-    render: ({context, device, shaderModule}) => {
-      const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
+    init: ({gpu, device, shaderModule}) => {
+      // NOTE: copy paste from MDN
       // Vertex data for triangle
       // Each vertex has 8 values representing position and color: X Y Z W R G B A
       const vertices = new Float32Array([
@@ -37,7 +36,7 @@ export const webgpuPage = makeComponent(function webgpuPage() {
        -0.5, -0.6, 0, 1, 0, 1, 0, 1,
         0.5, -0.6, 0, 1, 0, 0, 1, 1
       ]);
-      // NOTE: copy paste from MDN
+
       const vertexBuffer = device.createBuffer({
         size: vertices.byteLength, // make it big enough to store vertices in
         usage: window['GPUBufferUsage'].VERTEX | window['GPUBufferUsage'].COPY_DST,
@@ -71,7 +70,7 @@ export const webgpuPage = makeComponent(function webgpuPage() {
           module: shaderModule,
           entryPoint: 'fragment_main',
           targets: [{
-            format: navigator['gpu'].getPreferredCanvasFormat()
+            format: gpu.getPreferredCanvasFormat()
           }]
         },
         primitive: {
@@ -83,31 +82,35 @@ export const webgpuPage = makeComponent(function webgpuPage() {
       // 6: Create the actual render pipeline
       const renderPipeline = device.createRenderPipeline(pipelineDescriptor); // TODO: can we store the descriptors and pipeline?
 
-      // 7: Create GPUCommandEncoder to issue commands to the GPU
-      // Note: render pass descriptor, command encoder, etc. are destroyed after use, fresh one needed for each frame.
-      const commandEncoder = device.createCommandEncoder();
+      return {
+        vertexBuffer,
+        renderPipeline,
+      };
+    },
+    render: ({context, device, data}) => {
+      const {vertexBuffer, renderPipeline} = data;
 
-      // 8: Create GPURenderPassDescriptor to tell WebGPU which texture to draw into, then initiate render pass
+      // swap buffers
       const renderPassDescriptor = {
         colorAttachments: [{
-          clearValue: clearColor,
+          clearValue: {r: 0.0, g: 0.5, b: 1.0, a: 1.0},
           loadOp: 'clear',
           storeOp: 'store',
           view: context.getCurrentTexture().createView(),
         }]
       };
 
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+      // create command buffer
+      const commandEncoder = device.createCommandEncoder();
 
-      // 9: Draw the triangle
-      passEncoder.setPipeline(renderPipeline);
-      passEncoder.setVertexBuffer(0, vertexBuffer);
-      passEncoder.draw(3);
+      // create a draw triangles command
+      const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setVertexBuffer(0, vertexBuffer);
+      renderPass.draw(3);
+      renderPass.end();
 
-      // End the render pass
-      passEncoder.end();
-
-      // 10: End frame by passing array of command buffers to command queue for execution
+      // submit commands
       device.queue.submit([commandEncoder.finish()]);
     }
   }))

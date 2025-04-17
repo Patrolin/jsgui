@@ -1271,17 +1271,18 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   }));
   if (error) this.append(errorMessage(error));
 });
-/*type GPUType = {
-  requestAdapter(): Promise<AdapterType>;
+/*type _GPU = {
+  requestAdapter(): Promise<_GPUAdapter>;
   getPreferredCanvasFormat(): any;
 }*/;
-/*type AdapterType = {
-  requestDevice(): Promise<DeviceType>;
+/*type _GPUAdapter = {
+  requestDevice(): Promise<_GPUDevice>;
 }*/;
-/*type DeviceType = {
-  createShaderModule(options: {code: string}): ShaderModuleType;
+/*type _GPUDevice = {
+  createShaderModule(options: {code: string}): _GPUShaderModule;
 }*/;
-/*type ShaderModuleType = {}*/;
+
+/*type _GPUShaderModule = any*/;
 /*declare global {
   interface Window {
     GPUBufferUsage: {
@@ -1298,71 +1299,72 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
     }
   }
   interface Navigator {
-    gpu: GPUType | undefined;
+    gpu: _GPU | undefined;
   }
-}*/
+}
 
-/*type ContextType = any*/;
+*//*type WebgpuContextType = {
+  configure: (options: any) => void;
+}*/;
+
+/* component */
 /*type WebgpuRenderProps = {
-  context: ContextType;
+  // NOTE: any because we don't have the complete types..
+  gpu: any;
+  context: any;
   device: any;
   shaderModule: any;
+  data: any; // custom user data
 }*/;
 /*type WebgpuProps = {
-  width: number;
-  height: number;
   shaderCode: string;
-  render: (renderProps: WebgpuRenderProps) => void
+  init?: (props: WebgpuRenderProps) => any;
+  render?: (props: WebgpuRenderProps) => void;
 } & BaseProps*/;
 export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
-  const {width, height, shaderCode, render} = props;
+  const {shaderCode, init, render} = props;
   const [state] = this.useState({
     _isDeviceInitialized: false,
-    context: null /*as ContextType | null*/,
-    device: null /*as DeviceType | null*/,
+    device: null /*as _GPUDevice | null*/,
     shaderModule: null /*as any*/,
+    context: null /*as WebgpuContextType | null*/,
+    data: null /*as any*/,
   });
   const node = this.useNode(() => document.createElement("canvas"));
-  node.width = width;
-  node.height = height;
-  this.baseProps.style.width = width;
-  this.baseProps.style.height = height;
-  // WebGPU
-  const renderIfNeeded = () => {
-    if (!state.context && state.device) {
-      state.context = node.getContext("webgpu");
-      (state.context /*as any*/).configure({
-        device: state.device,
-        format: (navigator /*as any*/).gpu?.getPreferredCanvasFormat(),
-        alphaMode: 'premultiplied',
-      });
-    }
-    if (state.context && state.device && state.shaderModule) render({context: state.context, device: state.device, shaderModule: state.shaderModule});
-  };
+
+  const {gpu} = navigator;
   if (!state._isDeviceInitialized) {
     state._isDeviceInitialized = true;
-    const gpu = (navigator /*as any*/).gpu;
     if (!gpu) {
       console.error("WebGPU is not supported in this browser.")
       return;
     }
-    gpu.requestAdapter().then((adapter/*: any*/) => {
+    gpu.requestAdapter().then((adapter) => {
       if (!adapter) {
         console.error("Couldn't request WebGPU adapter.");
         return;
       }
-      adapter.requestDevice().then((device/*: any*/) => {
+      adapter.requestDevice().then((device) => {
         state.device = device;
         // TODO: create/delete shaders dynamically (device.destroy()?)?
         state.shaderModule = device.createShaderModule({code: shaderCode});
-        renderIfNeeded();
+        this.rerender();
       });
     });
   }
-  return {
-    onMount: () => {
-      renderIfNeeded();
+  if (!state.context && state.device) {
+    state.context = node.getContext("webgpu") /*as unknown*/ /*as WebgpuContextType | null*/;
+    state.context?.configure({
+      device: state.device,
+      format: gpu?.getPreferredCanvasFormat(),
+      alphaMode: 'premultiplied',
+    });
+    if (init) {
+      state.data = init({gpu, ...state});
     }
+  }
+  if (state.context && state.device && state.shaderModule && render) {
+    render({gpu, ...state});
   }
 });
 function glCompileShader(gl/*: WebGL2RenderingContext*/, program/*: WebGLProgram*/, shaderType/*: number*/, shaderCode/*: string*/) {
@@ -2620,11 +2622,10 @@ export const webgpuPage = makeComponent(function webgpuPage() {
     }
   `;
   row.append(webgpu({
-    width: 64,
-    height: 64,
+    style: {width: 150, height: 150},
     shaderCode,
-    render: ({context, device, shaderModule}) => {
-      const clearColor = { r: 0.0, g: 0.5, b: 1.0, a: 1.0 };
+    init: ({gpu, device, shaderModule}) => {
+      // NOTE: copy paste from MDN
       // Vertex data for triangle
       // Each vertex has 8 values representing position and color: X Y Z W R G B A
       const vertices = new Float32Array([
@@ -2632,7 +2633,7 @@ export const webgpuPage = makeComponent(function webgpuPage() {
        -0.5, -0.6, 0, 1, 0, 1, 0, 1,
         0.5, -0.6, 0, 1, 0, 0, 1, 1
       ]);
-      // NOTE: copy paste from MDN
+
       const vertexBuffer = device.createBuffer({
         size: vertices.byteLength, // make it big enough to store vertices in
         usage: window['GPUBufferUsage'].VERTEX | window['GPUBufferUsage'].COPY_DST,
@@ -2666,7 +2667,7 @@ export const webgpuPage = makeComponent(function webgpuPage() {
           module: shaderModule,
           entryPoint: 'fragment_main',
           targets: [{
-            format: navigator['gpu'].getPreferredCanvasFormat()
+            format: gpu.getPreferredCanvasFormat()
           }]
         },
         primitive: {
@@ -2678,31 +2679,35 @@ export const webgpuPage = makeComponent(function webgpuPage() {
       // 6: Create the actual render pipeline
       const renderPipeline = device.createRenderPipeline(pipelineDescriptor); // TODO: can we store the descriptors and pipeline?
 
-      // 7: Create GPUCommandEncoder to issue commands to the GPU
-      // Note: render pass descriptor, command encoder, etc. are destroyed after use, fresh one needed for each frame.
-      const commandEncoder = device.createCommandEncoder();
+      return {
+        vertexBuffer,
+        renderPipeline,
+      };
+    },
+    render: ({context, device, data}) => {
+      const {vertexBuffer, renderPipeline} = data;
 
-      // 8: Create GPURenderPassDescriptor to tell WebGPU which texture to draw into, then initiate render pass
+      // swap buffers
       const renderPassDescriptor = {
         colorAttachments: [{
-          clearValue: clearColor,
+          clearValue: {r: 0.0, g: 0.5, b: 1.0, a: 1.0},
           loadOp: 'clear',
           storeOp: 'store',
           view: context.getCurrentTexture().createView(),
         }]
       };
 
-      const passEncoder = commandEncoder.beginRenderPass(renderPassDescriptor);
+      // create command buffer
+      const commandEncoder = device.createCommandEncoder();
 
-      // 9: Draw the triangle
-      passEncoder.setPipeline(renderPipeline);
-      passEncoder.setVertexBuffer(0, vertexBuffer);
-      passEncoder.draw(3);
+      // create a draw triangles command
+      const renderPass = commandEncoder.beginRenderPass(renderPassDescriptor);
+      renderPass.setPipeline(renderPipeline);
+      renderPass.setVertexBuffer(0, vertexBuffer);
+      renderPass.draw(3);
+      renderPass.end();
 
-      // End the render pass
-      passEncoder.end();
-
-      // 10: End frame by passing array of command buffers to command queue for execution
+      // submit commands
       device.queue.submit([commandEncoder.finish()]);
     }
   }))

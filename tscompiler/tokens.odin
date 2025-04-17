@@ -18,6 +18,7 @@ TokenType :: enum {
 	String,
 	InterpolatedString,
 	Regex,
+	Numeric,
 	Alphanumeric,
 	// 3 length
 	TripleDot,
@@ -182,6 +183,15 @@ _parse_until_next_token :: proc(
 	parser.j = j
 	parser.token = parser.file[i:j]
 }
+
+is_decimal :: #force_inline proc(char: u8) -> bool {
+	return (char >= '0') && (char <= '9')
+}
+is_hexadecimal :: #force_inline proc(char: u8) -> bool {
+	is_lowercase_hexadecimal := (char >= 'a' && char <= 'f')
+	is_uppercase_hexadecimal := (char >= 'A' && char <= 'F')
+	return is_decimal(char) || is_lowercase_hexadecimal || is_uppercase_hexadecimal
+}
 @(private)
 _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenType {
 	if j >= len(file) {
@@ -189,7 +199,8 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	}
 	j_1 := j + 1
 	j_2 := j + 2
-	switch file[j] {
+	char := file[j]
+	switch char {
 	// whitespace-like
 	case ' ', '\t', '\r', '\n':
 		return .Whitespace
@@ -199,7 +210,7 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	case '`':
 		return .InterpolatedString
 	case:
-		return .Alphanumeric
+		return is_decimal(char) ? .Numeric : .Alphanumeric
 	// 2-3 length
 	case '?':
 		{
@@ -356,10 +367,26 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 			parser.j += 1
 		}
 		parser.token = parser.file[parser.i:parser.j]
+	case .Numeric:
+		parser.j = parser.i + 1
+		if parser.file[parser.i] == '0' && parser.j < len(parser.file) && parser.file[parser.j] == 'x' {
+			parser.j += 1
+			for parser.j < len(parser.file) && is_hexadecimal(parser.file[parser.j]) {
+				parser.j += 1
+			}
+		} else {
+			for parser.j < len(parser.file) && is_decimal(parser.file[parser.j]) {
+				parser.j += 1
+			}
+		}
+		parser.token = parser.file[parser.i:parser.j]
 	case .Alphanumeric:
 		parser.j = parser.i + 1
-		for parser.j < len(parser.file) &&
-		    _get_token_type(parser.file, parser.j, loc = loc) == .Alphanumeric {
+		for parser.j < len(parser.file) {
+			token_type := _get_token_type(parser.file, parser.j, loc = loc)
+			if token_type != .Alphanumeric && token_type != .Numeric {
+				break
+			}
 			parser.j += 1
 		}
 		parser.token = parser.file[parser.i:parser.j]

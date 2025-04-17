@@ -151,7 +151,7 @@ parse_statement :: proc(
 			parse_equals(parser, sb) or_return
 			parse_type(parser, sb) or_return
 			end_comment(parser, sb)
-		case "interface":
+		case "interface", "declare":
 			debug_print(parser, "statement.interface")
 			start_comment(parser, sb)
 			print_prev_token(parser, sb, statement_start)
@@ -559,9 +559,8 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		for parser.token_type == .BracketLeftSquare {
 			next_token(parser, sb)
 			#partial switch parser.token_type {
-			case .String:
+			case .String, .Numeric:
 				next_token(parser, sb)
-			// TODO: also allow numbers
 			}
 			parse_right_bracket_square(parser, sb) or_return
 		}
@@ -601,6 +600,9 @@ parse_value :: proc(
 			next_token(parser, sb)
 		}
 		#partial switch parser.token_type {
+		case .Numeric:
+			debug_print(parser, "value.numeric")
+			next_token(parser, sb)
 		case .Alphanumeric:
 			if parser.token == "function" {
 				debug_print(parser, "value.function")
