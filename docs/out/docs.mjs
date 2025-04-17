@@ -1496,7 +1496,7 @@ function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*
   gl: WebGL2RenderingContext;
   programs: Record<string, GLProgramInfo>;
 }*/;
-/*export type WebGLProps = {
+/*export type WebGLProps = BaseProps & {
   programs: Record<string, GLProgramDescriptor>;
   render?: (state: WebGLState) => void;
 }
@@ -2598,32 +2598,30 @@ export const textInputPage = makeComponent(function textInputPage() {
   row.append(span(`count: ${count}`));
 });
 export const webgpuPage = makeComponent(function webgpuPage() {
-  let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
-  const shaderCode = `
-    struct VertexOut {
-      @builtin(position) position : vec4f,
-      @location(0) color : vec4f
-    }
-
-    @vertex
-    fn vertex_main(
-      @location(0) position: vec4f,
-      @location(1) color: vec4f
-    ) -> VertexOut {
-      var output : VertexOut;
-      output.position = position;
-      output.color = color;
-      return output;
-    }
-
-    @fragment
-    fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
-      return fragData.color;
-    }
-  `;
-  row.append(webgpu({
+  this.append(webgpu({
     style: {width: 150, height: 150},
-    shaderCode,
+    shaderCode: `
+      struct VertexOut {
+        @builtin(position) position : vec4f,
+        @location(0) color : vec4f
+      }
+
+      @vertex
+      fn vertex_main(
+        @location(0) position: vec4f,
+        @location(1) color: vec4f
+      ) -> VertexOut {
+        var output : VertexOut;
+        output.position = position;
+        output.color = color;
+        return output;
+      }
+
+      @fragment
+      fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
+        return fragData.color;
+      }
+    `,
     init: ({gpu, device, shaderModule}) => {
       // NOTE: copy paste from MDN
       // Vertex data for triangle
@@ -2714,6 +2712,7 @@ export const webgpuPage = makeComponent(function webgpuPage() {
 });
 export const webglPage = makeComponent(function webglPage() {
   this.append(webgl({
+    style: {width: 150, height: 150},
     programs: {
       gradient: {
         vertex: `
@@ -2751,28 +2750,14 @@ export const webglPage = makeComponent(function webglPage() {
       },
     },
     render: ({gl, programs}) => {
-      // draw triangle
-      const gradient = programs.gradient;
-      glUseProgram(gl, gradient);
-      glSetBuffer(gl, gradient.v_position, new Float32Array([
-        -1, -1,
-        -1, +1,
-        +1, +1,
-      ]));
-      glSetBuffer(gl, gradient.v_color, new Float32Array([
-        1, 0, 0,
-        0, 1, 0,
-        0, 0, 1,
-      ]));
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
       // draw square
       const flatColor = programs.flatColor;
       glUseProgram(gl, flatColor);
       glSetBuffer(gl, flatColor.v_position, new Float32Array([
-        -0.3, -0.3,
-        -0.3, +0.3,
-        +0.3, +0.3,
-        +0.3, -0.3,
+        -1, -1,
+        -1, +1,
+        +1, +1,
+        +1, -1,
       ]));
       gl.uniformMatrix4fv(flatColor.u_mat, false, [
         1, 0, 0, 0,
@@ -2780,8 +2765,22 @@ export const webglPage = makeComponent(function webglPage() {
         0, 0, 1, 0,
         0, 0, 0, 1,
       ]);
-      gl.uniform3f(flatColor.u_color, 1, 0, 0);
+      gl.uniform3f(flatColor.u_color, 0, 0.5, 1);
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+      // draw triangle
+      const gradient = programs.gradient;
+      glUseProgram(gl, gradient);
+      glSetBuffer(gl, gradient.v_position, new Float32Array([
+        0.0,  0.6,
+       -0.5, -0.6,
+        0.5, -0.6,
+      ]));
+      glSetBuffer(gl, gradient.v_color, new Float32Array([
+        1, 0, 0,
+        0, 1, 0,
+        0, 0, 1,
+      ]));
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
     }
   }));
 })

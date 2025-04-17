@@ -1,32 +1,30 @@
-import { div, makeComponent, webgpu } from "../../../jsgui/out/jsgui.mts";
+import { makeComponent, webgpu } from "../../../jsgui/out/jsgui.mts";
 
 export const webgpuPage = makeComponent(function webgpuPage() {
-  let row = this.append(div({className: "display-row", style: {marginTop: 0}}));
-  const shaderCode = `
-    struct VertexOut {
-      @builtin(position) position : vec4f,
-      @location(0) color : vec4f
-    }
-
-    @vertex
-    fn vertex_main(
-      @location(0) position: vec4f,
-      @location(1) color: vec4f
-    ) -> VertexOut {
-      var output : VertexOut;
-      output.position = position;
-      output.color = color;
-      return output;
-    }
-
-    @fragment
-    fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
-      return fragData.color;
-    }
-  `;
-  row.append(webgpu({
+  this.append(webgpu({
     style: {width: 150, height: 150},
-    shaderCode,
+    shaderCode: `
+      struct VertexOut {
+        @builtin(position) position : vec4f,
+        @location(0) color : vec4f
+      }
+
+      @vertex
+      fn vertex_main(
+        @location(0) position: vec4f,
+        @location(1) color: vec4f
+      ) -> VertexOut {
+        var output : VertexOut;
+        output.position = position;
+        output.color = color;
+        return output;
+      }
+
+      @fragment
+      fn fragment_main(fragData: VertexOut) -> @location(0) vec4f {
+        return fragData.color;
+      }
+    `,
     init: ({gpu, device, shaderModule}) => {
       // NOTE: copy paste from MDN
       // Vertex data for triangle

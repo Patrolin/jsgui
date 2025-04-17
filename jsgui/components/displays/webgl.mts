@@ -1,4 +1,4 @@
-import { makeComponent } from "../../jsgui.mts";
+import { BaseProps, makeComponent } from "../../jsgui.mts";
 
 // utils
 function glCompileShader(gl: WebGL2RenderingContext, program: WebGLProgram, shaderType: number, shaderCode: string) {
@@ -130,7 +130,7 @@ type WebGLState = {
   gl: WebGL2RenderingContext;
   programs: Record<string, GLProgramInfo>;
 };
-export type WebGLProps = {
+export type WebGLProps = BaseProps & {
   programs: Record<string, GLProgramDescriptor>;
   render?: (state: WebGLState) => void;
 }
