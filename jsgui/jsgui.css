@@ -212,7 +212,7 @@ dialog::backdrop {
 .colored-button {
   border: none;
   border-radius: 4px;
-  padding: 0px 8px 0 4px;
+  padding: 0px 6px;
   height: calc(var(--size-x) + 2px);
   background: var(--buttonColor);
   transition: background-color 0.2s var(--timing-0d);
@@ -273,14 +273,15 @@ dialog::backdrop {
   cursor: text;
   display: flex;
   justify-content: space-between;
-  --labelSize: var(--fontSize-small);
+  --labelSize: 12px;
   --labelColor: var(--gray-3);
   --labelColorFocus: var(--secondary-0);
   --labelColorError: var(--red-0);
   --labelColor-x: var(--labelColor);
-  --labelMarginLeft: 8px;
+  --labelMarginLeft: 6px;
+  --fieldsetContentHeight: calc(2*var(--size-normal) - var(--labelSize));
   --fieldsetWidth: 194px;
-  --fieldsetHeight: calc(2*var(--size-normal) - 0.5*var(--labelSize));
+  --fieldsetHeight: calc(var(--fieldsetContentHeight) + 0.5*var(--labelSize));
   --fieldsetMargin: 0 1px 6px 1px;
   --fieldsetMarginFocus: 0 0 6px 0;
   --fieldsetBorder: 1px solid var(--gray-4);
@@ -318,15 +319,15 @@ dialog::backdrop {
 .labeled-input > :not(legend) {
   position: relative;
   background: none;
-  top: -7px;
-  height: calc(var(--fieldsetHeight) - 7px);
+  top: calc(-0.5*var(--labelSize));
+  height: var(--fieldsetContentHeight);
 }
 .labeled-input input {
   width: 100%;
   outline: none;
   border: none;
   flex: 1;
-  padding: 0 calc(4px + var(--labelMarginLeft)) 0 9px;
+  padding: 4px 8px 0 calc(4px + var(--labelMarginLeft));
   font-family: var(--fontFamily-sans);
   font-size: var(--fontSize-normal);
 }
