@@ -367,19 +367,38 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 			parser.j += 1
 		}
 		parser.token = parser.file[parser.i:parser.j]
-	case .Numeric:
+	case .Dot:
 		parser.j = parser.i + 1
-		if parser.file[parser.i] == '0' && parser.j < len(parser.file) && parser.file[parser.j] == 'x' {
-			parser.j += 1
-			for parser.j < len(parser.file) && is_hexadecimal(parser.file[parser.j]) {
-				parser.j += 1
-			}
+		if parser.j < len(parser.file) && is_decimal(parser.file[parser.j]) {
+			parser.token_type = .Numeric
 		} else {
-			for parser.j < len(parser.file) && is_decimal(parser.file[parser.j]) {
-				parser.j += 1
-			}
+			parser.token = parser.file[parser.i:parser.j]
 		}
-		parser.token = parser.file[parser.i:parser.j]
+		fallthrough
+	case .Numeric:
+		{
+			parser.j = parser.i + 1
+			start_char := parser.file[parser.i]
+			if start_char == '0' && parser.j < len(parser.file) && parser.file[parser.j] == 'x' {
+				parser.j += 1
+				for parser.j < len(parser.file) && is_hexadecimal(parser.file[parser.j]) {
+					parser.j += 1
+				}
+			} else {
+				for parser.j < len(parser.file) && is_decimal(parser.file[parser.j]) {
+					parser.j += 1
+				}
+				if start_char != '.' &&
+				   parser.j < len(parser.file) &&
+				   parser.file[parser.j] == '.' {
+					parser.j += 1
+					for parser.j < len(parser.file) && is_decimal(parser.file[parser.j]) {
+						parser.j += 1
+					}
+				}
+			}
+			parser.token = parser.file[parser.i:parser.j]
+		}
 	case .Alphanumeric:
 		parser.j = parser.i + 1
 		for parser.j < len(parser.file) {

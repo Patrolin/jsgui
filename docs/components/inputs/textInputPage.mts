@@ -4,7 +4,7 @@ export const textInputPage = makeComponent(function textInputPage() {
   // username
   const [state, setState] = this.useState({username: ""});
 
-  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
+  let row = this.append(div({className: "display-row"}));
   row.append(
     textInput({
       label: "Username",
@@ -19,25 +19,4 @@ export const textInputPage = makeComponent(function textInputPage() {
 
   row = this.append(div({className: "display-row"}));
   row.append(span(`state: ${JSON.stringify(state)}`));
-
-  // count
-  const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
-
-  row = this.append(div({className: "display-row"}));
-  row.append(
-    numberInput({
-      label: "Count",
-      value: count,
-      onInput: (event) => {
-        const newCount = event.target.value;
-        setCount(newCount === "" ? null : +newCount);
-      },
-      min: 0,
-      clearable: false,
-    })
-  );
-  row.append(span("This input is stored in local storage (synced across tabs and components)."));
-
-  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
-  row.append(span(`count: ${count}`));
 });

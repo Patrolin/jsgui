@@ -22,8 +22,11 @@ export function removeSuffix(value: string, prefix: string): string {
 export function addPx(value: string | number) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
 }
-export function lerp(value: number, x: number, y: number): number {
-  return (1-value)*x + value*y;
+export function lerp(t: number, x: number, y: number): number {
+  return (1-t)*x + t*y;
+}
+export function unlerp(value: number, x: number, y: number): number {
+  return (x - value) / (x - y);
 }
 /** clamp value between min and max (defaulting to min) */
 export function clamp(value: number, min: number, max: number): number {
@@ -264,7 +267,7 @@ export class Component {
   }
   _logByName(name: string) {
     const component = this._findByName(name);
-    console.log({ ...(component ?? {}), _: {...(component?._ ?? {})} });
+    console.log({ ...component, _: { ...component?._ } });
   }
 }
 export function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {

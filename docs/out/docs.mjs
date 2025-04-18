@@ -181,8 +181,11 @@ function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
 function addPx(value/*: string | number*/) {
   return (value?.constructor?.name === "Number") ? `${value}px` : value /*as string*/;
 }
-function lerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
-  return (1-value)*x + value*y;
+function lerp(t/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+  return (1-t)*x + t*y;
+}
+function unlerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+  return (x - value) / (x - y);
 }
 /** clamp value between min and max (defaulting to min) */
 function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
@@ -423,7 +426,7 @@ class Component {
   }
   _logByName(name/*: string*/) {
     const component = this._findByName(name);
-    console.log({ ...(component ?? {}), _: {...(component?._ ?? {})} });
+    console.log({ ...component, _: { ...component?._ } });
   }
 }
 function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction<A>*/, options/*: ComponentOptions*/ = {})/*: ComponentFunction<A>*/ {
@@ -1154,29 +1157,59 @@ export const textInput = makeComponent(function textInput(props/*: TextInputProp
 });
 /*export type SliderInputProps = {
   range: [number, number];
-  value: number;
+  decimalPlaces?: number;
+  value?: number | null;
+  onInput?: (event: {target: {value: number}}) => void;
+  onChange?: (event: {target: {value: number}}) => void;
+  railProps?: BaseProps;
+  knobProps?: BaseProps;
 }*/;
 export const sliderInput = makeComponent(function sliderInput(props/*: SliderInputProps*/) {
-  const {range, value} = props;
+  const {range, decimalPlaces, value, onInput, onChange, railProps, knobProps} = props;
   const [state, setState] = this.useState({
     value: range[0],
   });
   if (value != null) state.value = value;
-
+  // elements
+  let t = unlerp(value ?? range[0], range[0], range[1]);
+  t = clamp(t, 0, 1);
+  const leftPercent = (t * 100).toFixed(2);
   const element = this.useNode(() => document.createElement("div"));
-  this.append(div({className: ""}));
-  const onMouseUp = () => {
-
-  };
-  return {
-    onMount: () => {
-      // NOTE: window events fire even if you drag outside the window
-      window.addEventListener("mouseup", onMouseUp);
-    },
-    onUnmount: () => {
-      window.removeEventListener("mouseup", onMouseUp);
-    }
+  const rail = this.append(div({className: "slider-input-rail", ...railProps}));
+  rail.append(div({
+    className: "slider-input-rail slider-input-color-rail",
+    style: {width: `${leftPercent}%`},
+    ...knobProps,
+  }));
+  rail.append(div({
+    className: "slider-input-knob",
+    style: {left: `${leftPercent}%`},
+    ...knobProps,
+  }));
+  // events
+  const updateValue = (event/*: MouseEvent*/) => {
+    const rect = (rail.getNode() /*as HTMLDivElement*/).getBoundingClientRect();
+    const fraction = (event.clientX - rect.left) / rect.width;
+    let newValue = lerp(fraction, range[0], range[1]);
+    newValue = +newValue.toFixed(decimalPlaces ?? 0);
+    newValue = clamp(newValue, range[0], range[1]);
+    if (onInput) onInput({target: {value: newValue}});
+    setState({value: newValue});
   }
+  const onMouseMove = (event/*: MouseEvent*/) => {
+    updateValue(event);
+  };
+  const onMouseUp = (_event/*: MouseEvent*/) => {
+    window.removeEventListener("mouseup", onMouseUp);
+    window.removeEventListener("mousemove", onMouseMove);
+    if (onChange) onChange({target: {value: state.value}});
+  };
+  element.onmousedown = (event/*: MouseEvent*/) => {
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", onMouseUp);
+    updateValue(event);
+    event.preventDefault();
+  };
 });
 /*export type NumberArrowProps = {
   onClickUp?: (event: MouseEvent) => void;
@@ -2750,7 +2783,7 @@ export const textInputPage = makeComponent(function textInputPage() {
   // username
   const [state, setState] = this.useState({username: ""});
 
-  let row = this.append(div({className: "display-row", style: {marginTop: 6}}));
+  let row = this.append(div({className: "display-row"}));
   row.append(
     textInput({
       label: "Username",
@@ -2765,11 +2798,12 @@ export const textInputPage = makeComponent(function textInputPage() {
 
   row = this.append(div({className: "display-row"}));
   row.append(span(`state: ${JSON.stringify(state)}`));
-
+});
+export const numberInputsPage = makeComponent(function numberInputsPage() {
   // count
   const [count, setCount] = this.useLocalStorage("count", 0 /*as number | null*/);
 
-  row = this.append(div({className: "display-row"}));
+  let row = this.append(div({className: "display-row"}));
   row.append(
     numberInput({
       label: "Count",
@@ -2784,9 +2818,18 @@ export const textInputPage = makeComponent(function textInputPage() {
   );
   row.append(span("This input is stored in local storage (synced across tabs and components)."));
 
-  row = this.append(div({className: "display-row", style: {marginBottom: 4}}));
+  row = this.append(div({className: "display-row"}));
   row.append(span(`count: ${count}`));
-});
+
+  row = this.append(div({className: "display-row"}));
+  row.append(sliderInput({
+    range: [0, 100],
+    value: count,
+    onInput: (event) => {
+      setCount(event.target.value);
+    },
+  }));
+})
 export const webgpuPage = makeComponent(function webgpuPage() {
   this.append(webgpu({
     style: {width: 150, height: 150},
@@ -3251,6 +3294,7 @@ export const DOCS_SECTIONS/*: DocsSection[]*/ = [
     label: "Inputs",
     pages: [
       {id: "textInput", label: "Text input", component: textInputPage},
+      {id: "numberInputs", label: "Number inputs", component: numberInputsPage},
     ]
   },
 ];

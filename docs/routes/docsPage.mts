@@ -12,6 +12,7 @@ import { anchorPage, buttonPage, htmlPage, iconPage, spanPage } from '../compone
 import { routerPage } from '../components/displays/routerPage.mts';
 import { jsFormatter } from '../utils/components/formatter.mts';
 import { webglPage } from '../components/displays/webglPage.mts';
+import { numberInputsPage } from '../components/inputs/numberInputsPage.mts';
 
 export const DOCS_SECTIONS: DocsSection[] = [
   {
@@ -45,6 +46,7 @@ export const DOCS_SECTIONS: DocsSection[] = [
     label: "Inputs",
     pages: [
       {id: "textInput", label: "Text input", component: textInputPage},
+      {id: "numberInputs", label: "Number inputs", component: numberInputsPage},
     ]
   },
 ];
