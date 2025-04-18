@@ -16,23 +16,26 @@ BuildTask :: struct {
 	src:  string,
 	out:  string,
 }
-BUILD_TASKS :: []BuildTask {
-	BuildTask{BuildTaskType.Copy, "jsgui/jsgui.css", "jsgui/out/jsgui.css"},
-	BuildTask{BuildTaskType.MtsCompile, "jsgui", "jsgui/out"},
-	BuildTask{BuildTaskType.MtsCompile, "docs", "docs/out"},
-}
 
 main :: proc() {
 	if ODIN_OS == .Windows {
 		win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
 	}
-	for task in BUILD_TASKS {
+	fmt.printfln("ayaya.1")
+	build_tasks := []BuildTask {
+		BuildTask{BuildTaskType.Copy, "jsgui/jsgui.css", "jsgui/out/jsgui.css"},
+		BuildTask{BuildTaskType.MtsCompile, "jsgui", "jsgui/out"},
+		BuildTask{BuildTaskType.MtsCompile, "docs", "docs/out"},
+	}
+	fmt.printfln("ayaya.2")
+	for task in build_tasks {
 		if task.type == .MtsCompile {
 			os.make_directory(task.out)
 			remove_files_under(task.out)
 		}
 	}
-	for task in BUILD_TASKS {
+	fmt.printfln("ayaya.3")
+	for task in build_tasks {
 		switch task.type {
 		case .Copy:
 			{
@@ -139,7 +142,6 @@ resolve_imports :: proc(files_paths_to_include: []string) -> []FileInfo {
 	// parse imports
 	file_infos_to_include: [dynamic]FileInfo
 	for i := 0; i < len(files_to_include); i += 1 {
-		fmt.printf("%v, ", i)
 		imported_by := files_to_include[i].imported_by
 		file_path := files_to_include[i].file_path
 		file_bytes, error := os.read_entire_file_from_filename_or_err(file_path)

@@ -164,11 +164,13 @@ type WebGLState = {
 };
 export type WebGLProps = BaseProps & {
   programs: Record<string, GLProgramDescriptor>;
+  renderResolutionMultiplier?: number;
   render?: (state: WebGLState) => void;
 }
 export const webgl = makeComponent(function webgl(props: WebGLProps) {
   const {
     programs,
+    renderResolutionMultiplier = 1.0,
     render = ({gl}) => {
       gl.clearColor(0.0, 0.0, 0.0, 1.0);
       gl.clear(gl.COLOR_BUFFER_BIT);
@@ -250,6 +252,8 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
     onMount: () => {
       // autosize canvas
       const rect = node.getBoundingClientRect();
+      rect.width *= renderResolutionMultiplier;
+      rect.height *= renderResolutionMultiplier;
       node.width = rect.width;
       node.height = rect.height;
       state.rect = rect;
