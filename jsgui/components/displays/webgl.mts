@@ -2,6 +2,28 @@ import { BaseProps, makeComponent } from "../../jsgui.mts";
 
 // utils
 type ErrorValue = any[] | undefined;
+function glGetShaderLog(gl: WebGL2RenderingContext, shader: WebGLShader, shaderCode: string) {
+  const shaderLines = shaderCode.split("\n");
+  const rawShaderLog = gl.getShaderInfoLog(shader) ?? "";
+  let prevLineNumberToShow = null as number | null;
+  let acc = "";
+  for (let logLine of rawShaderLog.split("\n")) {
+    const match = logLine.match(/^ERROR: \d+:(\d+)/);
+    let lineNumberToShow = null as number | null;
+    if (match != null) {
+      lineNumberToShow = +match[1] - 1;
+    }
+    if (prevLineNumberToShow != null && prevLineNumberToShow !== lineNumberToShow) {
+      const line = (shaderLines[prevLineNumberToShow] ?? "").trim()
+      prevLineNumberToShow = lineNumberToShow;
+      acc += `  ${line}\n${logLine}\n`;
+    } else {
+      prevLineNumberToShow = lineNumberToShow;
+      acc += `${logLine}\n`;
+    }
+  }
+  return acc;
+}
 function glCompileShader(gl: WebGL2RenderingContext, program: WebGLProgram, shaderType: number, shaderCode: string): ErrorValue {
   const shader = gl.createShader(shaderType);
   while (1) {
@@ -16,7 +38,7 @@ function glCompileShader(gl: WebGL2RenderingContext, program: WebGLProgram, shad
     [gl.VERTEX_SHADER]: ".VERTEX_SHADER",
     [gl.FRAGMENT_SHADER]: ".FRAGMENT_SHADER",
   };
-  const shaderLog = gl.getShaderInfoLog(shader!);
+  const shaderLog = glGetShaderLog(gl, shader!, shaderCode);
   return [
     `Could not compile shader:\n${shaderLog}`,
     {
@@ -137,6 +159,7 @@ export type GLProgramInfo = {
 type WebGLState = {
   gl: WebGL2RenderingContext;
   programs: Record<string, GLProgramInfo>;
+  rect: DOMRect;
   didCompile: boolean;
 };
 export type WebGLProps = BaseProps & {
@@ -156,6 +179,7 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
   const [state] = this.useState<WebGlStateUninitialized>({
     gl: null,
     programs: null,
+    rect: new DOMRect(),
     didCompile: false,
   });
   if (state.gl == null) {
@@ -228,6 +252,7 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
       const rect = node.getBoundingClientRect();
       node.width = rect.width;
       node.height = rect.height;
+      state.rect = rect;
       // render
       const {gl, didCompile} = state;
       if (didCompile && gl != null) {

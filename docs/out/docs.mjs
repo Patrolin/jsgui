@@ -1377,6 +1377,28 @@ export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
   }
 });
 /*type ErrorValue = any[] | undefined*/;
+function glGetShaderLog(gl/*: WebGL2RenderingContext*/, shader/*: WebGLShader*/, shaderCode/*: string*/) {
+  const shaderLines = shaderCode.split("\n");
+  const rawShaderLog = gl.getShaderInfoLog(shader) ?? "";
+  let prevLineNumberToShow = null /*as number | null*/;
+  let acc = "";
+  for (let logLine of rawShaderLog.split("\n")) {
+    const match = logLine.match(/^ERROR: \d+:(\d+)/);
+    let lineNumberToShow = null /*as number | null*/;
+    if (match != null) {
+      lineNumberToShow = +match[1] - 1;
+    }
+    if (prevLineNumberToShow != null && prevLineNumberToShow !== lineNumberToShow) {
+      const line = (shaderLines[prevLineNumberToShow] ?? "").trim()
+      prevLineNumberToShow = lineNumberToShow;
+      acc += `  ${line}\n${logLine}\n`;
+    } else {
+      prevLineNumberToShow = lineNumberToShow;
+      acc += `${logLine}\n`;
+    }
+  }
+  return acc;
+}
 function glCompileShader(gl/*: WebGL2RenderingContext*/, program/*: WebGLProgram*/, shaderType/*: number*/, shaderCode/*: string*/)/*: ErrorValue*/ {
   const shader = gl.createShader(shaderType);
   while (1) {
@@ -1391,7 +1413,7 @@ function glCompileShader(gl/*: WebGL2RenderingContext*/, program/*: WebGLProgram
     [gl.VERTEX_SHADER]: ".VERTEX_SHADER",
     [gl.FRAGMENT_SHADER]: ".FRAGMENT_SHADER",
   };
-  const shaderLog = gl.getShaderInfoLog(shader/*!*/);
+  const shaderLog = glGetShaderLog(gl, shader/*!*/, shaderCode);
   return [
     `Could not compile shader:\n${shaderLog}`,
     {
@@ -1512,6 +1534,7 @@ function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*
 /*type WebGLState = {
   gl: WebGL2RenderingContext;
   programs: Record<string, GLProgramInfo>;
+  rect: DOMRect;
   didCompile: boolean;
 }*/;
 /*export type WebGLProps = BaseProps & {
@@ -1531,6 +1554,7 @@ function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*
   const [state] = this.useState/*<WebGlStateUninitialized>*/({
     gl: null,
     programs: null,
+    rect: new DOMRect(),
     didCompile: false,
   });
   if (state.gl == null) {
@@ -1603,6 +1627,7 @@ function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*
       const rect = node.getBoundingClientRect();
       node.width = rect.width;
       node.height = rect.height;
+      state.rect = rect;
       // render
       const {gl, didCompile} = state;
       if (didCompile && gl != null) {
@@ -2428,19 +2453,33 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
           }
         `,
         fragment: `
+          uniform vec2 u_viewport;
           out vec4 out_color;
+          float sum(vec2 v) {
+            return v.x + v.y;
+          }
+          float sum(vec3 v) {
+            return v.x + v.y;
+          }
           void main() {
-            vec3 position = gl_FragCoord.xyz;
-            float red = position.x == 149.5 ? 1.0 : 0.0;
-            float green = position.y == 149.5 ? 1.0 : 0.0;
+            vec2 center = u_viewport.xy * 0.5;
+            // circle
+            float radius = min(center.x, center.y);
+            vec2 position = (gl_FragCoord.xy - center);
+            float distance = sqrt(sum(position * position));
+            float alpha = clamp(radius - distance, 0.0, 1.0);
+            // colors
+            float red = position.x / radius;
+            float green = position.y / radius;
             float blue = 0.0;
-            out_color = vec4(red, green, blue, 1);
+            out_color = vec4(red, green, blue, alpha);
           }
         `,
       }
     },
-    render: ({gl, programs: {colorWheel}}) => {
+    render: ({gl, programs: {colorWheel}, rect}) => {
       glUseProgram(gl, colorWheel);
+      gl.uniform2f(colorWheel.u_viewport, rect.width, rect.height);
       glSetBuffer(gl, colorWheel.v_position, new Float32Array([
         -1, -1,
         +1, -1,
@@ -2450,6 +2489,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
   }));
+  this.append("TODO: clickable color wheel")
 
   //
   const [state, setState] = this.useState({
