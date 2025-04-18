@@ -1,7 +1,8 @@
 import { BaseProps, makeComponent } from "../../jsgui.mts";
 
 // utils
-function glCompileShader(gl: WebGL2RenderingContext, program: WebGLProgram, shaderType: number, shaderCode: string) {
+type ErrorValue = any[] | undefined;
+function glCompileShader(gl: WebGL2RenderingContext, program: WebGLProgram, shaderType: number, shaderCode: string): ErrorValue {
   const shader = gl.createShader(shaderType);
   while (1) {
     if (!shader) break;
@@ -16,21 +17,28 @@ function glCompileShader(gl: WebGL2RenderingContext, program: WebGLProgram, shad
     [gl.FRAGMENT_SHADER]: ".FRAGMENT_SHADER",
   };
   const shaderLog = gl.getShaderInfoLog(shader!);
-  console.error(`Could not compile shader:\n${shaderLog}`, {
-    program,
-    shaderType: ShaderTypeName[shaderType] ?? shaderType,
-    shaderCode,
-    shader,
-  });
+  return [
+    `Could not compile shader:\n${shaderLog}`,
+    {
+      program,
+      shaderType: ShaderTypeName[shaderType] ?? shaderType,
+      shaderCode,
+      shader,
+    }
+  ]
 }
-function glCompileProgram(gl: WebGL2RenderingContext, programInfo: GLProgramInfo) {
+function glCompileProgram(gl: WebGL2RenderingContext, programInfo: GLProgramInfo): ErrorValue {
   const {program, vertex, fragment} = programInfo;
-  glCompileShader(gl, program, gl.VERTEX_SHADER, vertex);
-  glCompileShader(gl, program, gl.FRAGMENT_SHADER, fragment);
+  let error = glCompileShader(gl, program, gl.VERTEX_SHADER, vertex);
+  if (error) return error;
+
+  error = glCompileShader(gl, program, gl.FRAGMENT_SHADER, fragment);
+  if (error) return error;
+
   gl.linkProgram(program);
   if (!gl.getProgramParameter(program, gl.LINK_STATUS)) {
     const programLog = gl.getProgramInfoLog(program);
-    console.error(`Error linking shader program:\n${programLog}`, {program});
+    return [`Error linking shader program:\n${programLog}`, {program}]
   }
   gl.useProgram(program);
 }
@@ -129,6 +137,7 @@ export type GLProgramInfo = {
 type WebGLState = {
   gl: WebGL2RenderingContext;
   programs: Record<string, GLProgramInfo>;
+  didCompile: boolean;
 };
 export type WebGLProps = BaseProps & {
   programs: Record<string, GLProgramDescriptor>;
@@ -147,6 +156,7 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
   const [state] = this.useState<WebGlStateUninitialized>({
     gl: null,
     programs: null,
+    didCompile: false,
   });
   if (state.gl == null) {
     const gl = node.getContext("webgl2");
@@ -166,7 +176,12 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
       programInfo.program = gl.createProgram();
       programInfo.vertex = addShaderHeader(DEFAULT_SHADER_VERSION, programInfo.vertex);
       programInfo.fragment = addShaderHeader(DEFAULT_SHADER_VERSION + DEFAULT_FLOAT_PRECISION, programInfo.fragment);
-      glCompileProgram(gl, programInfo);
+      let error = glCompileProgram(gl, programInfo);
+      if (error) {
+        console.error(...error);
+        break;
+      }
+      state.didCompile = true;
       // init vertex buffers
       programInfo.vao = gl.createVertexArray(); // vao means vertexBuffer[]
       gl.bindVertexArray(programInfo.vao);
@@ -207,10 +222,18 @@ export const webgl = makeComponent(function webgl(props: WebGLProps) {
       }
     }
   }
-  // render
-  const gl = state.gl;
-  if (gl != null) {
-    gl.viewport(0, 0, node.width, node.height);
-    render(state as WebGLState);
+  return {
+    onMount: () => {
+      // autosize canvas
+      const rect = node.getBoundingClientRect();
+      node.width = rect.width;
+      node.height = rect.height;
+      // render
+      const {gl, didCompile} = state;
+      if (didCompile && gl != null) {
+        gl.viewport(0, 0, rect.width, rect.height);
+        render(state as WebGLState);
+      }
+    },
   }
 });

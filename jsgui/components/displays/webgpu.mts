@@ -93,7 +93,16 @@ export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
       state.data = init({gpu, ...state});
     }
   }
-  if (state.context && state.device && state.shaderModule && render) {
-    render({gpu, ...state});
+  return {
+    onMount: () => {
+      // autosize canvas
+      const rect = node.getBoundingClientRect();
+      node.width = rect.width;
+      node.height = rect.height;
+      // render
+      if (state.context && state.device && state.shaderModule && render) {
+        render({gpu, ...state});
+      }
+    }
   }
 });

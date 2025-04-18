@@ -139,6 +139,7 @@ resolve_imports :: proc(files_paths_to_include: []string) -> []FileInfo {
 	// parse imports
 	file_infos_to_include: [dynamic]FileInfo
 	for i := 0; i < len(files_to_include); i += 1 {
+		fmt.printf("%v, ", i)
 		imported_by := files_to_include[i].imported_by
 		file_path := files_to_include[i].file_path
 		file_bytes, error := os.read_entire_file_from_filename_or_err(file_path)
@@ -159,7 +160,7 @@ resolve_imports :: proc(files_paths_to_include: []string) -> []FileInfo {
 		for import_path in imports {
 			if !(import_path in files_to_include_set.m) {
 				set_add(&files_to_include_set, import_path)
-				append(&files_to_include, FileInfoHeader{"", import_path})
+				append(&files_to_include, FileInfoHeader{file_path, import_path})
 			}
 		}
 	}

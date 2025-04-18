@@ -1,7 +1,42 @@
-import { BaseProps, div, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput } from "../../jsgui/out/jsgui.mts";
+import { BaseProps, div, glSetBuffer, glUseProgram, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput, webgl } from "../../jsgui/out/jsgui.mts";
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
+  this.append(webgl({
+    style: {width: 150, height: 150},
+    programs: {
+      colorWheel: {
+        vertex: `
+          in vec2 v_position;
+          void main() {
+            gl_Position = vec4(v_position, 0, 1);
+          }
+        `,
+        fragment: `
+          out vec4 out_color;
+          void main() {
+            vec3 position = gl_FragCoord.xyz;
+            float red = position.x == 149.5 ? 1.0 : 0.0;
+            float green = position.y == 149.5 ? 1.0 : 0.0;
+            float blue = 0.0;
+            out_color = vec4(red, green, blue, 1);
+          }
+        `,
+      }
+    },
+    render: ({gl, programs: {colorWheel}}) => {
+      glUseProgram(gl, colorWheel);
+      glSetBuffer(gl, colorWheel.v_position, new Float32Array([
+        -1, -1,
+        +1, -1,
+        +1, +1,
+        -1, +1,
+      ]));
+      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
+    }
+  }));
+
+  //
   const [state, setState] = this.useState({
     color: '#1450a0',
     count: 7,

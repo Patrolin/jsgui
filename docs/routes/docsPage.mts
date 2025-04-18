@@ -1,4 +1,4 @@
-import { code, div, makeComponent, navigate, NavType, tabs } from '../../jsgui/out/jsgui.mts';
+import { div, makeComponent, navigate, NavType, tabs } from '../../jsgui/out/jsgui.mts';
 import {DocsSection, getGithubPagesPrefix} from '../utils/utils.mts';
 import { textInputPage } from '../components/inputs/textInputPage.mts';
 import { dialogPage } from '../components/displays/dialogPage.mts';
@@ -8,7 +8,7 @@ import { mediaQueryPage } from '../components/displays/mediaQueryPage.mts';
 import { tablePage } from '../components/displays/tablePage.mts';
 import { tabsPage } from '../components/displays/tabsPage.mts';
 import { webgpuPage } from '../components/displays/webgpuPage.mts';
-import { anchorPage, buttonPage, htmlPage, iconPage, spanPage } from '../components/basicsSection.mts';
+import { anchorPage, buttonPage, htmlPage, iconPage, spanPage } from '../components/basics/basicsSection.mts';
 import { routerPage } from '../components/displays/routerPage.mts';
 import { jsFormatter } from '../utils/components/formatter.mts';
 import { webglPage } from '../components/displays/webglPage.mts';

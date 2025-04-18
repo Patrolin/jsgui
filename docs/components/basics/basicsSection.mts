@@ -1,5 +1,5 @@
-import { audio, BASE_COLORS, button, COLOR_SHADE_COUNT, coloredButton, div, icon, img, input, makeComponent, NavType, Size, SIZES, span, svg, textarea, video } from "../../jsgui/out/jsgui.mts";
-import { getSizeLabel } from "../utils/utils.mts";
+import { audio, BASE_COLORS, button, COLOR_SHADE_COUNT, coloredButton, div, icon, img, input, makeComponent, NavType, Size, span, svg, textarea, video } from "../../../jsgui/out/jsgui.mts";
+import { getSizeLabel } from "../../utils/utils.mts";
 
 export const htmlPage = makeComponent(function htmlPage() {
     let row = this.append(div({className: "display-row"}));
