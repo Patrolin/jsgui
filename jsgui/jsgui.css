@@ -4,11 +4,6 @@ html, body {
   height: 100%;
 }
 body {
-  margin: 0;
-  font-family: var(--fontFamily-sans);
-  font-size: var(--fontSize);
-  background: rgb(255, 255, 255);
-  color: var(--gray-0);
   --fontFamily-sans: "Roboto", "Helvetica", "Arial", sans-serif;
   --fontFamily-serif: Times, 'Times New Roman', serif;
   --fontFamily-button: ui-sans-serif, system-ui, var(--fontFamily-sans);
@@ -55,6 +50,11 @@ body {
   --red-5: rgba(200, 50, 50, 0.286);
   --red-6: rgba(200, 50, 50, 0.143);
   /* end generated*/
+  margin: 0;
+  font-family: var(--fontFamily-sans);
+  font-size: var(--fontSize);
+  background: rgb(255, 255, 255);
+  color: var(--gray-0);
 }
 * {
   max-width: 100%; /* fix ellipsis */
@@ -230,7 +230,7 @@ dialog::backdrop {
   align-items: center;
   gap: 0;
   --buttonColor: var(--gray-6);
-  --buttonColorHover: var(--gray-5);
+  --buttonColorHover: var(--gray-5); /* TODO!: fold this into one css var */
   --buttonColorActive: var(--gray-4);
   --buttonFontColor: var(--gray-0);
 }
@@ -254,9 +254,9 @@ dialog::backdrop {
   cursor: pointer;
 }
 .colored-button[disabled] {
+  --buttonFontColor: var(--gray-0);
   background-color: var(--gray-6);
   opacity: 0.5; /* TODO */
-  --buttonFontColor: var(--gray-0);
 }
 .colored-button > span:not(.icon) {
   font-size: var(--fontSize);
@@ -286,7 +286,6 @@ dialog::backdrop {
   height: calc(var(--inputHeight) - var(--inputLabelSizeHalf));
   cursor: text;
 
-  --fieldsetContentHeight: calc(var(--inputHeight) - var(--inputLabelSize));
   --labelColor: var(--gray-3);
   --labelMarginLeft: 6px;
   padding: 0;
@@ -320,7 +319,7 @@ dialog::backdrop {
   position: relative;
   background: none;
   top: calc(-1*var(--inputLabelSizeHalf));
-  height: var(--fieldsetContentHeight);
+  height: var(--inputHeightSmall);
 }
 .labeled-input input {
   width: 100%;
@@ -338,7 +337,7 @@ dialog::backdrop {
   color: var(--gray-3);
 }
 .number-arrows .icon {
-  --iconSize: calc(0.5*var(--fieldsetContentHeight));
+  --iconSize: calc(0.5*var(--inputHeightSmall));
   border-left: 1px solid var(--gray-6);
 }
 .number-arrows .icon[data-icon="arrow_drop_up"] {
@@ -398,6 +397,11 @@ dialog::backdrop {
 }
 /* table */
 .table {
+  --tableBorder: 1px solid var(--gray-4);
+  --tableRowBorder: 1px solid var(--gray-4);
+  --tableLabelPadding: 8px 0 2px 16px;
+  --tableRowPadding: 2px 0 2px 18px;
+  --tableCellPadding: 0 14px 0 0;
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -406,11 +410,6 @@ dialog::backdrop {
   border: var(--tableBorder);
   border-radius: 4px;
   color: var(--gray-0);
-  --tableBorder: 1px solid var(--gray-4);
-  --tableRowBorder: 1px solid var(--gray-4);
-  --tableLabelPadding: 8px 0 2px 16px;
-  --tableRowPadding: 2px 0 2px 18px;
-  --tableCellPadding: 0 14px 0 0;
 }
 .table[use-max-height="true"] {
   height: 100%;
