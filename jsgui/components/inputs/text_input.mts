@@ -66,6 +66,7 @@ export type LabeledInputProps = {
 export const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
+  // TODO!: use pointerdown instead
   fieldset.onmousedown = (_event: any) => {
     const event = _event as MouseEvent;
     if (event.target !== inputComponent._.prevNode) {

@@ -265,7 +265,7 @@ function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*: Diff<
 /*export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]}*/;
 /*export type RenderReturn = void | {
   onMount?: () => void,
-  onUnmount?: () => void,
+  onUnmount?: (removed: boolean) => void,
 }*/;
 /*export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn*/;
 /*export type SetState<T> = (newValue: T) => void*/;
@@ -600,7 +600,7 @@ class ComponentMetadata {
   prevBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS;
   prevEvents/*: EventsMap*/ = {} /*as EventsMap*/;
   gcFlag/*: boolean*/ = false;
-  onUnmount/*?: () => void*/;
+  onUnmount/*?: (removed: boolean) => void*/;
   // navigation
   prevBeforeNode/*: NodeType | null*/ = null;
   prevComponent/*: Component | null*/ = null;
@@ -784,6 +784,8 @@ function _render(component/*: Component*/, parentNode/*: ParentNodeType*/, befor
   _.prevState = {..._.state};
   const prevComponent = _.prevComponent;
   _.prevComponent = component;
+  const prevOnOnmount = _.onUnmount;
+  if (prevOnOnmount) prevOnOnmount(false);
   if (onMount) onMount();
   if (onUnmount) _.onUnmount = onUnmount;
   // warn if missing keys
@@ -799,7 +801,7 @@ function _unloadUnusedComponents(prevComponent/*: Component*/, rootGcFlag/*: boo
     if (gcFlag !== rootGcFlag) {
       _dispatchTargets.removeComponent(prevComponent);
       delete parent?.keyToChild[child.key];
-      if (onUnmount) onUnmount();
+      if (onUnmount) onUnmount(true);
       if (prevNode) prevNode.remove();
     }
     _unloadUnusedComponents(child, rootGcFlag);
@@ -1119,6 +1121,7 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
 export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
+  // TODO!: use pointerdown instead
   fieldset.onmousedown = (_event/*: any*/) => {
     const event = _event /*as MouseEvent*/;
     if (event.target !== inputComponent._.prevNode) {
@@ -1187,29 +1190,32 @@ export const sliderInput = makeComponent(function sliderInput(props/*: SliderInp
     ...knobProps,
   }));
   // events
-  const updateValue = (event/*: MouseEvent*/) => {
+  const updateValue = (clientX/*: number*/) => {
     const rect = (rail.getNode() /*as HTMLDivElement*/).getBoundingClientRect();
-    const fraction = (event.clientX - rect.left) / rect.width;
+    const fraction = (clientX - rect.left) / rect.width;
     let newValue = lerp(fraction, range[0], range[1]);
     newValue = +newValue.toFixed(decimalPlaces ?? 0);
     newValue = clamp(newValue, range[0], range[1]);
     if (onInput) onInput({target: {value: newValue}});
     setState({value: newValue});
   }
-  const onMouseMove = (event/*: MouseEvent*/) => {
-    updateValue(event);
+  const onPointerMove = (event/*: PointerEvent*/) => {
+    updateValue(event.clientX);
   };
-  const onMouseUp = (_event/*: MouseEvent*/) => {
-    window.removeEventListener("mouseup", onMouseUp);
-    window.removeEventListener("mousemove", onMouseMove);
+  const onPointerUp = (_event/*: any*/) => {
+    window.removeEventListener("pointercancel", onPointerUp);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointermove", onPointerMove);
     if (onChange) onChange({target: {value: state.value}});
   };
-  element.onmousedown = (event/*: MouseEvent*/) => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    updateValue(event);
+  const onPointerDown = (event/*: PointerEvent*/) => {
+    window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointermove", onPointerMove);
+    updateValue(event.clientX);
     event.preventDefault();
   };
+  element.onpointerdown = onPointerDown;
 });
 /*export type NumberArrowProps = {
   onClickUp?: (event: MouseEvent) => void;
@@ -1327,6 +1333,7 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   if (color) attribute.dataColor = color;
   if (disabled) attribute.disabled = "true";
   else if (onClick) {
+    // TODO!: use pointerdown instead
     element.onmousedown = () => {
       requestAnimationFrame(onClick);
     }
@@ -2035,7 +2042,8 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
         }
       }
     },
-    onUnmount: () => {
+    onUnmount: (removed/*: boolean*/) => {
+      if (!removed) return;
       for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
         acc.removeEventListener("scroll", state.prevOnScroll);
       }

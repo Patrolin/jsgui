@@ -106,7 +106,7 @@ export type BaseProps = {
 export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
 export type RenderReturn = void | {
   onMount?: () => void,
-  onUnmount?: () => void,
+  onUnmount?: (removed: boolean) => void,
 };
 export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
 export type SetState<T> = (newValue: T) => void;
@@ -441,7 +441,7 @@ export class ComponentMetadata {
   prevBaseProps: InheritedBaseProps = _START_BASE_PROPS;
   prevEvents: EventsMap = {} as EventsMap;
   gcFlag: boolean = false;
-  onUnmount?: () => void;
+  onUnmount?: (removed: boolean) => void;
   // navigation
   prevBeforeNode: NodeType | null = null;
   prevComponent: Component | null = null;
@@ -625,6 +625,8 @@ export function _render(component: Component, parentNode: ParentNodeType, before
   _.prevState = {..._.state};
   const prevComponent = _.prevComponent;
   _.prevComponent = component;
+  const prevOnOnmount = _.onUnmount;
+  if (prevOnOnmount) prevOnOnmount(false);
   if (onMount) onMount();
   if (onUnmount) _.onUnmount = onUnmount;
   // warn if missing keys
@@ -640,7 +642,7 @@ export function _unloadUnusedComponents(prevComponent: Component, rootGcFlag: bo
     if (gcFlag !== rootGcFlag) {
       _dispatchTargets.removeComponent(prevComponent);
       delete parent?.keyToChild[child.key];
-      if (onUnmount) onUnmount();
+      if (onUnmount) onUnmount(true);
       if (prevNode) prevNode.remove();
     }
     _unloadUnusedComponents(child, rootGcFlag);

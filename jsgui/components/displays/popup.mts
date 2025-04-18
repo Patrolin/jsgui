@@ -185,7 +185,8 @@ export const popupWrapper = makeComponent(function popupWrapper(props: PopupWrap
         }
       }
     },
-    onUnmount: () => {
+    onUnmount: (removed: boolean) => {
+      if (!removed) return;
       for (let acc = (this._.prevNode as ParentNode | null); acc != null; acc = acc.parentNode) {
         acc.removeEventListener("scroll", state.prevOnScroll);
       }

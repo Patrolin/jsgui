@@ -33,27 +33,30 @@ export const sliderInput = makeComponent(function sliderInput(props: SliderInput
     ...knobProps,
   }));
   // events
-  const updateValue = (event: MouseEvent) => {
+  const updateValue = (clientX: number) => {
     const rect = (rail.getNode() as HTMLDivElement).getBoundingClientRect();
-    const fraction = (event.clientX - rect.left) / rect.width;
+    const fraction = (clientX - rect.left) / rect.width;
     let newValue = lerp(fraction, range[0], range[1]);
     newValue = +newValue.toFixed(decimalPlaces ?? 0);
     newValue = clamp(newValue, range[0], range[1]);
     if (onInput) onInput({target: {value: newValue}});
     setState({value: newValue});
   }
-  const onMouseMove = (event: MouseEvent) => {
-    updateValue(event);
+  const onPointerMove = (event: PointerEvent) => {
+    updateValue(event.clientX);
   };
-  const onMouseUp = (_event: MouseEvent) => {
-    window.removeEventListener("mouseup", onMouseUp);
-    window.removeEventListener("mousemove", onMouseMove);
+  const onPointerUp = (_event: any) => {
+    window.removeEventListener("pointercancel", onPointerUp);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointermove", onPointerMove);
     if (onChange) onChange({target: {value: state.value}});
   };
-  element.onmousedown = (event: MouseEvent) => {
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseup", onMouseUp);
-    updateValue(event);
+  const onPointerDown = (event: PointerEvent) => {
+    window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointermove", onPointerMove);
+    updateValue(event.clientX);
     event.preventDefault();
   };
+  element.onpointerdown = onPointerDown;
 });

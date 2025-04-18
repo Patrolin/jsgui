@@ -369,6 +369,7 @@ dialog::backdrop {
   padding: 0 var(--knobSizeHalf);
   display: flex;
   align-items: center;
+  touch-action: none;
 }
 /* TODO: hover styles */
 .slider-input-rail {
