@@ -10,17 +10,17 @@ export type DialogProps = BaseProps & ({
 export const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
   const {open, onClose, closeOnClickBackdrop} = props;
   const [state] = this.useState({ prevOpen: false });
-  const e = this.useNode(() => document.createElement("dialog"));
-  e.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
+  const element = this.useNode(() => document.createElement("dialog"));
+  element.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
   }
   return {
     onMount: () => {
       if (open !== state.prevOpen) {
         if (open) {
-          e.showModal();
+          element.showModal();
         } else {
-          e.close();
+          element.close();
         }
         state.prevOpen = open;
       }

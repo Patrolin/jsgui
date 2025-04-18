@@ -452,10 +452,10 @@ function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction
 }
 export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ = {}) {
   const [state] = this.useState({prevStr: ""});
-  const e = this.useNode(() => new Text(""));
+  const textNode = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
     state.prevStr = str;
-    (e /*as Text*/).textContent = str;
+    textNode.textContent = str;
   }
 });
 function _copyComponent(component/*: Component*/) {
@@ -992,11 +992,11 @@ export const span = makeComponent(function _span(text/*: string | number | null 
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
-    selfLinkWrapper.append(icon("tag", { size: "normal", href: `#${selfLink}` }));
+    selfLinkWrapper.append(icon("tag", { size: Size.normal, href: `#${selfLink}` }));
     return;
   }
   const isLink = (href != null);
-  const e = this.useNode(() => document.createElement(isLink ? 'a' : 'span'));
+  const element = this.useNode(() => document.createElement(isLink ? 'a' : 'span'));
   const {attribute, className, style, events} = this.baseProps;
   if (id) attribute.id = id;
   if (download) attribute.download = download;
@@ -1005,7 +1005,7 @@ export const span = makeComponent(function _span(text/*: string | number | null 
   if (color) style.color = `var(--${color})`;
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
-  if (isLink) (e /*as HTMLAnchorElement*/).href = href;
+  if (isLink) (element /*as HTMLAnchorElement*/).href = href;
   if (onClick || href) {
     if (!isLink) {
       attribute.tabindex = "-1";
@@ -1052,27 +1052,6 @@ function generateFontSizeCssVars(names/*: string[]*/ = Object.values(Size)) {
 setTimeout(() => {
   //console.log(generateFontSizeCssVars());
 })
-/*export type ButtonProps = {
-  size?: Size;
-  color?: BaseColor;
-  onClick?: () => void;
-  disabled?: boolean;
-}
-// inputs
-*/export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
-  const {size, color, onClick, disabled} = props;
-  const e = this.useNode(() => document.createElement("button"));
-  if (text) this.append(span(text));
-  const {attribute} = this.baseProps;
-  if (size) attribute.dataSize = size;
-  if (color) attribute.dataColor = color;
-  if (disabled) attribute.disabled = "true";
-  else if (onClick) {
-    e.onmousedown = () => {
-      requestAnimationFrame(onClick);
-    }
-  }
-});
 /*export type InputProps = {
   type?: "text";
   placeholder?: string;
@@ -1094,33 +1073,33 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   } = props;
   const [state] = this.useState({ prevAllowedDisplayString: String(value ?? ''), prevAllowedString: '' });
   state.prevAllowedString = String(value ?? '');
-  const e = this.useNode(() => document.createElement('input'));
-  e.type = type;
-  if (placeholder) e.placeholder = placeholder;
-  if (autoFocus) e.autofocus = true;
-  if (value != null) e.value = String(value);
-  e.onfocus = onFocus /*as _EventListener*/;
-  e.onblur = onBlur /*as _EventListener*/;
-  e.onkeydown = onKeyDown /*as _EventListener*/;
-  e.oninput = (_event) => {
+  const element = this.useNode(() => document.createElement('input'));
+  element.type = type;
+  if (placeholder) element.placeholder = placeholder;
+  if (autoFocus) element.autofocus = true;
+  if (value != null) element.value = String(value);
+  element.onfocus = onFocus /*as _EventListener*/;
+  element.onblur = onBlur /*as _EventListener*/;
+  element.onkeydown = onKeyDown /*as _EventListener*/;
+  element.oninput = (_event) => {
     const event = _event /*as InputEventWithTarget*/;
-    if (event.data != null && !allowDisplayString(e.value)) {
+    if (event.data != null && !allowDisplayString(element.value)) {
       event.preventDefault();
       event.stopPropagation();
-      e.value = state.prevAllowedDisplayString;
+      element.value = state.prevAllowedDisplayString;
       return;
     }
-    state.prevAllowedDisplayString = e.value;
+    state.prevAllowedDisplayString = element.value;
     if (onRawInput) onRawInput(event);
-    const allowedString = allowString(e.value);
-    if (allowedString === e.value && onInput) onInput(event);
+    const allowedString = allowString(element.value);
+    if (allowedString === element.value && onInput) onInput(event);
   }
-  e.onchange = (_event) => { // NOTE: called only on blur
+  element.onchange = (_event) => { // NOTE: called only on blur
     const event = _event /*as ChangeEventWithTarget*/;
-    const allowedString = allowString(e.value) ?? state.prevAllowedString;
+    const allowedString = allowString(element.value) ?? state.prevAllowedString;
     state.prevAllowedString = allowedString;
-    if (e.value !== allowedString) {
-      e.value = allowedString;
+    if (element.value !== allowedString) {
+      element.value = allowedString;
       const target = event.target;
       if (onRawInput) onRawInput({target} /*as InputEventWithTarget*/);
       if (onInput) onInput({target} /*as InputEventWithTarget*/);
@@ -1130,9 +1109,9 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
 });
 /*export type LabeledInputProps = {
   label?: string;
-  leftComponent?: Component;
+  leftComponent?: () => Component;
   inputComponent: Component;
-  rightComponent?: Component;
+  rightComponent?: () => Component;
 } & BaseProps*/;
 export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
@@ -1151,13 +1130,14 @@ export const labeledInput = makeComponent(function labeledInput(props/*: Labeled
     }
   };
   this.append(legend(label))
-  if (leftComponent) this.append(leftComponent);
+  if (leftComponent) this.append(leftComponent());
   this.append(inputComponent);
-  if (rightComponent) this.append(rightComponent);
+  if (rightComponent) this.append(rightComponent());
 });
 export const errorMessage = makeComponent(function errorMessage(error/*: string*/, props/*: SpanProps*/ = {}) {
   this.append(span(error, {color: "red", size: Size.small, ...props}));
 });
+
 /*export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps, "inputComponent"> & {
   error?: string,
   value: string | null | undefined;
@@ -1171,6 +1151,32 @@ export const textInput = makeComponent(function textInput(props/*: TextInputProp
     rightComponent,
   }));
   if (error) this.append(errorMessage(error));
+});
+/*export type SliderInputProps = {
+  range: [number, number];
+  value: number;
+}*/;
+export const sliderInput = makeComponent(function sliderInput(props/*: SliderInputProps*/) {
+  const {range, value} = props;
+  const [state, setState] = this.useState({
+    value: range[0],
+  });
+  if (value != null) state.value = value;
+
+  const element = this.useNode(() => document.createElement("div"));
+  this.append(div({className: ""}));
+  const onMouseUp = () => {
+
+  };
+  return {
+    onMount: () => {
+      // NOTE: window events fire even if you drag outside the window
+      window.addEventListener("mouseup", onMouseUp);
+    },
+    onUnmount: () => {
+      window.removeEventListener("mouseup", onMouseUp);
+    }
+  }
 });
 /*export type NumberArrowProps = {
   onClickUp?: (event: MouseEvent) => void;
@@ -1196,7 +1202,7 @@ export const numberArrows = makeComponent(function numberArrows(props/*: NumberA
 }*/;
 export const numberInput = makeComponent(function numberInput(props/*: NumberInputProps*/) {
   const {
-    label, leftComponent, rightComponent: customRightComponent, error, // labeledInput
+    label, leftComponent, rightComponent, error, // labeledInput
     value, min, max, step, stepPrecision, clearable = true, onKeyDown, onRawInput, onInput, onChange, ...extraProps // numberInput
   } = props;
   const stepAndClamp = (number/*: number*/) => {
@@ -1249,27 +1255,49 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
       }
     }
   });
-  const rightComponent = fragment();
-  if (customRightComponent) rightComponent.append(customRightComponent);
-  rightComponent.append(numberArrows({
-    onClickUp: (_event/*: MouseEvent*/) => {
-      incrementValue(step ?? 1);
-      inputComponent._.state.needFocus = true;
-      inputComponent.rerender();
-    },
-    onClickDown: (_event/*: MouseEvent*/) => {
-      incrementValue(-(step ?? 1));
-      inputComponent._.state.needFocus = true;
-      inputComponent.rerender();
-    },
-  }));
   this.append(labeledInput({
     label,
     leftComponent,
     inputComponent,
-    rightComponent: rightComponent,
+    rightComponent: () => {
+      const acc = fragment();
+      if (rightComponent) acc.append(rightComponent());
+      acc.append(numberArrows({
+        onClickUp: (_event/*: MouseEvent*/) => {
+          incrementValue(step ?? 1);
+          inputComponent._.state.needFocus = true;
+          inputComponent.rerender();
+        },
+        onClickDown: (_event/*: MouseEvent*/) => {
+          incrementValue(-(step ?? 1));
+          inputComponent._.state.needFocus = true;
+          inputComponent.rerender();
+        },
+      }));
+      return acc;
+    },
   }));
   if (error) this.append(errorMessage(error));
+});
+/*export type ButtonProps = {
+  size?: Size;
+  color?: BaseColor;
+  onClick?: () => void;
+  disabled?: boolean;
+}
+*/export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
+  const {size, color, onClick, disabled} = props;
+  const element = this.useNode(() => document.createElement("button"));
+  if (text) this.append(span(text));
+  const {attribute} = this.baseProps;
+  if (size) attribute.dataSize = size;
+  if (color) attribute.dataColor = color;
+  if (disabled) attribute.disabled = "true";
+  else if (onClick) {
+    element.onmousedown = () => {
+      requestAnimationFrame(onClick);
+    }
+  }
 });
 /*type _GPU = {
   requestAdapter(): Promise<_GPUAdapter>;
@@ -1799,17 +1827,17 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
 export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
   const {open, onClose, closeOnClickBackdrop} = props;
   const [state] = this.useState({ prevOpen: false });
-  const e = this.useNode(() => document.createElement("dialog"));
-  e.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === e) && onClose) onClose();
+  const element = this.useNode(() => document.createElement("dialog"));
+  element.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
   }
   return {
     onMount: () => {
       if (open !== state.prevOpen) {
         if (open) {
-          e.showModal();
+          element.showModal();
         } else {
-          e.close();
+          element.close();
         }
         state.prevOpen = open;
       }

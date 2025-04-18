@@ -6,7 +6,7 @@ html, body {
 body {
   margin: 0;
   font-family: var(--fontFamily-sans);
-  font-size: var(--fontSize-x);
+  font-size: var(--fontSize);
   background: rgb(255, 255, 255);
   color: var(--gray-0);
   --fontFamily-sans: "Roboto", "Helvetica", "Arial", sans-serif;
@@ -58,24 +58,24 @@ body {
 }
 /* css utils */
 [data-size="small"] {
-  --fontSize-x: var(--fontSize-small);
-  --iconSize-x: var(--iconSize-small);
-  --size-x: var(--size-small);
+  --fontSize: var(--fontSize-small);
+  --iconSize: var(--iconSize-small);
+  --size: var(--size-small);
 }
 body, [data-size="normal"] {
-  --fontSize-x: var(--fontSize-normal);
-  --iconSize-x: var(--iconSize-normal);
-  --size-x: var(--size-normal);
+  --fontSize: var(--fontSize-normal);
+  --iconSize: var(--iconSize-normal);
+  --size: var(--size-normal);
 }
 [data-size="big"] {
-  --fontSize-x: var(--fontSize-big);
-  --iconSize-x: var(--iconSize-big);
-  --size-x: var(--size-big);
+  --fontSize: var(--fontSize-big);
+  --iconSize: var(--iconSize-big);
+  --size: var(--size-big);
 }
 [data-size="bigger"] {
-  --fontSize-x: var(--fontSize-bigger);
-  --iconSize-x: var(--iconSize-bigger);
-  --size-x: var(--size-bigger);
+  --fontSize: var(--fontSize-bigger);
+  --iconSize: var(--iconSize-bigger);
+  --size: var(--size-bigger);
 }
 .ellipsis {
   overflow: hidden;
@@ -115,11 +115,11 @@ body, [data-size="normal"] {
 span, a, button {
   display: inline-block; /* fix ellipsis */
   vertical-align: top; /* fix inline-block */
-  line-height: var(--size-x);
+  line-height: var(--size);
 }
 [data-size] {
-  font-size: var(--fontSize-x);
-  line-height: var(--size-x);
+  font-size: var(--fontSize);
+  line-height: var(--size);
 }
 a {
   color: var(--secondary-0);
@@ -148,7 +148,7 @@ code, code * {
 }
 .icon {
   box-sizing: content-box;
-  font-size: var(--iconSize-x);
+  font-size: var(--iconSize);
   line-height: 1;
   width: 1em;
   height: 1em;
@@ -213,7 +213,7 @@ dialog::backdrop {
   border: none;
   border-radius: 4px;
   padding: 0px 6px;
-  height: calc(var(--size-x) + 2px);
+  height: calc(var(--size) + 2px);
   background: var(--buttonColor);
   transition: background-color 0.2s var(--timing-0d);
   border-bottom: 1px solid var(--gray-6);
@@ -241,7 +241,7 @@ dialog::backdrop {
 .colored-button:active:not([disabled]) {
   background: var(--buttonColorActive);
   margin-top: 1px;
-  height: calc(var(--size-x) + 1px);
+  height: calc(var(--size) + 1px);
   border-bottom: none;
 }
 .colored-button:not([disabled]) {
@@ -253,8 +253,8 @@ dialog::backdrop {
   --buttonFontColor: var(--gray-0);
 }
 .colored-button > span:not(.icon) {
-  font-size: var(--fontSize-x);
-  line-height: var(--size-x);
+  font-size: var(--fontSize);
+  line-height: var(--size);
   align-self: flex-start;
 }
 .colored-button .icon {
@@ -264,51 +264,49 @@ dialog::backdrop {
   padding-inline: 0;
 }
 .labeled-input {
+  --fieldsetMargin: 0 1px var(--labelSizeHalf);
   margin: var(--fieldsetMargin);
-  padding: 0;
-  width: var(--fieldsetWidth);
+
+  --fieldsetBorderWidth: 1px;
+  --fieldsetBorderColor: var(--gray-4);
+  --fieldsetBorderRadius: 4px;
+  border: var(--fieldsetBorderWidth) solid var(--fieldsetBorderColor);
+  border-radius: var(--fieldsetBorderRadius);
+
+  --fieldsetMinWidth: 120px;
+  --fieldsetWidth: 194px;
+  --fieldsetHeight: calc(var(--fieldsetContentHeight) + var(--labelSizeHalf));
+  width: calc(var(--fieldsetWidth) + 2*var(--fieldsetBorderWidth));
+  flex-grow: 0;
+  min-width: calc(var(--fieldsetMinWidth) + 2*var(--fieldsetBorderWidth));
   height: var(--fieldsetHeight);
-  border: var(--fieldsetBorder);
-  border-radius: 4px;
   cursor: text;
+
+  --fieldsetContentHeight: calc(2*var(--size-normal) - var(--labelSize));
+  --labelSize: 12px;
+  --labelSizeHalf: 6px;
+  --labelColor: var(--gray-3);
+  --labelMarginLeft: 6px;
+  padding: 0;
   display: flex;
   justify-content: space-between;
-  --labelSize: 12px;
-  --labelColor: var(--gray-3);
-  --labelColorFocus: var(--secondary-0);
-  --labelColorError: var(--red-0);
-  --labelColor-x: var(--labelColor);
-  --labelMarginLeft: 6px;
-  --fieldsetContentHeight: calc(2*var(--size-normal) - var(--labelSize));
-  --fieldsetWidth: 194px;
-  --fieldsetHeight: calc(var(--fieldsetContentHeight) + 0.5*var(--labelSize));
-  --fieldsetMargin: 0 1px 6px 1px;
-  --fieldsetMarginFocus: 0 0 6px 0;
-  --fieldsetBorder: 1px solid var(--gray-4);
-  --fieldsetBorderHover: 1px solid var(--gray-3);
-  --fieldsetBorderFocus: 2px solid var(--secondary-0);
-  --fieldsetBorderError: 1px solid var(--red-0);
-  --fieldsetBorderErrorFocus: 2px solid var(--red-0);
 }
 .labeled-input:hover {
-  border: var(--fieldsetBorderHover);
+  --fieldsetBorderColor: var(--gray-3);
 }
 .labeled-input:focus-within {
-  margin: var(--fieldsetMarginFocus);
-  width: calc(var(--fieldsetWidth) + 2px);
-  border: var(--fieldsetBorderFocus);
-  --labelColor-x: var(--labelColorFocus);
+  --fieldsetMargin: 0 0 var(--labelSizeHalf);
+  --fieldsetBorderWidth: 2px;
+  --fieldsetBorderColor: var(--secondary-0);
+  --labelColor: var(--secondary-0);
 }
 .labeled-input[fieldset-error="true"] {
-  border: var(--fieldsetBorderError);
-  --labelColor-x: var(--labelColorError);
-}
-.labeled-input[fieldset-error="true"]:focus-within {
-  border: var(--fieldsetBorderErrorFocus);
+  --fieldsetBorderColor: var(--red-0);
+  --labelColor: var(--red-0);
 }
 .labeled-input legend {
   white-space: pre;
-  color: var(--labelColor-x);
+  color: var(--labelColor);
   user-select: none;
   font-size: var(--labelSize);
   line-height: 1;
@@ -319,7 +317,7 @@ dialog::backdrop {
 .labeled-input > :not(legend) {
   position: relative;
   background: none;
-  top: calc(-0.5*var(--labelSize));
+  top: calc(-1*var(--labelSizeHalf));
   height: var(--fieldsetContentHeight);
 }
 .labeled-input input {
@@ -335,11 +333,16 @@ dialog::backdrop {
   display: flex;
   flex-direction: column;
   color: var(--gray-3);
-  --numberArtableRowPadding: calc(var(--size-x) - var(--iconSize-x));
 }
 .number-arrows .icon {
-  --iconSize-x: calc(0.5*(var(--fieldsetHeight) - 7px));
+  --iconSize: calc(0.5*var(--fieldsetContentHeight));
   border-left: 1px solid var(--gray-6);
+}
+.number-arrows .icon[data-icon="arrow_drop_up"] {
+  border-top-right-radius: var(--fieldsetBorderRadius);
+}
+.number-arrows .icon[data-icon="arrow_drop_down"] {
+  border-bottom-right-radius: var(--fieldsetBorderRadius);
 }
 .number-arrows .icon:hover {
   color: var(--gray-0);
@@ -347,9 +350,8 @@ dialog::backdrop {
 }
 .number-arrows .number-arrows-divider {
   position: relative;
-  left: 1px;
   top: -50%;
-  width: calc(100% - 1px);
+  width: 100%;
   min-height: 1px;
 }
 .number-arrows .icon:hover ~ .number-arrows-divider {

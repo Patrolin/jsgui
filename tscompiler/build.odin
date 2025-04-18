@@ -18,6 +18,7 @@ BuildTask :: struct {
 }
 
 main :: proc() {
+	fmt.printfln("ayaya.0")
 	if ODIN_OS == .Windows {
 		win.SetConsoleOutputCP(win.CODEPAGE(win.CP_UTF8))
 	}

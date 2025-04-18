@@ -293,10 +293,10 @@ export function makeComponent<A extends Parameters<any>>(onRender: RenderFunctio
 }
 export const text = makeComponent(function text(str: string, _props: {} = {}) {
   const [state] = this.useState({prevStr: ""});
-  const e = this.useNode(() => new Text(""));
+  const textNode = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
     state.prevStr = str;
-    (e as Text).textContent = str;
+    textNode.textContent = str;
   }
 });
 export function _copyComponent(component: Component) {

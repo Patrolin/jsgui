@@ -144,11 +144,11 @@ export const span = makeComponent(function _span(text: string | number | null | 
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
     selfLinkWrapper.append(span(text, {...props, selfLink: undefined}));
-    selfLinkWrapper.append(icon("tag", { size: "normal", href: `#${selfLink}` }));
+    selfLinkWrapper.append(icon("tag", { size: Size.normal, href: `#${selfLink}` }));
     return;
   }
   const isLink = (href != null);
-  const e = this.useNode(() => document.createElement(isLink ? 'a' : 'span'));
+  const element = this.useNode(() => document.createElement(isLink ? 'a' : 'span'));
   const {attribute, className, style, events} = this.baseProps;
   if (id) attribute.id = id;
   if (download) attribute.download = download;
@@ -157,7 +157,7 @@ export const span = makeComponent(function _span(text: string | number | null | 
   if (color) style.color = `var(--${color})`;
   if (singleLine) className.push("ellipsis");
   if (fontFamily) style.fontFamily = `var(--fontFamily-${fontFamily})`;
-  if (isLink) (e as HTMLAnchorElement).href = href;
+  if (isLink) (element as HTMLAnchorElement).href = href;
   if (onClick || href) {
     if (!isLink) {
       attribute.tabindex = "-1";
