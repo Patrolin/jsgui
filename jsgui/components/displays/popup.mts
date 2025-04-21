@@ -1,5 +1,6 @@
 import { div } from "../basics.mts";
-import { addPx, BaseProps, clamp, Component, makeComponent, RenderReturn, SCROLLBAR_WIDTH } from "../../jsgui.mts";
+import { BaseProps, clamp, Component, makeComponent, RenderReturn, SCROLLBAR_WIDTH } from "../../jsgui.mts";
+import { addPx } from "../../utils/number_utils.mts";
 
 // dialog
 export type DialogProps = BaseProps & ({

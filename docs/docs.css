@@ -64,4 +64,40 @@ code * {
 [data-token-group="single-line-comment"], [data-token-group="multi-line-comment"] {
   color: #57A90A;
 }
-/* TODO: bracket colors */
+/* TODO: bracket colors? */
+
+/* theme creator */
+.color-circle-wrapper {
+  width: var(--inputWidth);
+  height: var(--inputWidth);
+  position: relative;
+}
+.color-circle-wrapper canvas {
+  width: 100%;
+  height: 100%;
+}
+.color-circle-dot {
+  border-radius: 50%;
+  border: .5px solid #7f7f7f;
+  background: black;
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.color-slider {
+  padding: 0;
+  background: var(--sliderBackground);
+}
+.color-slider .slider-input-rail {
+  height: 100%;
+  background: none;
+}
+.color-slider .slider-input-knob {
+  border-radius: 0;
+  width: 1px;
+  height: 100%;
+  background: var(--sliderKnobBackground);
+}

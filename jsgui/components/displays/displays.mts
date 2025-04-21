@@ -1,4 +1,5 @@
 import { BaseProps, makeComponent } from "../../jsgui.mts";
+import { addPercent } from "../../utils/string_utils.mts";
 import { div, icon, IconProps, span } from "../basics.mts";
 
 // spinners
@@ -15,7 +16,7 @@ export const progress = makeComponent(function progress(props: ProgressProps = {
   const wrapper = this.append(div({}));
   wrapper.append(div(fraction == null
     ? {className: 'progress-bar progress-bar-indeterminate'}
-    : {className: 'progress-bar', style: {width: `${fraction * 100}%`}}
+    : {className: 'progress-bar', style: {width: addPercent(fraction)}}
   ));
 });
 // tabs

@@ -1,4 +1,4 @@
-import { makePath, PathParts, stringifyJs } from "./utils/stringUtils.mts";
+import { addPx, camelCaseToKebabCase, makePath, PathParts, stringifyJs } from "./utils/string_utils.mts";
 
 // utils
 export const JSGUI_VERSION = "v0.19-dev";
@@ -10,32 +10,6 @@ export function parseJsonOrNull(jsonString: string): JSONValue {
   }
 }
 // TODO!: sortBy(), groupBy(), asArray()
-export function camelCaseToKebabCase(key: string) {
-  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
-}
-export function removePrefix(value: string, prefix: string): string {
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
-}
-export function removeSuffix(value: string, prefix: string): string {
-  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
-}
-export function addPx(value: string | number) {
-  return (value?.constructor?.name === "Number") ? `${value}px` : value as string;
-}
-export function lerp(t: number, x: number, y: number): number {
-  return (1-t)*x + t*y;
-}
-export function unlerp(value: number, x: number, y: number): number {
-  return (x - value) / (x - y);
-}
-/** clamp value between min and max (defaulting to min) */
-export function clamp(value: number, min: number, max: number): number {
-  return Math.max(min, Math.min(value, max));
-}
-export function rgbFromHexString(hexString: string): string {
-  let hexString2 = removePrefix(hexString.trim(), '#');
-  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
-}
 export type Nullsy = undefined | null;
 export type StringMap<T = any> = Record<string, T>;
 export type JSONValue = string | number | any[] | StringMap | null;
@@ -45,16 +19,38 @@ export type EventWithTarget<T = Event, E = HTMLInputElement> = T & {target: E};
 export type InputEventWithTarget = EventWithTarget<InputEvent>;
 export type ChangeEventWithTarget = EventWithTarget<Event>;
 export type _EventListener<T = Event> = ((event: T) => void);
-export type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
-  & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
-  & Record<"focus" | "blur" | "focusin" | "focusout", _EventListener<FocusEvent>>
-  & Record<"keydown" | "keypress" | "keyup", _EventListener<KeyboardEvent>>
-  & Record<"scroll", _EventListener<WheelEvent>>
-  & Record<"beforeinput" | "input", _EventListener<InputEventWithTarget>>
-  & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
-  & Record<"change", _EventListener<ChangeEventWithTarget>>
-  & Record<"paste", _EventListener<ClipboardEvent>>
-  & Record<string, _EventListener>>;
+export type EventsMap = {
+  click?: _EventListener<MouseEvent>;
+  dblclick?: _EventListener<MouseEvent>;
+  // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
+
+  pointerenter?: _EventListener<PointerEvent>; // same as pointerover?
+  pointerleave?: _EventListener<PointerEvent>; // same as pointerout?
+  pointerdown?: _EventListener<PointerEvent>;
+  pointermove?: _EventListener<PointerEvent>;
+  pointercancel?: _EventListener<PointerEvent>;
+  pointerup?: _EventListener<PointerEvent>;
+
+  focus?: _EventListener<FocusEvent>;
+  blur?: _EventListener<FocusEvent>;
+  focusin?: _EventListener<FocusEvent>;
+  focusout?: _EventListener<FocusEvent>;
+
+  keydown?: _EventListener<KeyboardEvent>;
+  keypress?: _EventListener<KeyboardEvent>;
+  keyup?: _EventListener<KeyboardEvent>;
+
+  scroll?: _EventListener<WheelEvent>;
+
+  beforeinput?: _EventListener<InputEventWithTarget>;
+  input?: _EventListener<InputEventWithTarget>;
+
+  compositionstart?: _EventListener<CompositionEvent>;
+  compositionend?: _EventListener<CompositionEvent>;
+  compositionupdate?: _EventListener<CompositionEvent>;
+
+  paste?: _EventListener<ClipboardEvent>;
+};
 export type UndoPartial<T> = T extends Partial<infer R> ? R : T;
 export type Diff<T> = {
   key: string;

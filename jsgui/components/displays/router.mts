@@ -1,5 +1,5 @@
 import { ComponentFunction, makeComponent } from "../../jsgui.mts";
-import { makePath } from "../../utils/stringUtils.mts";
+import { makePath } from "../../utils/string_utils.mts";
 import { div, fragment, span } from "../basics.mts";
 
 export type Route = {

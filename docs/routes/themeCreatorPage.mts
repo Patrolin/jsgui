@@ -1,9 +1,35 @@
-import { BaseProps, div, glSetBuffer, glUseProgram, lerp, makeComponent, numberInput, rgbFromHexString, span, textInput, webgl } from "../../jsgui/out/jsgui.mts";
+import { addPercent, clamp, div, glSetBuffer, glUseProgram, makeComponent, sliderInput, useOnPointerMove, UseOnPointerMoveValue, vec2, vec2_clamp_to_square, webgl } from "../../jsgui/out/jsgui.mts";
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  this.append(webgl({
-    style: {width: 150, height: 150, background: '#606060'},
+  const CHROMA_DEFAULT = 0.00;
+  const CHROMA_MAX = 0.147;
+  const BACKGROUND_COLOR = [0.4, 0.4, 0.4] as [number, number, number];
+  const [state, setState] = this.useState({
+    chroma: CHROMA_DEFAULT,
+    dotPos: {x: 0.75, y: 0.4} as vec2,
+  });
+  let pos = {x: state.dotPos.x*2 - 1, y: 1 - state.dotPos.y*2};
+  pos = vec2_clamp_to_square(pos);
+
+  // LH circle input
+  const updateDotPos = (_event: PointerEvent, pointerPos: UseOnPointerMoveValue) => {
+    const {fractionX, fractionY} = pointerPos;
+    setState({dotPos: {
+      x: clamp(fractionX, 0, 1),
+      y: clamp(fractionY, 0, 1),
+    }});
+  }
+  const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
+    onPointerDown: updateDotPos,
+    onPointerMove: updateDotPos,
+  });
+  // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
+  const circleInputWrapper = this.append(div({className: "color-circle-wrapper"}));
+  circleInputWrapper.append(webgl({
+    events: {
+      pointerdown: LHCircleOnPointerDown,
+    },
     programs: {
       colorWheel: {
         vertex: `
@@ -58,6 +84,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
 
           uniform vec2 u_viewport;
           uniform vec3 u_background_color;
+          uniform float u_chroma;
           out vec4 out_color;
           void main() {
             vec2 center = u_viewport.xy * 0.5;
@@ -69,8 +96,8 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
             //float alpha = clamp(radius - distance, 0.0, 1.0); // circle alpha
             float alpha = 1.0;
             // colors
-            float L_MAX = 1.0;
-            vec3 oklch = vec3(distance / radius * L_MAX, 0.13, angle);
+            float L = distance / radius;
+            vec3 oklch = vec3(L, u_chroma, angle);
             vec3 oklab = oklch_to_oklab(oklch);
 
             vec3 srgb = oklab_to_linear_srgb(oklab);
@@ -90,7 +117,8 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
     render: ({gl, programs: {colorWheel}, rect}) => {
       glUseProgram(gl, colorWheel);
       gl.uniform2f(colorWheel.u_viewport, rect.width, rect.height);
-      gl.uniform3f(colorWheel.u_background_color, 0.4, 0.4, 0.4);
+      gl.uniform3f(colorWheel.u_background_color, ...BACKGROUND_COLOR);
+      gl.uniform1f(colorWheel.u_chroma, state.chroma);
       glSetBuffer(gl, colorWheel.v_position, new Float32Array([
         -1, -1,
         +1, -1,
@@ -100,111 +128,25 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
   }));
-  this.append("TODO: clickable color 'wheel'");
-
-  //
-  const [state, setState] = this.useState({
-    color: '#1450a0',
-    count: 7,
-  });
-  this.append(textInput({
-    value: state.color,
-    allowString: (value) => {
-      if (value.match("#[0-9a-zA-Z]{6}")) return value;
+  circleInputWrapper.append(div({
+    className: "color-circle-dot",
+    style: {left: addPercent(state.dotPos.x), top: addPercent(state.dotPos.y)}
+  }));
+  // C input
+  console.log('state', state);
+  this.append(sliderInput({
+    className: "color-slider",
+    cssVars: {
+      sliderBackground: "rgb(80, 0, 0)",
+      sliderKnobBackground: "rgb(175, 255, 255)",
     },
+    range: [0, CHROMA_MAX],
+    decimalPlaces: 3,
+    value: state.chroma,
     onInput: (event) => {
-      setState({color: event.target.value});
-    },
-    label: 'Color',
-  }));
-  this.append(numberInput({
-    value: state.count,
-    min: 0,
-    onInput: (event) => {
-      setState({count: +event.target.value});
-    },
-    label: 'Count',
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Exponential",
-    alphaFunction: (i, N) => {
-      return 2 - 2**(i/N);
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Chebyshev roots",
-    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "lerp(Chebyshev, linear)",
-    alphaFunction: (i, N) => {
-      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
-      return lerp(i/(N-1), v, (N-i)/N)
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "linear",
-    alphaFunction: (i, N) => {
-      return (N-i)/N;
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Sigmoid",
-    alphaFunction: (i, N) => {
-      const v = (i / (0.59*N));
-      return Math.exp(-v*v);
-    },
-  }));
-});
-type ColorPaletteProps = BaseProps & {
-  color: string;
-  count: number;
-  name: string;
-  alphaFunction: (i: number, count: number) => number;
-};
-const colorPalette = makeComponent(function colorPalette(props: ColorPaletteProps) {
-  const {color, count, name, alphaFunction} = props;
-  this.append(span(name, {style: {marginTop: 4}}));
-  // color
-  const appendColorRow = (color: string) => {
-    const colorRow = this.append(div({
-      style: {display: "flex"},
-    }));
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(div({
-        key: `box-${i}`,
-        style: {
-          width: 30,
-          height: 24,
-          background: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
+      setState({
+        chroma: event.target.value,
+      });
     }
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(span("text", {
-        key: `text-${i}`,
-        style: {
-          width: 30,
-          textAlign: "right",
-          color: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
-    }
-  }
-  appendColorRow(color);
-  appendColorRow("#000000");
+  }));
 });

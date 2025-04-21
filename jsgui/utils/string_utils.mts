@@ -1,9 +1,33 @@
-/** Return stringified JSON with extra undefineds */
+// name manipulation
+export function camelCaseToKebabCase(key: string) {
+  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
+}
+export function removePrefix(value: string, prefix: string): string {
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+export function removeSuffix(value: string, prefix: string): string {
+  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
+}
+
+// css
+export function rgbFromHexString(hexString: string): string {
+  let hexString2 = removePrefix(hexString.trim(), '#');
+  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
+}
+export function addPx(pixelsOrString: string | number) {
+  return typeof pixelsOrString === "number" ? `${pixelsOrString}px` : pixelsOrString as string;
+}
+export function addPercent(fractionOrString: string | number) {
+  return typeof fractionOrString === "number" ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString as string;
+}
+
+/** Return stringified JSON with extra undefineds for printing */
 export function stringifyJs(v: any): string {
   if (v === undefined) return "undefined";
-  return JSON.stringify(v); // TODO: also handle nested nulls
+  return JSON.stringify(v); // TODO: also handle nested undefineds
 }
-/** Return stringified JSON */
+
+// json
 export function stringifyJson(v: any): string {
   return JSON.stringify(v);
 }
@@ -25,6 +49,8 @@ export function stringifyJsonStable(data: Record<string, any>): string {
       : value;
   return JSON.stringify(data, replacer);
 }
+
+// path
 export type PathParts = {
   origin?: string;
   pathname?: string;

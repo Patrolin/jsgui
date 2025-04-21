@@ -5,12 +5,117 @@ function makeArray/*<T>*/(N/*: number*/, map/*: (v: undefined, i: number) => T*/
 	}
 	return arr;
 }
-/** Return stringified JSON with extra undefineds */
+/*export type vec2 = {x: number; y: number}*/;
+/*export type vec3 = {x: number; y: number, z: number}*/;
+
+// basic operations
+function vec2_add(A/*: vec2*/, B/*: vec2*/)/*: vec2*/ {
+  return {x: A.x + B.x, y: A.y + B.y};
+}
+function vec3_add(A/*: vec3*/, B/*: vec3*/)/*: vec3*/ {
+  return {x: A.x + B.x, y: A.y + B.y, z: A.z + B.z};
+}
+
+function vec2_sub(A/*: vec2*/, B/*: vec2*/)/*: vec2*/ {
+  return {x: A.x - B.x, y: A.y - B.y};
+}
+function vec3_sub(A/*: vec3*/, B/*: vec3*/)/*: vec3*/ {
+  return {x: A.x - B.x, y: A.y - B.y, z: A.z - B.z};
+}
+
+function vec2_mulf(A/*: vec2*/, b/*: number*/)/*: vec2*/ {
+  return {x: A.x * b, y: A.y * b};
+}
+function vec3_mulf(A/*: vec3*/, b/*: number*/)/*: vec3*/ {
+  return {x: A.x * b, y: A.y * b, z: A.z * b};
+}
+
+function vec2_mul(A/*: vec2*/, B/*: vec2*/)/*: vec2*/ {
+  return {x: A.x * B.x, y: A.y * B.y};
+}
+function vec3_mul(A/*: vec3*/, B/*: vec3*/)/*: vec3*/ {
+  return {x: A.x * B.x, y: A.y * B.y, z: A.z * B.z};
+}
+
+function vec2_div(A/*: vec2*/, B/*: vec2*/)/*: vec2*/ {
+  return {x: A.x / B.x, y: A.y / B.y};
+}
+function vec3_div(A/*: vec3*/, B/*: vec3*/)/*: vec3*/ {
+  return {x: A.x / B.x, y: A.y / B.y, z: A.z / B.z};
+}
+
+// fancy operations
+function vec2_dot(A/*: vec2*/, B/*: vec2*/)/*: number*/ {
+  return A.x*B.x + A.y*B.y;
+}
+function vec3_dot(A/*: vec3*/, B/*: vec3*/)/*: number*/ {
+  return A.x*B.x + A.y*B.y + A.z*B.z;
+}
+
+function vec2_circle_norm(A/*: vec2*/)/*: number*/ {
+  const {x, y} = A
+  return Math.sqrt(x*x + y*y);
+}
+function vec3_circle_norm(A/*: vec3*/)/*: number*/ {
+  const {x, y, z} = A
+  return Math.sqrt(x*x + y*y + z*z);
+}
+
+function vec2_clamp_to_circle(A/*: vec2*/)/*: vec2*/ {
+  const circle_norm = vec2_circle_norm(A);
+  return circle_norm > 1 ? vec2_mulf(A, 1/circle_norm) : A;
+}
+function vec3_clamp_to_circle(A/*: vec3*/)/*: vec3*/ {
+  const circle_norm = vec3_circle_norm(A);
+  return circle_norm > 1 ? vec3_mulf(A, 1/circle_norm) : A;
+}
+
+function vec2_square_norm(A/*: vec2*/)/*: number*/ {
+  const {x, y} = A
+  return Math.max(Math.abs(x), Math.abs(y));
+}
+function vec3_square_norm(A/*: vec3*/)/*: number*/ {
+  const {x, y, z} = A
+  return Math.max(Math.abs(x), Math.abs(y), Math.abs(z));
+}
+
+function vec2_clamp_to_square(A/*: vec2*/)/*: vec2*/ {
+  const square_norm = vec2_square_norm(A);
+  return square_norm > 1 ? vec2_mulf(A, 1/square_norm) : A;
+}
+function vec3_clamp_to_square(A/*: vec3*/)/*: vec3*/ {
+  const square_norm = vec3_square_norm(A);
+  return square_norm > 1 ? vec3_mulf(A, 1/square_norm) : A;
+}
+function camelCaseToKebabCase(key/*: string*/) {
+  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
+}
+function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
+}
+
+// css
+function rgbFromHexString(hexString/*: string*/)/*: string*/ {
+  let hexString2 = removePrefix(hexString.trim(), '#');
+  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
+}
+function addPx(pixelsOrString/*: string | number*/) {
+  return typeof pixelsOrString === "number" ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
+}
+function addPercent(fractionOrString/*: string | number*/) {
+  return typeof fractionOrString === "number" ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
+}
+
+/** Return stringified JSON with extra undefineds for printing */
 function stringifyJs(v/*: any*/)/*: string*/ {
   if (v === undefined) return "undefined";
-  return JSON.stringify(v); // TODO: also handle nested nulls
+  return JSON.stringify(v); // TODO: also handle nested undefineds
 }
-/** Return stringified JSON */
+
+// json
 function stringifyJson(v/*: any*/)/*: string*/ {
   return JSON.stringify(v);
 }
@@ -32,6 +137,8 @@ function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
       : value;
   return JSON.stringify(data, replacer);
 }
+
+// path
 /*export type PathParts = {
   origin?: string;
   pathname?: string;
@@ -59,6 +166,57 @@ function makePath(parts/*: string | PathParts*/)/*: string*/ {
   let hashString = hash ?? "";
   if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
   return pathLocation + queryString + hashString;
+}
+/** clamp value between min and max (defaulting to min) */
+function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
+  return Math.max(min, Math.min(value, max));
+}
+function lerp(t/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+  return (1-t)*x + t*y;
+}
+function unlerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+  return (x - value) / (x - y);
+}
+
+// directed rounding
+function round_directed_towards_infinity(value/*: number*/) {
+  return Math.ceil(value);
+}
+function round_directed_towards_negative_infinity(value/*: number*/) {
+  return Math.floor(value);
+}
+function round_directed_towards_zero(value/*: number*/) {
+  return Math.trunc(value);
+}
+function round_directed_away_from_zero(value/*: number*/) {
+  return value > 0 ? Math.ceil(value) : Math.floor(value);
+}
+// nearest rounding
+function round_towards_infinity(value/*: number*/) {
+  return Math.floor(value + 0.5);
+}
+function round_towards_negative_infinity(value/*: number*/) {
+  return Math.ceil(value - 0.5);
+}
+function round_towards_zero(value/*: number*/) {
+  return value > 0 ? Math.ceil(value - 0.5) : Math.floor(value + 0.5);
+}
+function round_away_from_zero(value/*: number*/) {
+  return value > 0 ? Math.floor(value + 0.5) : Math.ceil(value - 0.5);
+}
+function round_to_even(value/*: number*/) {
+  let result = round_towards_infinity(value);
+  const is_tie = (Math.abs(value) % 1 === 0.5);
+  const result_is_odd = (result % 2 !== 0);
+  if (is_tie && result_is_odd) result -= 1;
+  return result;
+}
+function round_to_odd(value/*: number*/) {
+  let result = round_towards_infinity(value);
+  const is_tie = (Math.abs(value) % 1 === 0.5);
+  const result_is_even = (result % 2 === 0);
+  if (is_tie && result_is_even) result -= 1;
+  return result;
 }
 /*export type DateParts = {
   year?: number;
@@ -169,32 +327,6 @@ function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   }
 }
 // TODO!: sortBy(), groupBy(), asArray()
-function camelCaseToKebabCase(key/*: string*/) {
-  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
-}
-function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
-}
-function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
-  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
-}
-function addPx(value/*: string | number*/) {
-  return (value?.constructor?.name === "Number") ? `${value}px` : value /*as string*/;
-}
-function lerp(t/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
-  return (1-t)*x + t*y;
-}
-function unlerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
-  return (x - value) / (x - y);
-}
-/** clamp value between min and max (defaulting to min) */
-function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
-  return Math.max(min, Math.min(value, max));
-}
-function rgbFromHexString(hexString/*: string*/)/*: string*/ {
-  let hexString2 = removePrefix(hexString.trim(), '#');
-  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
-}
 /*export type Nullsy = undefined | null*/;
 /*export type StringMap<T = any> = Record<string, T>*/;
 /*export type JSONValue = string | number | any[] | StringMap | null*/;
@@ -204,16 +336,38 @@ function rgbFromHexString(hexString/*: string*/)/*: string*/ {
 /*export type InputEventWithTarget = EventWithTarget<InputEvent>*/;
 /*export type ChangeEventWithTarget = EventWithTarget<Event>*/;
 /*export type _EventListener<T = Event> = ((event: T) => void)*/;
-/*export type EventsMap = Partial<Record<"click" | "dblclick" | "mouseup" | "mousedown", _EventListener<MouseEvent>>
-  & Record<"touchstart" | "touchend" | "touchmove" | "touchcancel", _EventListener<TouchEvent>>
-  & Record<"focus" | "blur" | "focusin" | "focusout", _EventListener<FocusEvent>>
-  & Record<"keydown" | "keypress" | "keyup", _EventListener<KeyboardEvent>>
-  & Record<"scroll", _EventListener<WheelEvent>>
-  & Record<"beforeinput" | "input", _EventListener<InputEventWithTarget>>
-  & Record<"compositionstart" | "compositionend" | "compositionupdate", _EventListener<CompositionEvent>>
-  & Record<"change", _EventListener<ChangeEventWithTarget>>
-  & Record<"paste", _EventListener<ClipboardEvent>>
-  & Record<string, _EventListener>>*/;
+/*export type EventsMap = {
+  click?: _EventListener<MouseEvent>;
+  dblclick?: _EventListener<MouseEvent>;
+  // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
+
+  pointerenter?: _EventListener<PointerEvent>; // same as pointerover?
+  pointerleave?: _EventListener<PointerEvent>; // same as pointerout?
+  pointerdown?: _EventListener<PointerEvent>;
+  pointermove?: _EventListener<PointerEvent>;
+  pointercancel?: _EventListener<PointerEvent>;
+  pointerup?: _EventListener<PointerEvent>;
+
+  focus?: _EventListener<FocusEvent>;
+  blur?: _EventListener<FocusEvent>;
+  focusin?: _EventListener<FocusEvent>;
+  focusout?: _EventListener<FocusEvent>;
+
+  keydown?: _EventListener<KeyboardEvent>;
+  keypress?: _EventListener<KeyboardEvent>;
+  keyup?: _EventListener<KeyboardEvent>;
+
+  scroll?: _EventListener<WheelEvent>;
+
+  beforeinput?: _EventListener<InputEventWithTarget>;
+  input?: _EventListener<InputEventWithTarget>;
+
+  compositionstart?: _EventListener<CompositionEvent>;
+  compositionend?: _EventListener<CompositionEvent>;
+  compositionupdate?: _EventListener<CompositionEvent>;
+
+  paste?: _EventListener<ClipboardEvent>;
+}*/;
 /*export type UndoPartial<T> = T extends Partial<infer R> ? R : T*/;
 /*export type Diff<T> = {
   key: string;
@@ -1158,7 +1312,60 @@ export const textInput = makeComponent(function textInput(props/*: TextInputProp
   }));
   if (error) this.append(errorMessage(error));
 });
-/*export type SliderInputProps = {
+/*export type UseOnPointerMoveValue = {
+  rect: DOMRect;
+  fractionX: number;
+  fractionY: number;
+}*/;
+/*export type UseOnPointerMoveProps = {
+  getNode?: (node: ParentNodeType) => ParentNodeType;
+  onPointerDown?: (event: PointerEvent, value: UseOnPointerMoveValue) => void;
+  onPointerMove?: (event: PointerEvent, value: UseOnPointerMoveValue) => void;
+  onPointerUp?: (event: PointerEvent, value: UseOnPointerMoveValue) => void;
+}*/;
+/*export type UseOnPointerMove = {
+  onPointerDown: (event: PointerEvent) => void;
+}*/;
+function useOnPointerMove(props/*: UseOnPointerMoveProps*/)/*: UseOnPointerMove*/ {
+  const {
+    getNode = (v) => v,
+    onPointerDown: userOnPointerDown,
+    onPointerMove: userOnPointerMove,
+    onPointerUp: userOnPointerUp,
+  } = props;
+  // NOTE: this will be recreated on next render, but remembered by the callback :shrug:
+  const ref = {startTarget: null /*as ParentNodeType | null*/};
+  const getPointerPosition = (event/*: PointerEvent*/) => {
+    if (ref.startTarget === null) {
+      ref.startTarget = event.target /*as ParentNodeType*/;
+    }
+    const node = getNode(ref.startTarget /*as ParentNodeType*/);
+    const rect = node.getBoundingClientRect();
+    const fractionX = (event.clientX - rect.left) / rect.width;
+    const fractionY = (event.clientY - rect.top) / rect.height;
+    return {rect, fractionX, fractionY};
+  }
+  const onPointerMove = (event/*: PointerEvent*/) => {
+    if (userOnPointerMove) userOnPointerMove(event, getPointerPosition(event));
+  };
+  const onPointerUp = (event/*: any*/) => {
+    window.removeEventListener("pointercancel", onPointerUp);
+    window.removeEventListener("pointerup", onPointerUp);
+    window.removeEventListener("pointermove", onPointerMove);
+    if (userOnPointerUp) userOnPointerUp(event, getPointerPosition(event));
+  };
+  const onPointerDown = (event/*: PointerEvent*/) => {
+    window.addEventListener("pointercancel", onPointerUp);
+    window.addEventListener("pointerup", onPointerUp);
+    window.addEventListener("pointermove", onPointerMove);
+    event.preventDefault();
+    if (userOnPointerDown) userOnPointerDown(event, getPointerPosition(event));
+  };
+  return {onPointerDown};
+}
+
+// slider input
+/*export type SliderInputProps = BaseProps & {
   range: [number, number];
   decimalPlaces?: number;
   value?: number | null;
@@ -1174,47 +1381,39 @@ export const sliderInput = makeComponent(function sliderInput(props/*: SliderInp
   });
   if (value != null) state.value = value;
   // elements
-  let t = unlerp(value ?? range[0], range[0], range[1]);
+  let t = unlerp(state.value ?? range[0], range[0], range[1]);
   t = clamp(t, 0, 1);
-  const leftPercent = (t * 100).toFixed(2);
+  const leftPercent = addPercent(t);
   const element = this.useNode(() => document.createElement("div"));
   const rail = this.append(div({className: "slider-input-rail", ...railProps}));
   rail.append(div({
     className: "slider-input-rail slider-input-color-rail",
-    style: {width: `${leftPercent}%`},
+    style: {width: leftPercent},
     ...knobProps,
   }));
   rail.append(div({
     className: "slider-input-knob",
-    style: {left: `${leftPercent}%`},
+    style: {left: leftPercent},
     ...knobProps,
   }));
   // events
-  const updateValue = (clientX/*: number*/) => {
-    const rect = (rail.getNode() /*as HTMLDivElement*/).getBoundingClientRect();
-    const fraction = (clientX - rect.left) / rect.width;
-    let newValue = lerp(fraction, range[0], range[1]);
+  const updateValue = (pointerPos/*: UseOnPointerMoveValue*/) => {
+    const {fractionX} = pointerPos;
+    let newValue = lerp(fractionX, range[0], range[1]);
     newValue = +newValue.toFixed(decimalPlaces ?? 0);
     newValue = clamp(newValue, range[0], range[1]);
-    if (onInput) onInput({target: {value: newValue}});
     setState({value: newValue});
+    if (onInput) onInput({target: {value: newValue}});
   }
-  const onPointerMove = (event/*: PointerEvent*/) => {
-    updateValue(event.clientX);
-  };
-  const onPointerUp = (_event/*: any*/) => {
-    window.removeEventListener("pointercancel", onPointerUp);
-    window.removeEventListener("pointerup", onPointerUp);
-    window.removeEventListener("pointermove", onPointerMove);
-    if (onChange) onChange({target: {value: state.value}});
-  };
-  const onPointerDown = (event/*: PointerEvent*/) => {
-    window.addEventListener("pointercancel", onPointerUp);
-    window.addEventListener("pointerup", onPointerUp);
-    window.addEventListener("pointermove", onPointerMove);
-    updateValue(event.clientX);
-    event.preventDefault();
-  };
+  const {onPointerDown} = useOnPointerMove({
+    getNode: () => rail.getNode() /*as ParentNodeType*/,
+    onPointerDown: (_event, pointerPos) => updateValue(pointerPos),
+    onPointerMove: (_event, pointerPos) => updateValue(pointerPos),
+    onPointerUp: (_event, pointerPos) => {
+      updateValue(pointerPos);
+      if (onChange) onChange({target: {value: state.value}});
+    },
+  });
   element.onpointerdown = onPointerDown;
 });
 /*export type NumberArrowProps = {
@@ -1722,7 +1921,7 @@ export const progress = makeComponent(function progress(props/*: ProgressProps*/
   const wrapper = this.append(div({}));
   wrapper.append(div(fraction == null
     ? {className: 'progress-bar progress-bar-indeterminate'}
-    : {className: 'progress-bar', style: {width: `${fraction * 100}%`}}
+    : {className: 'progress-bar', style: {width: addPercent(fraction)}}
   ));
 });
 // tabs
@@ -2515,8 +2714,34 @@ export const jsFormatter = makeComponent(function javascriptFormatter(text/*: st
   }));
 });
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  this.append(webgl({
-    style: {width: 150, height: 150, background: '#606060'},
+  const CHROMA_DEFAULT = 0.00;
+  const CHROMA_MAX = 0.147;
+  const BACKGROUND_COLOR = [0.4, 0.4, 0.4] /*as [number, number, number]*/;
+  const [state, setState] = this.useState({
+    chroma: CHROMA_DEFAULT,
+    dotPos: {x: 0.75, y: 0.4} /*as vec2*/,
+  });
+  let pos = {x: state.dotPos.x*2 - 1, y: 1 - state.dotPos.y*2};
+  pos = vec2_clamp_to_square(pos);
+
+  // LH circle input
+  const updateDotPos = (_event/*: PointerEvent*/, pointerPos/*: UseOnPointerMoveValue*/) => {
+    const {fractionX, fractionY} = pointerPos;
+    setState({dotPos: {
+      x: clamp(fractionX, 0, 1),
+      y: clamp(fractionY, 0, 1),
+    }});
+  }
+  const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
+    onPointerDown: updateDotPos,
+    onPointerMove: updateDotPos,
+  });
+  // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
+  const circleInputWrapper = this.append(div({className: "color-circle-wrapper"}));
+  circleInputWrapper.append(webgl({
+    events: {
+      pointerdown: LHCircleOnPointerDown,
+    },
     programs: {
       colorWheel: {
         vertex: `
@@ -2571,6 +2796,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
 
           uniform vec2 u_viewport;
           uniform vec3 u_background_color;
+          uniform float u_chroma;
           out vec4 out_color;
           void main() {
             vec2 center = u_viewport.xy * 0.5;
@@ -2582,8 +2808,8 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
             //float alpha = clamp(radius - distance, 0.0, 1.0); // circle alpha
             float alpha = 1.0;
             // colors
-            float L_MAX = 1.0;
-            vec3 oklch = vec3(distance / radius * L_MAX, 0.13, angle);
+            float L = distance / radius;
+            vec3 oklch = vec3(L, u_chroma, angle);
             vec3 oklab = oklch_to_oklab(oklch);
 
             vec3 srgb = oklab_to_linear_srgb(oklab);
@@ -2603,7 +2829,8 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
     render: ({gl, programs: {colorWheel}, rect}) => {
       glUseProgram(gl, colorWheel);
       gl.uniform2f(colorWheel.u_viewport, rect.width, rect.height);
-      gl.uniform3f(colorWheel.u_background_color, 0.4, 0.4, 0.4);
+      gl.uniform3f(colorWheel.u_background_color, ...BACKGROUND_COLOR);
+      gl.uniform1f(colorWheel.u_chroma, state.chroma);
       glSetBuffer(gl, colorWheel.v_position, new Float32Array([
         -1, -1,
         +1, -1,
@@ -2613,113 +2840,27 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
       gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
     }
   }));
-  this.append("TODO: clickable color 'wheel'");
-
-  //
-  const [state, setState] = this.useState({
-    color: '#1450a0',
-    count: 7,
-  });
-  this.append(textInput({
-    value: state.color,
-    allowString: (value) => {
-      if (value.match("#[0-9a-zA-Z]{6}")) return value;
+  circleInputWrapper.append(div({
+    className: "color-circle-dot",
+    style: {left: addPercent(state.dotPos.x), top: addPercent(state.dotPos.y)}
+  }));
+  // C input
+  console.log('state', state);
+  this.append(sliderInput({
+    className: "color-slider",
+    cssVars: {
+      sliderBackground: "rgb(80, 0, 0)",
+      sliderKnobBackground: "rgb(175, 255, 255)",
     },
+    range: [0, CHROMA_MAX],
+    decimalPlaces: 3,
+    value: state.chroma,
     onInput: (event) => {
-      setState({color: event.target.value});
-    },
-    label: 'Color',
-  }));
-  this.append(numberInput({
-    value: state.count,
-    min: 0,
-    onInput: (event) => {
-      setState({count: +event.target.value});
-    },
-    label: 'Count',
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Exponential",
-    alphaFunction: (i, N) => {
-      return 2 - 2**(i/N);
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Chebyshev roots",
-    alphaFunction: (i, N) => (Math.cos(Math.PI*i / N) + 1) / 2,
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "lerp(Chebyshev, linear)",
-    alphaFunction: (i, N) => {
-      const v = (Math.cos(Math.PI*i / N) + 1) / 2;
-      return lerp(i/(N-1), v, (N-i)/N)
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "linear",
-    alphaFunction: (i, N) => {
-      return (N-i)/N;
-    },
-  }));
-  this.append(colorPalette({
-    color: state.color,
-    count: state.count,
-    name: "Sigmoid",
-    alphaFunction: (i, N) => {
-      const v = (i / (0.59*N));
-      return Math.exp(-v*v);
-    },
-  }));
-});
-/*type ColorPaletteProps = BaseProps & {
-  color: string;
-  count: number;
-  name: string;
-  alphaFunction: (i: number, count: number) => number;
-}*/;
-const colorPalette = makeComponent(function colorPalette(props/*: ColorPaletteProps*/) {
-  const {color, count, name, alphaFunction} = props;
-  this.append(span(name, {style: {marginTop: 4}}));
-  // color
-  const appendColorRow = (color/*: string*/) => {
-    const colorRow = this.append(div({
-      style: {display: "flex"},
-    }));
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(div({
-        key: `box-${i}`,
-        style: {
-          width: 30,
-          height: 24,
-          background: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
+      setState({
+        chroma: event.target.value,
+      });
     }
-    for (let i = 0; i < count; i++) {
-      const colorRgb = rgbFromHexString(color);
-      const alpha = alphaFunction(i, count);
-      colorRow.append(span("text", {
-        key: `text-${i}`,
-        style: {
-          width: 30,
-          textAlign: "right",
-          color: `rgba(${colorRgb}, ${alpha})`,
-        },
-      }));
-    }
-  }
-  appendColorRow(color);
-  appendColorRow("#000000");
+  }));
 });
 export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     const column = this.append(div({className: "display-column"}));
