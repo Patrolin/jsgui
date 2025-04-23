@@ -566,7 +566,7 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		}
 		if parser.token_type == .BinaryAnd ||
 		   parser.token_type == .BinaryOr ||
-		   (parser.token_type == .Alphanumeric && parser.token == "extends") ||
+		   (parser.token_type == .Alphanumeric && (parser.token == "extends" || parser.token == "is")) ||
 		   parser.token_type == .Dot {
 			debug_print(parser, "type.binary_op")
 			next_token(parser, sb)

@@ -87,6 +87,33 @@ function vec3_clamp_to_square(A/*: vec3*/)/*: vec3*/ {
   const square_norm = vec3_square_norm(A);
   return square_norm > 1 ? vec3_mulf(A, 1/square_norm) : A;
 }
+function is_nullsy(value/*: any*/)/*: value is null | undefined*/ {
+  return value == null;
+}
+function is_array/*<V>*/(value/*: any*/)/*: value is V[]*/ {
+  return Array.isArray(value);
+}
+function is_object/*<V>*/(value/*: any*/)/*: value is Record<string, V>*/ {
+  return value !== null && typeof value === "object";
+}
+function is_string(value/*: any*/)/*: value is string*/ {
+  return typeof value === "string";
+}
+function is_number(value/*: any*/)/*: value is number*/ {
+  return typeof value === "number";
+}
+function is_boolean(value/*: any*/)/*: value is boolean*/ {
+  return typeof value === "boolean";
+}
+function is_function(value/*: any*/)/*: value is Function*/ {
+  return typeof value === "function";
+}
+function is_symbol(value/*: any*/)/*: value is Symbol*/ {
+  return typeof value === "symbol";
+}
+function is_bigint(value/*: any*/)/*: value is BigInt*/ {
+  return typeof value === "bigint";
+}
 function camelCaseToKebabCase(key/*: string*/) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
@@ -103,10 +130,10 @@ function rgbFromHexString(hexString/*: string*/)/*: string*/ {
   return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
 }
 function addPx(pixelsOrString/*: string | number*/) {
-  return typeof pixelsOrString === "number" ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
+  return is_number(pixelsOrString) ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
 }
 function addPercent(fractionOrString/*: string | number*/) {
-  return typeof fractionOrString === "number" ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
+  return is_number(fractionOrString) ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
 }
 
 /** Return stringified JSON with extra undefineds for printing */
@@ -147,7 +174,7 @@ function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
 }*/;
 /** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
 function makePath(parts/*: string | PathParts*/)/*: string*/ {
-  if (typeof parts === "string") {return parts}
+  if (is_string(parts)) {return parts}
   let origin = parts.origin ?? window.location.origin;
   let pathname = parts.pathname ?? window.location.pathname;
   let query = parts.query ?? window.location.search;
@@ -157,7 +184,7 @@ function makePath(parts/*: string | PathParts*/)/*: string*/ {
   if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
   pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
   let queryString = '';
-  if (typeof query === "string") {
+  if (is_string(query)) {
     queryString = query;
   } else if (Object.keys(query ?? {}).length) {
     const queryObject = query /*as any*/;
@@ -191,6 +218,7 @@ function round_directed_towards_zero(value/*: number*/) {
 function round_directed_away_from_zero(value/*: number*/) {
   return value > 0 ? Math.ceil(value) : Math.floor(value);
 }
+
 // nearest rounding
 function round_towards_infinity(value/*: number*/) {
   return Math.floor(value + 0.5);
@@ -984,7 +1012,7 @@ export const BASE_COLORS = {
   //yellow: "0.45, 0.85, 0.127, 95", // TODO: yellow, green
   //green: "0.45, 0.85, 0.127, 145",
 };
-/*export type BaseColor = keyof typeof*/ BASE_COLORS;
+/*export type BaseColor = keyof typeof*/ BASE_COLORS; // TODO: remove this?
 export const COLOR_SHADE_COUNT = 7;
 
 /*

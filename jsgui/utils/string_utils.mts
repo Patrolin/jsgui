@@ -1,3 +1,5 @@
+import { is_number, is_string } from "./type_utils.mts";
+
 // name manipulation
 export function camelCaseToKebabCase(key: string) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
@@ -15,10 +17,10 @@ export function rgbFromHexString(hexString: string): string {
   return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
 }
 export function addPx(pixelsOrString: string | number) {
-  return typeof pixelsOrString === "number" ? `${pixelsOrString}px` : pixelsOrString as string;
+  return is_number(pixelsOrString) ? `${pixelsOrString}px` : pixelsOrString as string;
 }
 export function addPercent(fractionOrString: string | number) {
-  return typeof fractionOrString === "number" ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString as string;
+  return is_number(fractionOrString) ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString as string;
 }
 
 /** Return stringified JSON with extra undefineds for printing */
@@ -59,7 +61,7 @@ export type PathParts = {
 };
 /** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
 export function makePath(parts: string | PathParts): string {
-  if (typeof parts === "string") {return parts}
+  if (is_string(parts)) {return parts}
   let origin = parts.origin ?? window.location.origin;
   let pathname = parts.pathname ?? window.location.pathname;
   let query = parts.query ?? window.location.search;
@@ -69,7 +71,7 @@ export function makePath(parts: string | PathParts): string {
   if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
   pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
   let queryString = '';
-  if (typeof query === "string") {
+  if (is_string(query)) {
     queryString = query;
   } else if (Object.keys(query ?? {}).length) {
     const queryObject = query as any;

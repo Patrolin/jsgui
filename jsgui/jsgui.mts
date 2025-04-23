@@ -667,7 +667,7 @@ export const BASE_COLORS = {
   //yellow: "0.45, 0.85, 0.127, 95", // TODO: yellow, green
   //green: "0.45, 0.85, 0.127, 145",
 };
-export type BaseColor = keyof typeof BASE_COLORS;
+export type BaseColor = keyof typeof BASE_COLORS; // TODO: remove this?
 export const COLOR_SHADE_COUNT = 7;
 
 /*
