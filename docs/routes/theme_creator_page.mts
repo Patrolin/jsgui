@@ -1,31 +1,103 @@
-import { addPercent, clamp, div, glSetBuffer, glUseProgram, makeComponent, sliderInput, useOnPointerMove, UseOnPointerMoveValue, vec2, vec2_clamp_to_square, webgl } from "../../jsgui/out/jsgui.mts";
+import { addPercent, BaseProps, binary_search_float, clamp, div, glSetBuffer, glUseProgram, makeComponent, sliderInput, span, useOnPointerMove, UseOnPointerMoveValue, vec2, vec2_circle_norm, vec2_clamp_to_square, vec3, vec3_max_component, vec3_min_component, webgl } from "../../jsgui/out/jsgui.mts";
+import { oklch_to_srgb255, srgb255_round_away_from_zero } from "../utils/color_utils.mts";
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const CHROMA_DEFAULT = 0.00;
-  const CHROMA_MAX = 0.147;
+  const wrapper = this.append(div());
+  wrapper.append(oklchInput({
+    onChange: (oklch) => {
+      const srgb255 = oklch != null && oklch_to_srgb255(oklch);
+      console.log('onchange', {
+        oklch,
+        srgb255,
+      });
+    }
+  }));
+  wrapper.append(oklchInput({
+    onChange: (oklch) => {
+      const srgb255 = oklch != null && oklch_to_srgb255(oklch);
+      console.log('onchange', {
+        oklch,
+        srgb255,
+      });
+    }
+  }));
+});
+
+// oklchInput
+type OKLCHInputProps = BaseProps & {
+  onChange?: (newValue: vec3 | null) => void;
+};
+const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
+  const {onChange} = props;
+
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] as [number, number, number];
-  const [state, setState] = this.useState({
-    chroma: CHROMA_DEFAULT,
-    dotPos: {x: 0.75, y: 0.4} as vec2,
+  const CHROMA_MAX = 0.145;
+  const OKLCH_DEFAULT = vec3(0.40, 0.00, 0.4);
+  const defaultDotPos = vec2(
+    OKLCH_DEFAULT.x * Math.cos(OKLCH_DEFAULT.z),
+    OKLCH_DEFAULT.x * Math.sin(OKLCH_DEFAULT.z),
+  );
+  const defaultDotOffset = vec2((defaultDotPos.x + 1) * 0.5, (1 - defaultDotPos.y) * 0.5);
+
+  type OKLCHState = {
+    chroma: number;
+    dotOffset: vec2;
+    // only for rendering srgb255 color
+    _oklch: vec3 | null;
+  }
+  const [state, _setState] = this.useState<OKLCHState>({
+    chroma: OKLCH_DEFAULT.y,
+    dotOffset: defaultDotOffset, // TODO: compute dotOffset from oklch instead?
+    _oklch: OKLCH_DEFAULT,
   });
-  let pos = {x: state.dotPos.x*2 - 1, y: 1 - state.dotPos.y*2};
-  pos = vec2_clamp_to_square(pos);
+  const updateState = (diff: Partial<typeof state>) => {
+    const newState = {...state, ...diff};
+    const {chroma, dotOffset} = newState;
+    const dotPos = {x: dotOffset.x*2 - 1, y: 1 - dotOffset.y*2};
+
+    // NOTE: same as glsl shader
+    const distance = vec2_circle_norm(dotPos);
+    const angle = Math.atan2(dotPos.y, dotPos.x);
+
+    let L: number | null = distance;
+    const get_srgb255 = (L: number) => {
+      return oklch_to_srgb255(vec3(L, chroma, angle));
+    }
+    const is_valid_srgb255 = (L: number) => {
+      const srgb255 = get_srgb255(L);
+      return vec3_min_component(srgb255) >= 0.0 && vec3_max_component(srgb255) <= 255.0;
+    }
+
+    const srgb255 = get_srgb255(L);
+    if (vec3_min_component(srgb255) < 0.0) {
+      const new_L = binary_search_float(L, 1, is_valid_srgb255);
+      console.log('L too low', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
+      L = new_L;
+    } else if (vec3_max_component(srgb255) > 255.0) {
+      const new_L = binary_search_float(Math.min(L, 1), 0, is_valid_srgb255);
+      console.log('L too high', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
+      L = new_L;
+    }
+
+    const _oklch = L == null ? null : vec3(L, chroma, angle);
+    _setState({...newState, _oklch});
+    if (onChange) onChange(_oklch);
+  };
 
   // LH circle input
+  const wrapper = this.append(div());
   const updateDotPos = (_event: PointerEvent, pointerPos: UseOnPointerMoveValue) => {
     const {fractionX, fractionY} = pointerPos;
-    setState({dotPos: {
-      x: clamp(fractionX, 0, 1),
-      y: clamp(fractionY, 0, 1),
-    }});
+    updateState({
+      dotOffset: vec2(clamp(fractionX, 0, 1), clamp(fractionY, 0, 1))
+    });
   }
   const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
     onPointerDown: updateDotPos,
     onPointerMove: updateDotPos,
   });
-  // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
-  const circleInputWrapper = this.append(div({className: "color-circle-wrapper"}));
+  const circleInputWrapper = wrapper.append(div({className: "color-circle-wrapper"}));
   circleInputWrapper.append(webgl({
     events: {
       pointerdown: LHCircleOnPointerDown,
@@ -62,6 +134,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
           vec3 oklch_to_oklab(vec3 oklch) {
             return vec3(oklch.x, oklch.y * cos(oklch.z), oklch.y * sin(oklch.z));
           }
+          // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
           vec3 oklab_to_linear_srgb(vec3 oklab) {
             mat3 M2_inv = mat3(
               +1.0, +1.0, +1.0,
@@ -107,7 +180,13 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
               alpha = 0.0;
             }
             srgb = srgb255 / 255.0;
-            vec3 color = lerp3(alpha, u_background_color, srgb);
+
+            vec3 background_color = u_background_color;
+            if (abs(position.x) <= 2.0 || abs(position.y) <= 2.0) {
+              background_color = vec3(0.0, 0.0, 0.0);
+            }
+
+            vec3 color = lerp3(alpha, background_color, srgb);
             out_color = vec4(color, 1.0); // NOTE: browsers don't anti-alias alpha correctly..
           }
         `,
@@ -130,23 +209,25 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   }));
   circleInputWrapper.append(div({
     className: "color-circle-dot",
-    style: {left: addPercent(state.dotPos.x), top: addPercent(state.dotPos.y)}
+    style: {left: addPercent(state.dotOffset.x), top: addPercent(state.dotOffset.y)}
   }));
   // C input
-  console.log('state', state);
-  this.append(sliderInput({
+  console.log('oklchInput', state);
+  let srgb255 = state._oklch != null ? srgb255_round_away_from_zero(oklch_to_srgb255(state._oklch)) : vec3(80, 0, 0);
+  wrapper.append(sliderInput({
     className: "color-slider",
     cssVars: {
-      sliderBackground: "rgb(80, 0, 0)",
+      sliderBackground: `rgb(${srgb255.x}, ${srgb255.y}, ${srgb255.z})`,
       sliderKnobBackground: "rgb(175, 255, 255)",
     },
     range: [0, CHROMA_MAX],
     decimalPlaces: 3,
     value: state.chroma,
     onInput: (event) => {
-      setState({
+      updateState({
         chroma: event.target.value,
       });
     }
   }));
+  wrapper.append(span("#" + [srgb255.x, srgb255.y, srgb255.z].map(v => v.toString(16).padStart(2, "0")).join("")))
 });

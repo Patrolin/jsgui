@@ -6,7 +6,13 @@ function makeArray/*<T>*/(N/*: number*/, map/*: (v: undefined, i: number) => T*/
 	return arr;
 }
 /*export type vec2 = {x: number; y: number}*/;
+function vec2(x/*: number*/, y/*: number*/) {
+  return {x, y};
+}
 /*export type vec3 = {x: number; y: number, z: number}*/;
+function vec3(x/*: number*/, y/*: number*/, z/*: number*/) {
+  return {x, y, z};
+}
 
 // basic operations
 function vec2_add(A/*: vec2*/, B/*: vec2*/)/*: vec2*/ {
@@ -45,6 +51,20 @@ function vec3_div(A/*: vec3*/, B/*: vec3*/)/*: vec3*/ {
 }
 
 // fancy operations
+function vec2_min_component(A/*: vec2*/)/*: number*/ {
+  return Math.min(A.x, A.y);
+}
+function vec3_min_component(A/*: vec3*/)/*: number*/ {
+  return Math.min(A.x, A.y, A.z);
+}
+
+function vec2_max_component(A/*: vec2*/)/*: number*/ {
+  return Math.max(A.x, A.y);
+}
+function vec3_max_component(A/*: vec3*/)/*: number*/ {
+  return Math.max(A.x, A.y, A.z);
+}
+
 function vec2_dot(A/*: vec2*/, B/*: vec2*/)/*: number*/ {
   return A.x*B.x + A.y*B.y;
 }
@@ -194,58 +214,6 @@ function makePath(parts/*: string | PathParts*/)/*: string*/ {
   if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
   return pathLocation + queryString + hashString;
 }
-/** clamp value between min and max (defaulting to min) */
-function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
-  return Math.max(min, Math.min(value, max));
-}
-function lerp(t/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
-  return (1-t)*x + t*y;
-}
-function unlerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
-  return (x - value) / (x - y);
-}
-
-// directed rounding
-function round_directed_towards_infinity(value/*: number*/) {
-  return Math.ceil(value);
-}
-function round_directed_towards_negative_infinity(value/*: number*/) {
-  return Math.floor(value);
-}
-function round_directed_towards_zero(value/*: number*/) {
-  return Math.trunc(value);
-}
-function round_directed_away_from_zero(value/*: number*/) {
-  return value > 0 ? Math.ceil(value) : Math.floor(value);
-}
-
-// nearest rounding
-function round_towards_infinity(value/*: number*/) {
-  return Math.floor(value + 0.5);
-}
-function round_towards_negative_infinity(value/*: number*/) {
-  return Math.ceil(value - 0.5);
-}
-function round_towards_zero(value/*: number*/) {
-  return value > 0 ? Math.ceil(value - 0.5) : Math.floor(value + 0.5);
-}
-function round_away_from_zero(value/*: number*/) {
-  return value > 0 ? Math.floor(value + 0.5) : Math.ceil(value - 0.5);
-}
-function round_to_even(value/*: number*/) {
-  let result = round_towards_infinity(value);
-  const is_tie = (Math.abs(value) % 1 === 0.5);
-  const result_is_odd = (result % 2 !== 0);
-  if (is_tie && result_is_odd) result -= 1;
-  return result;
-}
-function round_to_odd(value/*: number*/) {
-  let result = round_towards_infinity(value);
-  const is_tie = (Math.abs(value) % 1 === 0.5);
-  const result_is_even = (result % 2 === 0);
-  if (is_tie && result_is_even) result -= 1;
-  return result;
-}
 /*export type DateParts = {
   year?: number;
   month?: number;
@@ -346,6 +314,75 @@ setTimeout(() => {
   console.log('ayaya.dateString', a.toLocaleString());
 })
 */
+/** clamp value between min and max (defaulting to min) */
+function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
+  return Math.max(min, Math.min(value, max));
+}
+function lerp(t/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+  return (1-t)*x + t*y;
+}
+function unlerp(value/*: number*/, x/*: number*/, y/*: number*/)/*: number*/ {
+  return (x - value) / (x - y);
+}
+
+// modulo
+/** return `a` remainder `b` */
+function rem(a/*: number*/, b/*: number*/)/*: number*/ {
+  return a % b;
+}
+/** return `a` modulo `b` */
+function mod(a/*: number*/, b/*: number*/)/*: number*/ {
+  return ((a % b) + b) % b;
+}
+
+// noise
+const PHI_1_INV = 0.6180339887498948;
+/** map `seed` to noise, such that `noise(0) == 0`  */
+function noise(seed/*: number*/)/*: number*/ {
+  return mod(seed * PHI_1_INV, 1);
+}
+
+// directed rounding
+function round_directed_towards_infinity(value/*: number*/) {
+  return Math.ceil(value);
+}
+function round_directed_towards_negative_infinity(value/*: number*/) {
+  return Math.floor(value);
+}
+function round_directed_towards_zero(value/*: number*/) {
+  return Math.trunc(value);
+}
+function round_directed_away_from_zero(value/*: number*/) {
+  return value > 0 ? Math.ceil(value) : Math.floor(value);
+}
+
+// nearest rounding
+function round_towards_infinity(value/*: number*/) {
+  return Math.floor(value + 0.5);
+}
+function round_towards_negative_infinity(value/*: number*/) {
+  return Math.ceil(value - 0.5);
+}
+function round_towards_zero(value/*: number*/) {
+  return value > 0 ? Math.ceil(value - 0.5) : Math.floor(value + 0.5);
+}
+function round_away_from_zero(value/*: number*/) {
+  return value > 0 ? Math.floor(value + 0.5) : Math.ceil(value - 0.5);
+}
+function round_to_even(value/*: number*/) {
+  let result = round_towards_infinity(value);
+  const is_tie = (Math.abs(value) % 1 === 0.5);
+  const result_is_odd = (result % 2 !== 0);
+  if (is_tie && result_is_odd) result -= 1;
+  return result;
+}
+function round_to_odd(value/*: number*/) {
+  let result = round_towards_infinity(value);
+  const is_tie = (Math.abs(value) % 1 === 0.5);
+  const result_is_even = (result % 2 === 0);
+  if (is_tie && result_is_even) result -= 1;
+  return result;
+}
 export const JSGUI_VERSION = "v0.19-dev";
 function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
@@ -450,7 +487,7 @@ function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*: Diff<
   onUnmount?: (removed: boolean) => void,
 }*/;
 /*export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn*/;
-/*export type SetState<T> = (newValue: T) => void*/;
+/*export type SetState<T, IsPartial = true> = (newValue: IsPartial extends true ? Partial<T> : T) => T*/;
 /*export type UseNodeState = {nodeDependOn?: any}*/;
 /*export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void*/;
 /*export type UseWindowResize = { windowBottom: number, windowRight: number }*/;
@@ -520,18 +557,21 @@ class Component {
     return child;
   }
   /** `return [value, setValueAndDispatch, setValue]` */
-  useState/*<T extends object>*/(defaultState/*: T*/)/*: [T, SetState<Partial<T>>, SetState<Partial<T>>]*/ {
+  useState/*<T extends object>*/(defaultState/*: T*/)/*: [T, SetState<T>, SetState<T>]*/ {
     const {_} = this;
     if (!_.stateIsInitialized) {
       _.state = defaultState;
       _.stateIsInitialized = true;
     }
     const setState = (newValue/*: Partial<T>*/) => {
-      _.state = {..._.state, ...newValue};
+      const newState = {..._.state, ...newValue} /*as T*/;
+      _.state = newState;
+      return newState;
     };
     const setStateAndRerender = (newValue/*: Partial<T>*/) => {
-      setState(newValue);
+      const newState = setState(newValue);
       this.rerender();
+      return newState;
     }
     return [_.state /*as T*/, setStateAndRerender, setState];
   }
@@ -557,11 +597,12 @@ class Component {
     return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
   }
   /** `return [value, setValueAndDispatch, setValue]` */
-  useLocalStorage/*<T>*/(key/*: string*/, defaultValue/*: T*/)/*: [T, SetState<T>, SetState<T>]*/ {
+  useLocalStorage/*<T>*/(key/*: string*/, defaultValue/*: T*/)/*: [T, SetState<T, false>, SetState<T, false>]*/ {
     _dispatchTargets.localStorage.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) /*as [T] | null*/)?.[0] ?? defaultValue;
     const setValue = (newValue/*: T*/) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
+      return newValue;
     }
     const setValueAndDispatch = (newValue/*: T*/) => {
       const prevValue = localStorage[key];
@@ -570,6 +611,7 @@ class Component {
         _dispatchTargets.localStorage.dispatch();
         this.rerender();
       }
+      return newValue;
     }
     return [value, setValueAndDispatch, setValue];
   }
@@ -1036,6 +1078,197 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+/*export type DialogProps = BaseProps & ({
+  open: boolean;
+  onClose?: () => void;
+  closeOnClickBackdrop?: boolean;
+})*/;
+export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
+  const {open, onClose, closeOnClickBackdrop} = props;
+  const [state] = this.useState({ prevOpen: false });
+  const element = this.useNode(() => document.createElement("dialog"));
+  element.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
+  }
+  return {
+    onMount: () => {
+      if (open !== state.prevOpen) {
+        if (open) {
+          element.showModal();
+        } else {
+          element.close();
+        }
+        state.prevOpen = open;
+      }
+    },
+  };
+});
+
+// popup
+/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
+function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
+  mouse: {x: number, y: number},
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  const {mouse, popupRect, wrapperRect} = props;
+  switch (direction) {
+    case "up":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top - popupRect.height
+      ];
+    case "right":
+      return [
+        wrapperRect.left + wrapperRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "down":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top + wrapperRect.height
+      ]
+    case "left":
+      return [
+        wrapperRect.left - popupRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "mouse":
+      return [
+        mouse.x,
+        mouse.y - popupRect.height
+      ];
+  }
+}
+function _getPopupLeftTopWithFlipAndClamp(props/*: {
+  direction: PopupDirection,
+  mouse: {x: number, y: number},
+  windowRight: number;
+  windowBottom: number;
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  let {direction, windowBottom, windowRight, popupRect} = props;
+  // flip
+  let [left, top] = _getPopupLeftTop(direction, props);
+  switch (direction) {
+    case "up":
+      if (top < 0) {
+        direction = "down";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "down": {
+      const bottom = top + popupRect.height;
+      if (bottom >= windowBottom) {
+        direction = "up";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "left":
+      if (left < 0) {
+        direction = "right";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "right": {
+      const right = left + popupRect.width;
+      if (right >= windowRight) {
+        direction = "left";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+  }
+  // clamp
+  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+  left = clamp(left, 0, maxLeft);
+  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+  top = clamp(top, 0, maxTop);
+  return [left, top] /*as [number, number]*/;
+}
+/*export type PopupWrapperProps = {
+  content: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+  /** NOTE: open on hover if undefined *//*
+  open?: boolean;
+  interactable?: boolean;
+}*/;
+export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
+  const {content, direction: _direction = "up", open, interactable = false} = props;
+  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
+  const wrapper = this.useNode(() => document.createElement("div"));
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
+  const movePopup = () => {
+    if (!state.open) return;
+    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
+    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+    popupNode.style.top = "0px";
+    const popupRect = popupContentWrapperNode.getBoundingClientRect();
+    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
+      direction: _direction,
+      mouse: state.mouse,
+      popupRect,
+      windowBottom,
+      windowRight,
+      wrapperRect
+    });
+    popupNode.style.left = addPx(left);
+    popupNode.style.top = addPx(top);
+  }
+  const openPopup = () => {
+    state.open = true;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
+    movePopup();
+  }
+  const closePopup = () => {
+    state.open = false;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
+  };
+  if (open == null) {
+    wrapper.onmouseenter = openPopup;
+    wrapper.onmouseleave = closePopup;
+  }
+  if (_direction === "mouse") {
+    wrapper.onmousemove = (event) => {
+      state.mouse = {x: event.clientX, y: event.clientY};
+      movePopup();
+    }
+  }
+  const popup = this.append(div({
+    className: "popup",
+    attribute: {popover: "manual", dataInteractable: interactable},
+  }));
+  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
+  popupContentWrapper.append(content);
+  return {
+    onMount: () => {
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+        acc.addEventListener("scroll", movePopup, {passive: true});
+      }
+      state.prevOnScroll = movePopup;
+      if (open == null) return;
+      if (open != state.open) {
+        if (open) {
+          openPopup();
+        } else {
+          closePopup();
+        }
+      }
+    },
+    onUnmount: (removed/*: boolean*/) => {
+      if (!removed) return;
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+      }
+    },
+  };
+});
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
@@ -2086,197 +2319,34 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     contentWrapper.append(currentRoute.component(currentRouteParams));
   }
 });
-/*export type DialogProps = BaseProps & ({
-  open: boolean;
-  onClose?: () => void;
-  closeOnClickBackdrop?: boolean;
-})*/;
-export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
-  const {open, onClose, closeOnClickBackdrop} = props;
-  const [state] = this.useState({ prevOpen: false });
-  const element = this.useNode(() => document.createElement("dialog"));
-  element.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
+function binary_search_float(start/*: number*/, end/*: number*/, condition/*: (value: number) => boolean*/)/*: number | null*/ {
+  // find some endpoint, such that `condition(endpoint) == true`
+  for (let i = 0; i < 1000; i++) { // runs in <100 steps
+    let new_end = end + (start - end)*noise(i);
+    if (condition(new_end)) {
+      end = new_end;
+      break;
+    }
   }
-  return {
-    onMount: () => {
-      if (open !== state.prevOpen) {
-        if (open) {
-          element.showModal();
-        } else {
-          element.close();
-        }
-        state.prevOpen = open;
-      }
-    },
-  };
-});
-
-// popup
-/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
-function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
-  mouse: {x: number, y: number},
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  const {mouse, popupRect, wrapperRect} = props;
-  switch (direction) {
-    case "up":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top - popupRect.height
-      ];
-    case "right":
-      return [
-        wrapperRect.left + wrapperRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "down":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top + wrapperRect.height
-      ]
-    case "left":
-      return [
-        wrapperRect.left - popupRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "mouse":
-      return [
-        mouse.x,
-        mouse.y - popupRect.height
-      ];
+  if (!condition(end)) return null;
+  // NOTE: `condition` must be monotonic here
+  while (true) {
+    let midpoint = end + (start - end)*0.5;
+    if (midpoint === start || midpoint === end) break;
+    if (condition(midpoint)) {
+      end = midpoint;
+    } else {
+      start = midpoint;
+    }
+  }
+  if (condition(start)) {
+    return start;
+  } else if (condition(end)) {
+    return end;
+  } else {
+    return null;
   }
 }
-function _getPopupLeftTopWithFlipAndClamp(props/*: {
-  direction: PopupDirection,
-  mouse: {x: number, y: number},
-  windowRight: number;
-  windowBottom: number;
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  let {direction, windowBottom, windowRight, popupRect} = props;
-  // flip
-  let [left, top] = _getPopupLeftTop(direction, props);
-  switch (direction) {
-    case "up":
-      if (top < 0) {
-        direction = "down";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "down": {
-      const bottom = top + popupRect.height;
-      if (bottom >= windowBottom) {
-        direction = "up";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-    case "left":
-      if (left < 0) {
-        direction = "right";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "right": {
-      const right = left + popupRect.width;
-      if (right >= windowRight) {
-        direction = "left";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-  }
-  // clamp
-  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
-  left = clamp(left, 0, maxLeft);
-  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
-  top = clamp(top, 0, maxTop);
-  return [left, top] /*as [number, number]*/;
-}
-/*export type PopupWrapperProps = {
-  content: Component;
-  direction?: PopupDirection;
-  // TODO: arrow?: boolean;
-  /** NOTE: open on hover if undefined *//*
-  open?: boolean;
-  interactable?: boolean;
-}*/;
-export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
-  const {content, direction: _direction = "up", open, interactable = false} = props;
-  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
-  const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
-  const movePopup = () => {
-    if (!state.open) return;
-    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
-    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
-    const wrapperRect = wrapper.getBoundingClientRect();
-    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
-    popupNode.style.top = "0px";
-    const popupRect = popupContentWrapperNode.getBoundingClientRect();
-    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
-      direction: _direction,
-      mouse: state.mouse,
-      popupRect,
-      windowBottom,
-      windowRight,
-      wrapperRect
-    });
-    popupNode.style.left = addPx(left);
-    popupNode.style.top = addPx(top);
-  }
-  const openPopup = () => {
-    state.open = true;
-    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
-    movePopup();
-  }
-  const closePopup = () => {
-    state.open = false;
-    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
-  };
-  if (open == null) {
-    wrapper.onmouseenter = openPopup;
-    wrapper.onmouseleave = closePopup;
-  }
-  if (_direction === "mouse") {
-    wrapper.onmousemove = (event) => {
-      state.mouse = {x: event.clientX, y: event.clientY};
-      movePopup();
-    }
-  }
-  const popup = this.append(div({
-    className: "popup",
-    attribute: {popover: "manual", dataInteractable: interactable},
-  }));
-  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
-  popupContentWrapper.append(content);
-  return {
-    onMount: () => {
-      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-        acc.addEventListener("scroll", movePopup, {passive: true});
-      }
-      state.prevOnScroll = movePopup;
-      if (open == null) return;
-      if (open != state.open) {
-        if (open) {
-          openPopup();
-        } else {
-          closePopup();
-        }
-      }
-    },
-    onUnmount: (removed/*: boolean*/) => {
-      if (!removed) return;
-      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-      }
-    },
-  };
-});
 /*export type TableColumn = {
   label: string;
   render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
@@ -2741,31 +2811,137 @@ export const jsFormatter = makeComponent(function javascriptFormatter(text/*: st
     ...props,
   }));
 });
+function oklch_to_srgb255(oklch/*: vec3*/)/*: vec3*/ {
+  const oklab = oklch_to_oklab(oklch);
+  const srgb = oklab_to_linear_srgb(oklab);
+  return srgb_to_srgb255(srgb);
+}
+
+function oklch_to_oklab(oklch/*: vec3*/)/*: vec3*/ {
+  return vec3(oklch.x, oklch.y * Math.cos(oklch.z), oklch.y * Math.sin(oklch.z));
+}
+// oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
+function oklab_to_linear_srgb(c/*: vec3*/)/*: vec3*/ {
+  let l_ = c.x + 0.3963377774 * c.y + 0.2158037573 * c.z;
+  let m_ = c.x - 0.1055613458 * c.y - 0.0638541728 * c.z;
+  let s_ = c.x - 0.0894841775 * c.y - 1.2914855480 * c.z;
+
+  let l = l_*l_*l_;
+  let m = m_*m_*m_;
+  let s = s_*s_*s_;
+
+  return vec3(
+    +4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
+  );
+}
+function srgb_to_srgb255(srgb/*: vec3*/)/*: vec3*/ {
+  return vec3(srgb.x * 255.0, srgb.y * 255.0, srgb.z * 255.0);
+}
+function srgb255_round_away_from_zero(srgb255/*: vec3*/)/*: vec3*/ {
+  return vec3(
+    round_away_from_zero(srgb255.x),
+    round_away_from_zero(srgb255.y),
+    round_away_from_zero(srgb255.z),
+  );
+}
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const CHROMA_DEFAULT = 0.00;
-  const CHROMA_MAX = 0.147;
+  const wrapper = this.append(div());
+  wrapper.append(oklchInput({
+    onChange: (oklch) => {
+      const srgb255 = oklch != null && oklch_to_srgb255(oklch);
+      console.log('onchange', {
+        oklch,
+        srgb255,
+      });
+    }
+  }));
+  wrapper.append(oklchInput({
+    onChange: (oklch) => {
+      const srgb255 = oklch != null && oklch_to_srgb255(oklch);
+      console.log('onchange', {
+        oklch,
+        srgb255,
+      });
+    }
+  }));
+});
+
+// oklchInput
+/*type OKLCHInputProps = BaseProps & {
+  onChange?: (newValue: vec3 | null) => void;
+}*/;
+const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/) {
+  const {onChange} = props;
+
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] /*as [number, number, number]*/;
-  const [state, setState] = this.useState({
-    chroma: CHROMA_DEFAULT,
-    dotPos: {x: 0.75, y: 0.4} /*as vec2*/,
+  const CHROMA_MAX = 0.145;
+  const OKLCH_DEFAULT = vec3(0.40, 0.00, 0.4);
+  const defaultDotPos = vec2(
+    OKLCH_DEFAULT.x * Math.cos(OKLCH_DEFAULT.z),
+    OKLCH_DEFAULT.x * Math.sin(OKLCH_DEFAULT.z),
+  );
+  const defaultDotOffset = vec2((defaultDotPos.x + 1) * 0.5, (1 - defaultDotPos.y) * 0.5);
+
+  /*type OKLCHState = {
+    chroma: number;
+    dotOffset: vec2;
+    // only for rendering srgb255 color
+    _oklch: vec3 | null;
+  }
+ */ const [state, _setState] = this.useState/*<OKLCHState>*/({
+    chroma: OKLCH_DEFAULT.y,
+    dotOffset: defaultDotOffset, // TODO: compute dotOffset from oklch instead?
+    _oklch: OKLCH_DEFAULT,
   });
-  let pos = {x: state.dotPos.x*2 - 1, y: 1 - state.dotPos.y*2};
-  pos = vec2_clamp_to_square(pos);
+  const updateState = (diff/*: Partial<typeof state>*/) => {
+    const newState = {...state, ...diff};
+    const {chroma, dotOffset} = newState;
+    const dotPos = {x: dotOffset.x*2 - 1, y: 1 - dotOffset.y*2};
+
+    // NOTE: same as glsl shader
+    const distance = vec2_circle_norm(dotPos);
+    const angle = Math.atan2(dotPos.y, dotPos.x);
+
+    let L/*: number | null*/ = distance;
+    const get_srgb255 = (L/*: number*/) => {
+      return oklch_to_srgb255(vec3(L, chroma, angle));
+    }
+    const is_valid_srgb255 = (L/*: number*/) => {
+      const srgb255 = get_srgb255(L);
+      return vec3_min_component(srgb255) >= 0.0 && vec3_max_component(srgb255) <= 255.0;
+    }
+
+    const srgb255 = get_srgb255(L);
+    if (vec3_min_component(srgb255) < 0.0) {
+      const new_L = binary_search_float(L, 1, is_valid_srgb255);
+      console.log('L too low', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
+      L = new_L;
+    } else if (vec3_max_component(srgb255) > 255.0) {
+      const new_L = binary_search_float(Math.min(L, 1), 0, is_valid_srgb255);
+      console.log('L too high', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
+      L = new_L;
+    }
+
+    const _oklch = L == null ? null : vec3(L, chroma, angle);
+    _setState({...newState, _oklch});
+    if (onChange) onChange(_oklch);
+  };
 
   // LH circle input
+  const wrapper = this.append(div());
   const updateDotPos = (_event/*: PointerEvent*/, pointerPos/*: UseOnPointerMoveValue*/) => {
     const {fractionX, fractionY} = pointerPos;
-    setState({dotPos: {
-      x: clamp(fractionX, 0, 1),
-      y: clamp(fractionY, 0, 1),
-    }});
+    updateState({
+      dotOffset: vec2(clamp(fractionX, 0, 1), clamp(fractionY, 0, 1))
+    });
   }
   const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
     onPointerDown: updateDotPos,
     onPointerMove: updateDotPos,
   });
-  // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
-  const circleInputWrapper = this.append(div({className: "color-circle-wrapper"}));
+  const circleInputWrapper = wrapper.append(div({className: "color-circle-wrapper"}));
   circleInputWrapper.append(webgl({
     events: {
       pointerdown: LHCircleOnPointerDown,
@@ -2802,6 +2978,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
           vec3 oklch_to_oklab(vec3 oklch) {
             return vec3(oklch.x, oklch.y * cos(oklch.z), oklch.y * sin(oklch.z));
           }
+          // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
           vec3 oklab_to_linear_srgb(vec3 oklab) {
             mat3 M2_inv = mat3(
               +1.0, +1.0, +1.0,
@@ -2847,7 +3024,13 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
               alpha = 0.0;
             }
             srgb = srgb255 / 255.0;
-            vec3 color = lerp3(alpha, u_background_color, srgb);
+
+            vec3 background_color = u_background_color;
+            if (abs(position.x) <= 2.0 || abs(position.y) <= 2.0) {
+              background_color = vec3(0.0, 0.0, 0.0);
+            }
+
+            vec3 color = lerp3(alpha, background_color, srgb);
             out_color = vec4(color, 1.0); // NOTE: browsers don't anti-alias alpha correctly..
           }
         `,
@@ -2870,25 +3053,27 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   }));
   circleInputWrapper.append(div({
     className: "color-circle-dot",
-    style: {left: addPercent(state.dotPos.x), top: addPercent(state.dotPos.y)}
+    style: {left: addPercent(state.dotOffset.x), top: addPercent(state.dotOffset.y)}
   }));
   // C input
-  console.log('state', state);
-  this.append(sliderInput({
+  console.log('oklchInput', state);
+  let srgb255 = state._oklch != null ? srgb255_round_away_from_zero(oklch_to_srgb255(state._oklch)) : vec3(80, 0, 0);
+  wrapper.append(sliderInput({
     className: "color-slider",
     cssVars: {
-      sliderBackground: "rgb(80, 0, 0)",
+      sliderBackground: `rgb(${srgb255.x}, ${srgb255.y}, ${srgb255.z})`,
       sliderKnobBackground: "rgb(175, 255, 255)",
     },
     range: [0, CHROMA_MAX],
     decimalPlaces: 3,
     value: state.chroma,
     onInput: (event) => {
-      setState({
+      updateState({
         chroma: event.target.value,
       });
     }
   }));
+  wrapper.append(span("#" + [srgb255.x, srgb255.y, srgb255.z].map(v => v.toString(16).padStart(2, "0")).join("")))
 });
 export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     const column = this.append(div({className: "display-column"}));

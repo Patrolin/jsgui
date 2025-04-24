@@ -1,6 +1,12 @@
 
 export type vec2 = {x: number; y: number};
+export function vec2(x: number, y: number) {
+  return {x, y};
+}
 export type vec3 = {x: number; y: number, z: number};
+export function vec3(x: number, y: number, z: number) {
+  return {x, y, z};
+}
 
 // basic operations
 export function vec2_add(A: vec2, B: vec2): vec2 {
@@ -39,6 +45,20 @@ export function vec3_div(A: vec3, B: vec3): vec3 {
 }
 
 // fancy operations
+export function vec2_min_component(A: vec2): number {
+  return Math.min(A.x, A.y);
+}
+export function vec3_min_component(A: vec3): number {
+  return Math.min(A.x, A.y, A.z);
+}
+
+export function vec2_max_component(A: vec2): number {
+  return Math.max(A.x, A.y);
+}
+export function vec3_max_component(A: vec3): number {
+  return Math.max(A.x, A.y, A.z);
+}
+
 export function vec2_dot(A: vec2, B: vec2): number {
   return A.x*B.x + A.y*B.y;
 }

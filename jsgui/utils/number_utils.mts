@@ -1,4 +1,3 @@
-
 /** clamp value between min and max (defaulting to min) */
 export function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(value, max));
@@ -8,6 +7,23 @@ export function lerp(t: number, x: number, y: number): number {
 }
 export function unlerp(value: number, x: number, y: number): number {
   return (x - value) / (x - y);
+}
+
+// modulo
+/** return `a` remainder `b` */
+export function rem(a: number, b: number): number {
+  return a % b;
+}
+/** return `a` modulo `b` */
+export function mod(a: number, b: number): number {
+  return ((a % b) + b) % b;
+}
+
+// noise
+const PHI_1_INV = 0.6180339887498948;
+/** map `seed` to noise, such that `noise(0) == 0`  */
+export function noise(seed: number): number {
+  return mod(seed * PHI_1_INV, 1);
 }
 
 // directed rounding

@@ -370,6 +370,7 @@ dialog::backdrop {
   display: flex;
   align-items: center;
   touch-action: none;
+  cursor: pointer;
 }
 /* TODO: hover styles */
 .slider-input-rail {

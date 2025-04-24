@@ -1,9 +1,9 @@
 import { div, icon, JSGUI_VERSION, makeComponent, PageWrapperProps, renderRoot, Route, router, Size, span } from '../../jsgui/out/jsgui.mts';
 import { getGithubPagesPrefix, GITHUB_PAGES_PREFIX } from '../utils/utils.mts';
-import { debugKeysPage } from './debugKeysPage.mts';
-import {docsPage} from './docsPage.mts';
-import { notFoundPage } from './notFoundPage.mts';
-import {themeCreatorPage} from './themeCreatorPage.mts'
+import { debugKeysPage } from './debug_keys_page.mts';
+import {docsPage} from './docs_page.mts';
+import { notFoundPage } from './not_found_page.mts';
+import {themeCreatorPage} from './theme_creator_page.mts'
 
 export const ROUTES: Route[] = [
   {

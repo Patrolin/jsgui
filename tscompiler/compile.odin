@@ -566,7 +566,8 @@ parse_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError)
 		}
 		if parser.token_type == .BinaryAnd ||
 		   parser.token_type == .BinaryOr ||
-		   (parser.token_type == .Alphanumeric && (parser.token == "extends" || parser.token == "is")) ||
+		   (parser.token_type == .Alphanumeric &&
+				   (parser.token == "extends" || parser.token == "is")) ||
 		   parser.token_type == .Dot {
 			debug_print(parser, "type.binary_op")
 			next_token(parser, sb)
@@ -794,7 +795,7 @@ parse_function_args :: proc(
 			next_token(parser, sb, .Token)
 		}
 		if is_this_type {
-			end_comment(parser, sb, keep_space=false)
+			end_comment(parser, sb, keep_space = false)
 		}
 	}
 	parse_right_bracket(parser, sb) or_return

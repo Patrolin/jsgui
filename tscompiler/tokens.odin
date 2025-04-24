@@ -56,13 +56,14 @@ TokenType :: enum {
 	DoubleNotEquals,
 	LessThanEquals,
 	GreaterThanEquals,
-	LogicalOr,
 	LogicalAnd,
+	LogicalOr,
 	// 1 length, binary ops
 	Times,
 	Slash,
-	BinaryOr,
 	BinaryAnd,
+	BinaryOr,
+	BinaryXor,
 	Dot,
 	Remainder,
 	// 1 length, binary ops, unary ops
@@ -241,16 +242,18 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 			}
 			return .ExclamationMark
 		}
-	case '|':
-		{
-			is_logical_or := j_1 < len(file) && (file[j_1] == '|')
-			return is_logical_or ? .LogicalOr : .BinaryOr
-		}
 	case '&':
 		{
 			is_logical_or := j_1 < len(file) && (file[j_1] == '&')
 			return is_logical_or ? .LogicalAnd : .BinaryAnd
 		}
+	case '|':
+		{
+			is_logical_or := j_1 < len(file) && (file[j_1] == '|')
+			return is_logical_or ? .LogicalOr : .BinaryOr
+		}
+	case '^':
+		return .BinaryXor
 	// 1 length
 	case ';':
 		return .Semicolon

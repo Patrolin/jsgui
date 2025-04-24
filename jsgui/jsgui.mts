@@ -105,7 +105,7 @@ export type RenderReturn = void | {
   onUnmount?: (removed: boolean) => void,
 };
 export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
-export type SetState<T> = (newValue: T) => void;
+export type SetState<T, IsPartial = true> = (newValue: IsPartial extends true ? Partial<T> : T) => T;
 export type UseNodeState = {nodeDependOn?: any};
 export type GetErrorsFunction<K extends string> = (errors: Partial<Record<K, string>>) => void;
 export type UseWindowResize = { windowBottom: number, windowRight: number };
@@ -175,18 +175,21 @@ export class Component {
     return child;
   }
   /** `return [value, setValueAndDispatch, setValue]` */
-  useState<T extends object>(defaultState: T): [T, SetState<Partial<T>>, SetState<Partial<T>>] {
+  useState<T extends object>(defaultState: T): [T, SetState<T>, SetState<T>] {
     const {_} = this;
     if (!_.stateIsInitialized) {
       _.state = defaultState;
       _.stateIsInitialized = true;
     }
     const setState = (newValue: Partial<T>) => {
-      _.state = {..._.state, ...newValue};
+      const newState = {..._.state, ...newValue} as T;
+      _.state = newState;
+      return newState;
     };
     const setStateAndRerender = (newValue: Partial<T>) => {
-      setState(newValue);
+      const newState = setState(newValue);
       this.rerender();
+      return newState;
     }
     return [_.state as T, setStateAndRerender, setState];
   }
@@ -212,11 +215,12 @@ export class Component {
     return dispatchTarget.state.matches; // TODO: this forces recalculate style (4.69 ms), cache value so this doesn't happen?
   }
   /** `return [value, setValueAndDispatch, setValue]` */
-  useLocalStorage<T>(key: string, defaultValue: T): [T, SetState<T>, SetState<T>] {
+  useLocalStorage<T>(key: string, defaultValue: T): [T, SetState<T, false>, SetState<T, false>] {
     _dispatchTargets.localStorage.addComponent(this);
     const value = (parseJsonOrNull(localStorage[key]) as [T] | null)?.[0] ?? defaultValue;
     const setValue = (newValue: T) => {
       localStorage.setItem(key, JSON.stringify([newValue]));
+      return newValue;
     }
     const setValueAndDispatch = (newValue: T) => {
       const prevValue = localStorage[key];
@@ -225,6 +229,7 @@ export class Component {
         _dispatchTargets.localStorage.dispatch();
         this.rerender();
       }
+      return newValue;
     }
     return [value, setValueAndDispatch, setValue];
   }
