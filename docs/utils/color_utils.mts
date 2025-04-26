@@ -5,6 +5,9 @@ export function oklch_to_srgb255(oklch: vec3): vec3 {
   const srgb = oklab_to_linear_srgb(oklab);
   return srgb_to_srgb255(srgb);
 }
+export function oklch_to_srgb255i(oklch: vec3): vec3 {
+  return srgb255_to_srgb255i(oklch_to_srgb255(oklch))
+}
 
 export function oklch_to_oklab(oklch: vec3): vec3 {
   return vec3(oklch.x, oklch.y * Math.cos(oklch.z), oklch.y * Math.sin(oklch.z));
@@ -28,7 +31,7 @@ export function oklab_to_linear_srgb(c: vec3): vec3 {
 export function srgb_to_srgb255(srgb: vec3): vec3 {
   return vec3(srgb.x * 255.0, srgb.y * 255.0, srgb.z * 255.0);
 }
-export function srgb255_round_away_from_zero(srgb255: vec3): vec3 {
+export function srgb255_to_srgb255i(srgb255: vec3): vec3 {
   return vec3(
     round_away_from_zero(srgb255.x),
     round_away_from_zero(srgb255.y),

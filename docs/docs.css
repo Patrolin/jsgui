@@ -89,13 +89,24 @@ code * {
   outline: .5px solid #202020; /* TODO: make this invert the background? */
   background: white;
   position: absolute;
-  width: 2px;
-  height: 2px;
+  width: 3px;
+  height: 3px;
   transform: translate(-50%, -50%);
   pointer-events: none;
 }
 
+.color-slider-wrapper {
+  width: var(--inputWidth);
+  display: flex;
+}
+.color-slider-wrapper-label {
+  margin-left: 6px;
+  width: 20px;
+  display: flex;
+  align-items: center;
+}
 .color-slider {
+  flex: 1;
   padding: 0;
   background: var(--sliderBackground);
 }

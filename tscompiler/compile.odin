@@ -875,8 +875,10 @@ parse_colon_equals_value :: proc(
 		parse_type(parser, sb) or_return
 		end_comment(parser, sb)
 	}
-	parse_equals(parser, sb) or_return
-	parse_value(parser, sb, stop_at) or_return
+	if parser.token_type == .Equals {
+		next_token(parser, sb)
+		parse_value(parser, sb, stop_at) or_return
+	}
 	return .None
 }
 

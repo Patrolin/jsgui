@@ -364,7 +364,7 @@ dialog::backdrop {
   --knobSize: 16px;
   --knobSizeHalf: 8px;
   width: var(--inputWidth);
-  min-width: var(--inputWidth);
+  min-width: var(--inputMinWidth);
   height: var(--inputHeightSmall);
   padding: 0 var(--knobSizeHalf);
   display: flex;

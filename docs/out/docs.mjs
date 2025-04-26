@@ -2816,6 +2816,9 @@ function oklch_to_srgb255(oklch/*: vec3*/)/*: vec3*/ {
   const srgb = oklab_to_linear_srgb(oklab);
   return srgb_to_srgb255(srgb);
 }
+function oklch_to_srgb255i(oklch/*: vec3*/)/*: vec3*/ {
+  return srgb255_to_srgb255i(oklch_to_srgb255(oklch))
+}
 
 function oklch_to_oklab(oklch/*: vec3*/)/*: vec3*/ {
   return vec3(oklch.x, oklch.y * Math.cos(oklch.z), oklch.y * Math.sin(oklch.z));
@@ -2839,7 +2842,7 @@ function oklab_to_linear_srgb(c/*: vec3*/)/*: vec3*/ {
 function srgb_to_srgb255(srgb/*: vec3*/)/*: vec3*/ {
   return vec3(srgb.x * 255.0, srgb.y * 255.0, srgb.z * 255.0);
 }
-function srgb255_round_away_from_zero(srgb255/*: vec3*/)/*: vec3*/ {
+function srgb255_to_srgb255i(srgb255/*: vec3*/)/*: vec3*/ {
   return vec3(
     round_away_from_zero(srgb255.x),
     round_away_from_zero(srgb255.y),
@@ -2849,93 +2852,164 @@ function srgb255_round_away_from_zero(srgb255/*: vec3*/)/*: vec3*/ {
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const wrapper = this.append(div());
   wrapper.append(oklchInput({
+    defaultValue: vec3(0.7482, 0.127, -2.7041853071795865),
+    inputMode: 0,
     onChange: (oklch) => {
-      const srgb255 = oklch != null && oklch_to_srgb255(oklch);
+      const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
       console.log('onchange', {
         oklch,
-        srgb255,
+        srgb255i,
       });
     }
   }));
   wrapper.append(oklchInput({
+    defaultValue: vec3(0.7482, 0.127, 4.656014845545272),
     onChange: (oklch) => {
-      const srgb255 = oklch != null && oklch_to_srgb255(oklch);
+      const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
       console.log('onchange', {
         oklch,
-        srgb255,
+        srgb255i,
       });
     }
   }));
 });
 
-// oklchInput
+// OKLCH color picker (perceptual Lightness, Chroma, Hue)
+function oklch_to_dot_pos(props/*: {inputMode: OKLCH_InputMode, oklch: vec3, chroma_max: number}*/) {
+  const {inputMode, oklch, chroma_max} = props;
+  // TODO: checkbox or something for switching input_mode
+  let dotPos/*: vec2*/;
+  if (inputMode == 0) {
+    dotPos = vec2(
+      oklch.x * Math.cos(oklch.z),
+      oklch.x * Math.sin(oklch.z),
+    );
+  } else {
+    dotPos = vec2(
+      oklch.y / chroma_max * Math.cos(oklch.z),
+      oklch.y / chroma_max * Math.sin(oklch.z),
+    );
+  }
+  const dotOffset = vec2(
+    (dotPos.x + 1) * 0.5,
+    (1 - dotPos.y) * 0.5
+  );
+  return {dotPos, dotOffset};
+}
+function dot_pos_to_oklch(props/*: {inputMode: OKLCH_InputMode, slider: number, dotOffset: vec2, chroma_max: number}*/) {
+  const {inputMode, dotOffset, slider, chroma_max} = props;
+  const dotPos = vec2(
+    dotOffset.x * 2 - 1,
+    1 - dotOffset.y * 2,
+  );
+  const distance = vec2_circle_norm(dotPos);
+  let L/*: number*/, C/*: number*/;
+  if (inputMode === 0) {
+    L = distance;
+    C = slider;
+  } else {
+    L = slider;
+    C = distance * chroma_max;
+  }
+  const H = Math.atan2(dotPos.y, dotPos.x);
+  return vec3(L, C, H);
+}
+
+const OKLCH_InputMode = {
+  LH_C: 0,
+  CH_L: 1,
+}
 /*type OKLCHInputProps = BaseProps & {
+  defaultValue?: vec3;
+  inputMode?: OKLCH_InputMode
   onChange?: (newValue: vec3 | null) => void;
 }*/;
 const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/) {
-  const {onChange} = props;
+  const {defaultValue = vec3(0.50, 0.10, 0.4), inputMode = 1, onChange} = props;
 
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] /*as [number, number, number]*/;
-  const CHROMA_MAX = 0.145;
-  const OKLCH_DEFAULT = vec3(0.40, 0.00, 0.4);
-  const defaultDotPos = vec2(
-    OKLCH_DEFAULT.x * Math.cos(OKLCH_DEFAULT.z),
-    OKLCH_DEFAULT.x * Math.sin(OKLCH_DEFAULT.z),
-  );
-  const defaultDotOffset = vec2((defaultDotPos.x + 1) * 0.5, (1 - defaultDotPos.y) * 0.5);
+  const chroma_max = inputMode === 0 ? 0.127 : 0.3171;
+  const defaultDotPos = oklch_to_dot_pos({
+    inputMode,
+    oklch: defaultValue,
+    chroma_max: chroma_max,
+  });
 
   /*type OKLCHState = {
-    chroma: number;
+    /** input dot position *//*
     dotOffset: vec2;
-    // only for rendering srgb255 color
-    _oklch: vec3 | null;
+    /** input slider *//*
+    slider: number;
+    /** clamped output *//*
+    _clamped_oklch: vec3;
   }
  */ const [state, _setState] = this.useState/*<OKLCHState>*/({
-    chroma: OKLCH_DEFAULT.y,
-    dotOffset: defaultDotOffset, // TODO: compute dotOffset from oklch instead?
-    _oklch: OKLCH_DEFAULT,
+    dotOffset: defaultDotPos.dotOffset,
+    slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
+    _clamped_oklch: defaultValue,
   });
-  const updateState = (diff/*: Partial<typeof state>*/) => {
+  //console.log('oklchInput', state);
+
+  const updateState = (diff/*: Partial<OKLCHState>*/) => {
+    //console.log('updateState', diff);
     const newState = {...state, ...diff};
-    const {chroma, dotOffset} = newState;
-    const dotPos = {x: dotOffset.x*2 - 1, y: 1 - dotOffset.y*2};
+    let {dotOffset, slider} = newState;
+    let oklch = dot_pos_to_oklch({
+      inputMode,
+      dotOffset,
+      slider,
+      chroma_max,
+    });
+    let L/*: number | null*/ = oklch.x;
+    let C/*: number | null*/ = oklch.y;
+    const H = oklch.z;
 
-    // NOTE: same as glsl shader
-    const distance = vec2_circle_norm(dotPos);
-    const angle = Math.atan2(dotPos.y, dotPos.x);
-
-    let L/*: number | null*/ = distance;
-    const get_srgb255 = (L/*: number*/) => {
-      return oklch_to_srgb255(vec3(L, chroma, angle));
-    }
-    const is_valid_srgb255 = (L/*: number*/) => {
+    if (inputMode === 0) {
+      const get_srgb255 = (lightness/*: number*/) => {
+        return oklch_to_srgb255(vec3(lightness, C /*as number*/, H));
+      }
+      const is_valid_srgb255 = (lightness/*: number*/) => {
+        const srgb255 = get_srgb255(lightness);
+        return vec3_min_component(srgb255) >= 0.0 && vec3_max_component(srgb255) <= 255.0;
+      }
       const srgb255 = get_srgb255(L);
-      return vec3_min_component(srgb255) >= 0.0 && vec3_max_component(srgb255) <= 255.0;
+      if (vec3_min_component(srgb255) < 0.0) {
+        const new_L = binary_search_float(L, 1, is_valid_srgb255);
+        //console.log('L too low', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
+        L = new_L;
+      } else if (vec3_max_component(srgb255) > 255.0) {
+        const new_L = binary_search_float(Math.min(L, 1), 0, is_valid_srgb255);
+        //console.log('L too high', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
+        L = new_L;
+      }
+    } else {
+      const get_srgb255 = (chroma/*: number*/) => {
+        return oklch_to_srgb255(vec3(L /*as number*/, chroma, H));
+      }
+      const is_valid_srgb255 = (chroma/*: number*/) => {
+        const srgb255 = get_srgb255(chroma);
+        return vec3_min_component(srgb255) >= 0.0 && vec3_max_component(srgb255) <= 255.0;
+      }
+      if (!is_valid_srgb255(C)) {
+        C = binary_search_float(Math.min(C, chroma_max), 0, is_valid_srgb255);
+      }
     }
 
-    const srgb255 = get_srgb255(L);
-    if (vec3_min_component(srgb255) < 0.0) {
-      const new_L = binary_search_float(L, 1, is_valid_srgb255);
-      console.log('L too low', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
-      L = new_L;
-    } else if (vec3_max_component(srgb255) > 255.0) {
-      const new_L = binary_search_float(Math.min(L, 1), 0, is_valid_srgb255);
-      console.log('L too high', {L, new_L, 'get_srgb255(new_L)': new_L != null && get_srgb255(new_L)});
-      L = new_L;
+    if (L != null && C != null) {
+      const _clamped_oklch = vec3(L, C, H);
+      _setState({...newState, _clamped_oklch})
+      if (onChange) onChange(_clamped_oklch);
+    } else {
+      _setState(newState);
     }
-
-    const _oklch = L == null ? null : vec3(L, chroma, angle);
-    _setState({...newState, _oklch});
-    if (onChange) onChange(_oklch);
   };
 
   // LH circle input
   const wrapper = this.append(div());
   const updateDotPos = (_event/*: PointerEvent*/, pointerPos/*: UseOnPointerMoveValue*/) => {
     const {fractionX, fractionY} = pointerPos;
-    updateState({
-      dotOffset: vec2(clamp(fractionX, 0, 1), clamp(fractionY, 0, 1))
-    });
+    const dotOffset = vec2(clamp(fractionX, 0, 1), clamp(fractionY, 0, 1));
+    updateState({dotOffset});
   }
   const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
     onPointerDown: updateDotPos,
@@ -3001,7 +3075,9 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
 
           uniform vec2 u_viewport;
           uniform vec3 u_background_color;
-          uniform float u_chroma;
+          uniform int u_input_mode;
+          uniform float u_slider;
+          uniform float u_chroma_max;
           out vec4 out_color;
           void main() {
             vec2 center = u_viewport.xy * 0.5;
@@ -3013,8 +3089,15 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
             //float alpha = clamp(radius - distance, 0.0, 1.0); // circle alpha
             float alpha = 1.0;
             // colors
-            float L = distance / radius;
-            vec3 oklch = vec3(L, u_chroma, angle);
+            float L, C;
+            if (u_input_mode == 0) {
+              L = distance / radius;
+              C = u_slider;
+            } else {
+              L = u_slider;
+              C = distance / radius * u_chroma_max;
+            }
+            vec3 oklch = vec3(L, C, angle);
             vec3 oklab = oklch_to_oklab(oklch);
 
             vec3 srgb = oklab_to_linear_srgb(oklab);
@@ -3041,7 +3124,9 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
       glUseProgram(gl, colorWheel);
       gl.uniform2f(colorWheel.u_viewport, rect.width, rect.height);
       gl.uniform3f(colorWheel.u_background_color, ...BACKGROUND_COLOR);
-      gl.uniform1f(colorWheel.u_chroma, state.chroma);
+      gl.uniform1i(colorWheel.u_input_mode, inputMode);
+      gl.uniform1f(colorWheel.u_slider, state.slider);
+      gl.uniform1f(colorWheel.u_chroma_max, chroma_max);
       glSetBuffer(gl, colorWheel.v_position, new Float32Array([
         -1, -1,
         +1, -1,
@@ -3055,25 +3140,55 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
     className: "color-circle-dot",
     style: {left: addPercent(state.dotOffset.x), top: addPercent(state.dotOffset.y)}
   }));
-  // C input
-  console.log('oklchInput', state);
-  let srgb255 = state._oklch != null ? srgb255_round_away_from_zero(oklch_to_srgb255(state._oklch)) : vec3(80, 0, 0);
-  wrapper.append(sliderInput({
+
+  // main slider input (C or L)
+  let srgb255 = oklch_to_srgb255i(state._clamped_oklch);
+
+  const main_sliderWrapper = wrapper.append(div({className: "color-slider-wrapper"}));
+  main_sliderWrapper.append(span(inputMode === 0 ? "C:" : "L:", {className: "color-slider-wrapper-label"}));
+  main_sliderWrapper.append(sliderInput({
     className: "color-slider",
     cssVars: {
       sliderBackground: `rgb(${srgb255.x}, ${srgb255.y}, ${srgb255.z})`,
       sliderKnobBackground: "rgb(175, 255, 255)",
     },
-    range: [0, CHROMA_MAX],
+    range: inputMode === 0 ? [0, chroma_max] : [0, 1],
     decimalPlaces: 3,
-    value: state.chroma,
+    value: state.slider,
     onInput: (event) => {
       updateState({
-        chroma: event.target.value,
+        slider: event.target.value,
       });
     }
   }));
-  wrapper.append(span("#" + [srgb255.x, srgb255.y, srgb255.z].map(v => v.toString(16).padStart(2, "0")).join("")))
+
+  // H input
+  const H_sliderWrapper = wrapper.append(div({className: "color-slider-wrapper"}));
+  H_sliderWrapper.append(span("H:", {className: "color-slider-wrapper-label"}));
+  H_sliderWrapper.append(sliderInput({
+    className: "color-slider",
+    cssVars: {
+      sliderBackground: `rgb(${srgb255.x}, ${srgb255.y}, ${srgb255.z})`,
+      sliderKnobBackground: "rgb(175, 255, 255)",
+    },
+    range: [0, 2*Math.PI],
+    decimalPlaces: 3,
+    value: mod(state._clamped_oklch.z, 2*Math.PI),
+    onInput: (event) => {
+      const oklch = dot_pos_to_oklch({
+        inputMode,
+        dotOffset: state.dotOffset,
+        slider: state.slider,
+        chroma_max,
+      });
+      oklch.z = event.target.value;
+      const dotOffset = oklch_to_dot_pos({inputMode, oklch, chroma_max}).dotOffset;
+      updateState({dotOffset});
+    }
+  }));
+
+  // hex string
+  wrapper.append(span("#" + [srgb255.x, srgb255.y, srgb255.z].map(v => v.toString(16).padStart(2, "0")).join(""), {style: {marginLeft: 4}}))
 });
 export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     const column = this.append(div({className: "display-column"}));
