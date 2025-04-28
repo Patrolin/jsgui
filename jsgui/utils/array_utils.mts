@@ -1,3 +1,6 @@
+import { is_array } from "./type_utils.mts";
+
+// create arrays
 export function makeArray<T>(N: number, map: (v: undefined, i: number) => T): T[] {
 	const arr = Array(N);
 	for (let i = 0; i < arr.length; i++) {
@@ -5,8 +8,28 @@ export function makeArray<T>(N: number, map: (v: undefined, i: number) => T): T[
 	}
 	return arr;
 }
+export function asArray<T>(valueOrArrayOrNullsy: T | T[] | undefined | null): T[] {
+	if (is_array(valueOrArrayOrNullsy)) return valueOrArrayOrNullsy;
+	return valueOrArrayOrNullsy == null ? [] : [valueOrArrayOrNullsy];
+}
 
-// sorting
+// group
+type Group<T> = {
+	groupId: string;
+	items: T[];
+}
+export function groupBy<T>(items: T[], key: (v: T) => string): Group<T>[] {
+	const groups = {} as Record<string, T[]>;
+	for (let item of items) {
+		const item_key = key(item);
+		const groupItems = groups[item_key as string] ?? [];
+		groupItems.push(item);
+		groups[item_key as string] = groupItems;
+	}
+	return Object.entries(groups).map(([groupId, groupItems]) => ({groupId: groupId, items: groupItems}));
+}
+
+// sort
 type Comparable = number | string | Date | BigInt | undefined | null;
 function compare(a: any, b: any): number {
 	return ((a > b) as unknown as number) - ((a < b) as unknown as number);

@@ -171,6 +171,7 @@ export const span = makeComponent(function _span(text: string | number | null | 
         event.preventDefault();
       });
     }
+    // TODO!: do we need to implement our own onClick, or can we just use pointerup?
     if (events.pointerdown === undefined) {
       events.pointerdown = onClick;
     }

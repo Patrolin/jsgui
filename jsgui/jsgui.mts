@@ -9,7 +9,6 @@ export function parseJsonOrNull(jsonString: string): JSONValue {
     return null;
   }
 }
-// TODO!: sortBy(), groupBy(), asArray()
 export type Nullsy = undefined | null;
 export type StringMap<T = any> = Record<string, T>;
 export type JSONValue = string | number | any[] | StringMap | null;
