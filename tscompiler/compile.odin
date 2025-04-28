@@ -496,7 +496,16 @@ parse_left_bracket_angle :: proc(parser: ^Parser, sb: ^strings.Builder) -> (erro
 	next_token(parser, sb)
 	return .None
 }
+unparse_binary_shift_right :: proc(parser: ^Parser) {
+	if len(parser.token) > 0 && parser.token[0] == '>' {
+		// chess battle advanced
+		parser.token_type = .BracketRightAngle
+		parser.token = ">"
+		parser.j = parser.i + 1
+	}
+}
 parse_right_bracket_angle :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
+	unparse_binary_shift_right(parser)
 	if parser.token_type != .BracketRightAngle {return .ExpectedBracketRightAngle}
 	next_token(parser, sb)
 	return .None
@@ -887,6 +896,7 @@ parse_until_end_of_bracket :: proc(parser: ^Parser, sb: ^strings.Builder) {
 	prev_debug_indent := debug_print_start(parser, "parse_until_end_of_bracket")
 	bracket_count := 0
 	for {
+		unparse_binary_shift_right(parser)
 		is_bracket := parser.token_type >= .BRACKETS_START && parser.token_type <= .BRACKETS_END
 		is_left_bracket := int(parser.token_type - .BRACKETS_START) & 1
 		if is_bracket {

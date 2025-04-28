@@ -44,6 +44,9 @@ TokenType :: enum {
 	// 3 length, binary ops
 	TripleEquals,
 	TripleNotEquals,
+	BinaryShiftLeftEquals,
+	BinaryShiftRightEquals,
+	BinaryShiftRightUnsigned,
 	// 2 length, binary ops
 	PlusEquals,
 	MinusEquals,
@@ -56,9 +59,13 @@ TokenType :: enum {
 	DoubleNotEquals,
 	LessThanEquals,
 	GreaterThanEquals,
+	BinaryAndEquals,
+	BinaryOrEquals,
+	BinaryShiftLeft,
+	BinaryShiftRight,
+	// 1 length, binary ops
 	LogicalAnd,
 	LogicalOr,
-	// 1 length, binary ops
 	Times,
 	Slash,
 	BinaryAnd,
@@ -198,6 +205,9 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	if j >= len(file) {
 		return .EndOfFile
 	}
+	char_equals :: #force_inline proc(file: string, j: int, expected: u8) -> bool {
+		return j < len(file) && (file[j] == expected)
+	}
 	j_1 := j + 1
 	j_2 := j + 2
 	char := file[j]
@@ -245,11 +255,19 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	case '&':
 		{
 			is_logical_or := j_1 < len(file) && (file[j_1] == '&')
+			is_binary_and_equals := j_1 < len(file) && (file[j_1] == '=')
+			if is_binary_and_equals {
+				return .BinaryAndEquals
+			}
 			return is_logical_or ? .LogicalAnd : .BinaryAnd
 		}
 	case '|':
 		{
 			is_logical_or := j_1 < len(file) && (file[j_1] == '|')
+			is_binary_or_equals := j_1 < len(file) && (file[j_1] == '=')
+			if is_binary_or_equals {
+				return .BinaryOrEquals
+			}
 			return is_logical_or ? .LogicalOr : .BinaryOr
 		}
 	case '^':
@@ -300,11 +318,19 @@ _get_token_type :: proc(file: string, j: int, loc := #caller_location) -> TokenT
 	case '}':
 		return .BracketRightCurly
 	case '<':
-		is_less_than_equals := j_1 < len(file) && (file[j_1] == '=')
-		return is_less_than_equals ? .LessThanEquals : .BracketLeftAngle
+		if char_equals(file, j+1, '<') {
+			return char_equals(file, j+2, '=') ? .BinaryShiftLeftEquals : .BinaryShiftLeft
+		}
+		return char_equals(file, j+1, '=') ? .LessThanEquals : .BracketLeftAngle
 	case '>':
-		is_greater_than_equals := j_1 < len(file) && (file[j_1] == '=')
-		return is_greater_than_equals ? .GreaterThanEquals : .BracketRightAngle
+		if char_equals(file, j+1, '>') {
+			if char_equals(file, j+2, '>') {
+				return .BinaryShiftRightUnsigned
+			} else {
+				return char_equals(file, j+2, '=') ? .BinaryShiftRightEquals : .BinaryShiftRight
+			}
+		}
+		return char_equals(file, j+1, '=') ? .GreaterThanEquals : .BracketRightAngle
 	}
 }
 parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
@@ -412,7 +438,7 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 			parser.j += 1
 		}
 		parser.token = parser.file[parser.i:parser.j]
-	case .TripleDot, .TripleEquals, .TripleNotEquals:
+	case .TripleDot, .TripleEquals, .TripleNotEquals, .BinaryShiftLeftEquals, .BinaryShiftRightEquals, .BinaryShiftRightUnsigned:
 		// 3 length
 		parser.j = parser.i + 3
 		parser.token = parser.file[parser.i:parser.j]
@@ -428,6 +454,10 @@ parse_current_token :: proc(parser: ^Parser, loc := #caller_location) {
 	     .DoubleNotEquals,
 	     .LessThanEquals,
 	     .GreaterThanEquals,
+			 .BinaryAndEquals,
+			 .BinaryOrEquals,
+			 .BinaryShiftLeft,
+			 .BinaryShiftRight,
 	     .LogicalOr,
 	     .LogicalAnd,
 	     .DoublePlus,

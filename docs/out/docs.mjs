@@ -5,6 +5,32 @@ function makeArray/*<T>*/(N/*: number*/, map/*: (v: undefined, i: number) => T*/
 	}
 	return arr;
 }
+
+// sorting
+/*type Comparable = number | string | Date | BigInt | undefined | null*/;
+function compare(a/*: any*/, b/*: any*/)/*: number*/ {
+	return ((a > b) /*as unknown*/ /*as number*/) - ((a < b) /*as unknown*/ /*as number*/);
+}
+function sortBy/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) => K*/, descending = false)/*: T[]*/ {
+	return arr.sort((a, b) => {
+		let comparison = compare(key(a), key(b));
+		if (descending) {comparison = -comparison;}
+		return comparison;
+	});
+}
+function sortByArray/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) => K[]*/, descending/*: boolean[]*/ = [])/*: T[]*/ {
+	return arr.sort((a, b) => {
+		const a_key = key(a);
+		const b_key = key(b);
+		const n = Math.max(a_key.length, b_key.length);
+		for (let i = 0; i < n; i++) {
+			let comparison = compare(a_key[i], b_key[i]);
+			if (descending[i]) {comparison = -comparison;}
+			if (comparison !== 0) return comparison;
+		}
+		return 0;
+	});
+}
 /*export type vec2 = {x: number; y: number}*/;
 function vec2(x/*: number*/, y/*: number*/) {
   return {x, y};
@@ -214,6 +240,79 @@ function makePath(parts/*: string | PathParts*/)/*: string*/ {
   if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
   return pathLocation + queryString + hashString;
 }
+
+// search
+/** return `patternMask` for bitap_search() */
+function bitap_pattern_mask(pattern/*: string*/)/*: Record<string, number>*/ {
+  if (pattern.length > 31) throw new Error("Pattern too long! Bitap supports patterns up to 31 characters.");
+  const patternMask/*: Record<string, number>*/ = {};
+  for (let i = 0; i < pattern.length; i++) {
+    patternMask[pattern[i]] = (patternMask[pattern[i]] || ~0) & ~(1 << i);
+  }
+  return patternMask;
+}
+/** Usage:
+ * ```ts
+ * const patternMask = bitap_pattern_mask(pattern);
+ * bitap_search(text1, pattern.length, patternMask);
+ * bitap_search(text2, pattern.length, patternMask);
+ * ```
+ *
+ * return `[index_of_pattern_in_text, number_of_edits]` (up to 1 add/replace/delete), return `[-1, -1]` if not found */
+function bitap_search(text/*: string*/, patternLength/*: number*/, patternMask/*: Record<string, number>*/)/*: [number, number]*/ {
+  if (patternLength === 0) return [0, 0];
+
+  let R_0 = ~1;
+  let R_1 = ~1;
+  let best_match_i = -1;
+  for (let i = 0; i < text.length; i++) {
+    let oldPrevR = R_0;
+    R_0 |= (patternMask[text[i]] || ~0);
+    R_0 <<= 1;
+
+    /* allow 1 edit */
+    //tmp = R_1
+    const match = (R_1 | (patternMask[text[i]] || ~0));
+    const replace = oldPrevR;
+    const add_or_delete = oldPrevR << 1;
+    R_1 = match & replace & add_or_delete;
+    R_1 <<= 1;
+    //oldPrevR = tmp;
+
+    if ((R_0 & (1 << patternLength)) === 0) {
+      return [i, 0];
+    } else if ((R_1 & (1 << patternLength)) === 0) {
+      best_match_i = i;
+    }
+  }
+
+  return best_match_i == -1 ? [-1, -1] : [best_match_i, 1];
+}
+function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*/ {
+  if (pattern.length === 0) return options;
+  const patternMask = bitap_pattern_mask(pattern);
+
+  /*type SearchInfo = {
+    option: string;
+    index: number;
+    editCount: number;
+  }*/;
+  const infos/*: SearchInfo[]*/ = [];
+  for (let option of options) {
+    let index, editCount = 0;
+    if (pattern.length > 31) {
+      index = option.indexOf(pattern);
+    } else {
+      [index, editCount] = bitap_search(option, pattern.length, patternMask);
+    }
+    if (index !== -1) {
+      infos.push({option, index, editCount});
+    }
+  }
+
+  return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
+}
+console.log('search', search_options("abcd", ["abc", "azcd", "abzcd", "hello", "zabcd"]))
 /*export type DateParts = {
   year?: number;
   month?: number;
