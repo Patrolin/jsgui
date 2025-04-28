@@ -76,18 +76,21 @@ export const textarea = makeComponent(function textarea(props: TextAreaProps = {
   }} = props;
   const node = this.useNode(() => document.createElement("span"));
   node.contentEditable = "true";
-  this.baseProps.events.paste = (event) => {
-    event.preventDefault();
-    const replaceString = onPaste(event, event.clipboardData as DataTransfer)
-    const selection = window.getSelection() as Selection;
-    const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
-    const selectionStart = Math.min(selectionA, selectionB);
-    const selectionEnd = Math.max(selectionA, selectionB);
-    const prevValue = node.innerText;
-    const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
-    node.innerText = newValue;
-    const newSelectionEnd = selectionStart + replaceString.length;
-    selection.setPosition(node.childNodes[0], newSelectionEnd);
+  const events = this.baseProps.events;
+  if (events.paste === undefined) {
+    events.paste = (event) => {
+      event.preventDefault();
+      const replaceString = onPaste(event, event.clipboardData as DataTransfer)
+      const selection = window.getSelection() as Selection;
+      const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
+      const selectionStart = Math.min(selectionA, selectionB);
+      const selectionEnd = Math.max(selectionA, selectionB);
+      const prevValue = node.innerText;
+      const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
+      node.innerText = newValue;
+      const newSelectionEnd = selectionStart + replaceString.length;
+      selection.setPosition(node.childNodes[0], newSelectionEnd);
+    }
   }
 });
 export const img = makeComponent(function img(src: string, _props: BaseProps = {}) {
@@ -137,7 +140,7 @@ export type SpanProps = BaseProps & {
   navType?: NavType;
   id?: string;
   selfLink?: string;
-  onClick?: (event: MouseEvent) => void;
+  onClick?: (event: PointerEvent) => void;
 };
 export const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, download, navType, id, selfLink, onClick } = props;
@@ -163,13 +166,22 @@ export const span = makeComponent(function _span(text: string | number | null | 
       attribute.tabindex = "-1";
       attribute.clickable = "true";
     }
-    events.click = events.click ?? ((event: MouseEvent) => {
-      if (onClick) onClick(event);
-      if (href && !download) {
+    if (events.touchstart === undefined) {
+      events.touchstart = ((event: TouchEvent) => {
         event.preventDefault();
-        navigate(href, navType);
-      }
-    });
+      });
+    }
+    if (events.pointerdown === undefined) {
+      events.pointerdown = onClick;
+    }
+    if (events.pointerup === undefined) {
+      events.pointerup = ((event: PointerEvent) => {
+        if (href && !download) {
+          event.preventDefault();
+          navigate(href, navType);
+        }
+      });
+    }
   }
   this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });

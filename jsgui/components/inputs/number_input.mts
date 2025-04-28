@@ -3,8 +3,8 @@ import { div, fragment, icon } from "../basics.mts";
 import { controlledInput, errorMessage, InputProps, labeledInput, LabeledInputProps } from "./text_input.mts";
 
 export type NumberArrowProps = {
-  onClickUp?: (event: MouseEvent) => void;
-  onClickDown?: (event: MouseEvent) => void;
+  onClickUp?: (event: PointerEvent) => void;
+  onClickDown?: (event: PointerEvent) => void;
 } & BaseProps;
 export const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
@@ -87,12 +87,12 @@ export const numberInput = makeComponent(function numberInput(props: NumberInput
       const acc = fragment();
       if (rightComponent) acc.append(rightComponent());
       acc.append(numberArrows({
-        onClickUp: (_event: MouseEvent) => {
+        onClickUp: (_event: PointerEvent) => {
           incrementValue(step ?? 1);
           inputComponent._.state.needFocus = true;
           inputComponent.rerender();
         },
-        onClickDown: (_event: MouseEvent) => {
+        onClickDown: (_event: PointerEvent) => {
           incrementValue(-(step ?? 1));
           inputComponent._.state.needFocus = true;
           inputComponent.rerender();

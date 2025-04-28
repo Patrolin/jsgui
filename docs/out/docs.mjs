@@ -312,7 +312,6 @@ function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*
 
   return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
 }
-console.log('search', search_options("abcd", ["abc", "azcd", "abzcd", "hello", "zabcd"]))
 /*export type DateParts = {
   year?: number;
   month?: number;
@@ -501,36 +500,36 @@ function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
 /*export type ChangeEventWithTarget = EventWithTarget<Event>*/;
 /*export type _EventListener<T = Event> = ((event: T) => void)*/;
 /*export type EventsMap = {
-  click?: _EventListener<MouseEvent>;
-  dblclick?: _EventListener<MouseEvent>;
+  // NOTE: Safari iOS and Chrome android don't support onclick - use onpointerup instead
   // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
+  touchstart: _EventListener<TouchEvent> | null; // NOTE: we need to call .preventDefault() on this event specifically..
 
-  pointerenter?: _EventListener<PointerEvent>; // same as pointerover?
-  pointerleave?: _EventListener<PointerEvent>; // same as pointerout?
-  pointerdown?: _EventListener<PointerEvent>;
-  pointermove?: _EventListener<PointerEvent>;
-  pointercancel?: _EventListener<PointerEvent>;
-  pointerup?: _EventListener<PointerEvent>;
+  pointerenter?: _EventListener<PointerEvent> | null; // same as pointerover?
+  pointerleave?: _EventListener<PointerEvent> | null; // same as pointerout?
+  pointerdown?: _EventListener<PointerEvent> | null;
+  pointermove?: _EventListener<PointerEvent> | null;
+  pointercancel?: _EventListener<PointerEvent> | null;
+  pointerup?: _EventListener<PointerEvent> | null;
 
-  focus?: _EventListener<FocusEvent>;
-  blur?: _EventListener<FocusEvent>;
-  focusin?: _EventListener<FocusEvent>;
-  focusout?: _EventListener<FocusEvent>;
+  focus?: _EventListener<FocusEvent> | null;
+  blur?: _EventListener<FocusEvent> | null;
+  focusin?: _EventListener<FocusEvent> | null;
+  focusout?: _EventListener<FocusEvent> | null;
 
-  keydown?: _EventListener<KeyboardEvent>;
-  keypress?: _EventListener<KeyboardEvent>;
-  keyup?: _EventListener<KeyboardEvent>;
+  keydown?: _EventListener<KeyboardEvent> | null;
+  keypress?: _EventListener<KeyboardEvent> | null;
+  keyup?: _EventListener<KeyboardEvent> | null;
 
-  scroll?: _EventListener<WheelEvent>;
+  scroll?: _EventListener<WheelEvent> | null;
 
-  beforeinput?: _EventListener<InputEventWithTarget>;
-  input?: _EventListener<InputEventWithTarget>;
+  beforeinput?: _EventListener<InputEventWithTarget> | null;
+  input?: _EventListener<InputEventWithTarget> | null;
 
-  compositionstart?: _EventListener<CompositionEvent>;
-  compositionend?: _EventListener<CompositionEvent>;
-  compositionupdate?: _EventListener<CompositionEvent>;
+  compositionstart?: _EventListener<CompositionEvent> | null;
+  compositionend?: _EventListener<CompositionEvent> | null;
+  compositionupdate?: _EventListener<CompositionEvent> | null;
 
-  paste?: _EventListener<ClipboardEvent>;
+  paste?: _EventListener<ClipboardEvent> | null;
 }*/;
 /*export type UndoPartial<T> = T extends Partial<infer R> ? R : T*/;
 /*export type Diff<T> = {
@@ -1443,18 +1442,21 @@ export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/
   }} = props;
   const node = this.useNode(() => document.createElement("span"));
   node.contentEditable = "true";
-  this.baseProps.events.paste = (event) => {
-    event.preventDefault();
-    const replaceString = onPaste(event, event.clipboardData /*as DataTransfer*/)
-    const selection = window.getSelection() /*as Selection*/;
-    const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
-    const selectionStart = Math.min(selectionA, selectionB);
-    const selectionEnd = Math.max(selectionA, selectionB);
-    const prevValue = node.innerText;
-    const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
-    node.innerText = newValue;
-    const newSelectionEnd = selectionStart + replaceString.length;
-    selection.setPosition(node.childNodes[0], newSelectionEnd);
+  const events = this.baseProps.events;
+  if (events.paste === undefined) {
+    events.paste = (event) => {
+      event.preventDefault();
+      const replaceString = onPaste(event, event.clipboardData /*as DataTransfer*/)
+      const selection = window.getSelection() /*as Selection*/;
+      const {anchorOffset: selectionA, focusOffset: selectionB} = selection;
+      const selectionStart = Math.min(selectionA, selectionB);
+      const selectionEnd = Math.max(selectionA, selectionB);
+      const prevValue = node.innerText;
+      const newValue = prevValue.slice(0, selectionStart) + replaceString + prevValue.slice(selectionEnd)
+      node.innerText = newValue;
+      const newSelectionEnd = selectionStart + replaceString.length;
+      selection.setPosition(node.childNodes[0], newSelectionEnd);
+    }
   }
 });
 export const img = makeComponent(function img(src/*: string*/, _props/*: BaseProps*/ = {}) {
@@ -1504,7 +1506,7 @@ export const legend = makeComponent(function legend(text/*: string*/, _props/*: 
   navType?: NavType;
   id?: string;
   selfLink?: string;
-  onClick?: (event: MouseEvent) => void;
+  onClick?: (event: PointerEvent) => void;
 }*/;
 export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, download, navType, id, selfLink, onClick } = props;
@@ -1530,13 +1532,22 @@ export const span = makeComponent(function _span(text/*: string | number | null 
       attribute.tabindex = "-1";
       attribute.clickable = "true";
     }
-    events.click = events.click ?? ((event/*: MouseEvent*/) => {
-      if (onClick) onClick(event);
-      if (href && !download) {
+    if (events.touchstart === undefined) {
+      events.touchstart = ((event/*: TouchEvent*/) => {
         event.preventDefault();
-        navigate(href, navType);
-      }
-    });
+      });
+    }
+    if (events.pointerdown === undefined) {
+      events.pointerdown = onClick;
+    }
+    if (events.pointerup === undefined) {
+      events.pointerup = ((event/*: PointerEvent*/) => {
+        if (href && !download) {
+          event.preventDefault();
+          navigate(href, navType);
+        }
+      });
+    }
   }
   this.append(iconName || (text == null ? "" : String(text)))
 }, { name: "span" });
@@ -1635,20 +1646,10 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
 export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
-  // TODO!: use pointerdown instead
-  fieldset.onmousedown = (_event/*: any*/) => {
-    const event = _event /*as MouseEvent*/;
-    if (event.target !== inputComponent._.prevNode) {
-      event.preventDefault();
-    }
+  fieldset.onpointerdown = (_event/*: PointerEvent*/) => {
+    const inputNode = inputComponent._.prevNode /*as ParentNodeType*/;
+    inputNode.focus(); // TODO: does this break mobile text select or not?
   }
-  fieldset.onclick = (_event/*: any*/) => {
-    const event = _event /*as MouseEvent*/;
-    const prevNode = inputComponent._.prevNode /*as ParentNodeType*/;
-    if (prevNode && (event.target !== prevNode)) {
-      prevNode.focus();
-    }
-  };
   this.append(legend(label))
   if (leftComponent) this.append(leftComponent());
   this.append(inputComponent);
@@ -1777,8 +1778,8 @@ export const sliderInput = makeComponent(function sliderInput(props/*: SliderInp
   element.onpointerdown = onPointerDown;
 });
 /*export type NumberArrowProps = {
-  onClickUp?: (event: MouseEvent) => void;
-  onClickDown?: (event: MouseEvent) => void;
+  onClickUp?: (event: PointerEvent) => void;
+  onClickDown?: (event: PointerEvent) => void;
 } & BaseProps*/;
 export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
   const { onClickUp, onClickDown } = props;
@@ -1861,12 +1862,12 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
       const acc = fragment();
       if (rightComponent) acc.append(rightComponent());
       acc.append(numberArrows({
-        onClickUp: (_event/*: MouseEvent*/) => {
+        onClickUp: (_event/*: PointerEvent*/) => {
           incrementValue(step ?? 1);
           inputComponent._.state.needFocus = true;
           inputComponent.rerender();
         },
-        onClickDown: (_event/*: MouseEvent*/) => {
+        onClickDown: (_event/*: PointerEvent*/) => {
           incrementValue(-(step ?? 1));
           inputComponent._.state.needFocus = true;
           inputComponent.rerender();
@@ -1892,9 +1893,8 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   if (color) attribute.dataColor = color;
   if (disabled) attribute.disabled = "true";
   else if (onClick) {
-    // TODO!: use pointerdown instead
-    element.onmousedown = () => {
-      requestAnimationFrame(onClick);
+    element.onpointerdown = () => {
+      onClick();
     }
   }
 });

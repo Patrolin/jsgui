@@ -66,20 +66,10 @@ export type LabeledInputProps = {
 export const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
-  // TODO!: use pointerdown instead
-  fieldset.onmousedown = (_event: any) => {
-    const event = _event as MouseEvent;
-    if (event.target !== inputComponent._.prevNode) {
-      event.preventDefault();
-    }
+  fieldset.onpointerdown = (_event: PointerEvent) => {
+    const inputNode = inputComponent._.prevNode as ParentNodeType;
+    inputNode.focus(); // TODO: does this break mobile text select or not?
   }
-  fieldset.onclick = (_event: any) => {
-    const event = _event as MouseEvent;
-    const prevNode = inputComponent._.prevNode as ParentNodeType;
-    if (prevNode && (event.target !== prevNode)) {
-      prevNode.focus();
-    }
-  };
   this.append(legend(label))
   if (leftComponent) this.append(leftComponent());
   this.append(inputComponent);

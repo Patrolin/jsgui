@@ -16,9 +16,8 @@ export const coloredButton = makeComponent(function coloredButton(text: string, 
   if (color) attribute.dataColor = color;
   if (disabled) attribute.disabled = "true";
   else if (onClick) {
-    // TODO!: use pointerdown instead
-    element.onmousedown = () => {
-      requestAnimationFrame(onClick);
+    element.onpointerdown = () => {
+      onClick();
     }
   }
 });

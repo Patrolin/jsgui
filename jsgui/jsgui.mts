@@ -20,36 +20,36 @@ export type InputEventWithTarget = EventWithTarget<InputEvent>;
 export type ChangeEventWithTarget = EventWithTarget<Event>;
 export type _EventListener<T = Event> = ((event: T) => void);
 export type EventsMap = {
-  click?: _EventListener<MouseEvent>;
-  dblclick?: _EventListener<MouseEvent>;
+  // NOTE: Safari iOS and Chrome android don't support onclick - use onpointerup instead
   // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
+  touchstart: _EventListener<TouchEvent> | null; // NOTE: we need to call .preventDefault() on this event specifically..
 
-  pointerenter?: _EventListener<PointerEvent>; // same as pointerover?
-  pointerleave?: _EventListener<PointerEvent>; // same as pointerout?
-  pointerdown?: _EventListener<PointerEvent>;
-  pointermove?: _EventListener<PointerEvent>;
-  pointercancel?: _EventListener<PointerEvent>;
-  pointerup?: _EventListener<PointerEvent>;
+  pointerenter?: _EventListener<PointerEvent> | null; // same as pointerover?
+  pointerleave?: _EventListener<PointerEvent> | null; // same as pointerout?
+  pointerdown?: _EventListener<PointerEvent> | null;
+  pointermove?: _EventListener<PointerEvent> | null;
+  pointercancel?: _EventListener<PointerEvent> | null;
+  pointerup?: _EventListener<PointerEvent> | null;
 
-  focus?: _EventListener<FocusEvent>;
-  blur?: _EventListener<FocusEvent>;
-  focusin?: _EventListener<FocusEvent>;
-  focusout?: _EventListener<FocusEvent>;
+  focus?: _EventListener<FocusEvent> | null;
+  blur?: _EventListener<FocusEvent> | null;
+  focusin?: _EventListener<FocusEvent> | null;
+  focusout?: _EventListener<FocusEvent> | null;
 
-  keydown?: _EventListener<KeyboardEvent>;
-  keypress?: _EventListener<KeyboardEvent>;
-  keyup?: _EventListener<KeyboardEvent>;
+  keydown?: _EventListener<KeyboardEvent> | null;
+  keypress?: _EventListener<KeyboardEvent> | null;
+  keyup?: _EventListener<KeyboardEvent> | null;
 
-  scroll?: _EventListener<WheelEvent>;
+  scroll?: _EventListener<WheelEvent> | null;
 
-  beforeinput?: _EventListener<InputEventWithTarget>;
-  input?: _EventListener<InputEventWithTarget>;
+  beforeinput?: _EventListener<InputEventWithTarget> | null;
+  input?: _EventListener<InputEventWithTarget> | null;
 
-  compositionstart?: _EventListener<CompositionEvent>;
-  compositionend?: _EventListener<CompositionEvent>;
-  compositionupdate?: _EventListener<CompositionEvent>;
+  compositionstart?: _EventListener<CompositionEvent> | null;
+  compositionend?: _EventListener<CompositionEvent> | null;
+  compositionupdate?: _EventListener<CompositionEvent> | null;
 
-  paste?: _EventListener<ClipboardEvent>;
+  paste?: _EventListener<ClipboardEvent> | null;
 };
 export type UndoPartial<T> = T extends Partial<infer R> ? R : T;
 export type Diff<T> = {
