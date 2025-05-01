@@ -92,7 +92,7 @@ export type MinimaxOptions = {
 export function minimax(options: MinimaxOptions) {
   const {reference, range, params, matchEnds = true} = options;
   const nodeCount = params.length + 1;
-  let nodes = makeArray(nodeCount, (i) => {
+  let nodes = makeArray(nodeCount, (_, i) => {
     const t = matchEnds ? i / (nodeCount - 1) : (i + 1) / (nodeCount + 1);
     return lerp(t, range[0], range[1])
   });
