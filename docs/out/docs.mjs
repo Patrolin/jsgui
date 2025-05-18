@@ -1,42 +1,175 @@
-function makeArray/*<T>*/(N/*: number*/, map/*: (v: undefined, i: number) => T*/)/*: T[]*/ {
-	const arr = Array(N);
-	for (let i = 0; i < arr.length; i++) {
-		arr[i] = map(undefined, i);
-	}
-	return arr;
+/*type dual_vec3 = {
+  x: number;
+  dx: number;
+  y: number;
+  dy: number;
+  z: number;
+  dz: number;
+}
+*/function dual_vec3(x/*: number*/, y/*: number*/, z/*: number*/)/*: dual_vec3*/ {
+  return {x, dx: 0, y, dy: 0, z, dz: 0};
 }
 
-// sorting
-/*type Comparable = number | string | Date | BigInt | undefined | null*/;
-function compare(a/*: any*/, b/*: any*/)/*: number*/ {
-	return ((a > b) /*as unknown*/ /*as number*/) - ((a < b) /*as unknown*/ /*as number*/);
+function dual_vec3_add(A/*: dual_vec3*/, B/*: dual_vec3*/)/*: dual_vec3*/ {
+  return {
+    x: A.x + B.x,
+    dx: A.dx + B.dx,
+    y: A.y + B.y,
+    dy: A.dy + B.dy,
+    z: A.z + B.z,
+    dz: A.dz + B.dz,
+  };
 }
-function sortBy/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) => K*/, descending = false)/*: T[]*/ {
-	return arr.sort((a, b) => {
-		let comparison = compare(key(a), key(b));
-		if (descending) {comparison = -comparison;}
-		return comparison;
-	});
+
+function dual_vec3_sub(A/*: dual_vec3*/, B/*: dual_vec3*/)/*: dual_vec3*/ {
+  return {
+    x: A.x - B.x,
+    dx: A.dx - B.dx,
+    y: A.y - B.y,
+    dy: A.dy - B.dy,
+    z: A.z - B.z,
+    dz: A.dz - B.dz,
+  };
 }
-function sortByArray/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) => K[]*/, descending/*: boolean[]*/ = [])/*: T[]*/ {
-	return arr.sort((a, b) => {
-		const a_key = key(a);
-		const b_key = key(b);
-		const n = Math.max(a_key.length, b_key.length);
-		for (let i = 0; i < n; i++) {
-			let comparison = compare(a_key[i], b_key[i]);
-			if (descending[i]) {comparison = -comparison;}
-			if (comparison !== 0) return comparison;
-		}
-		return 0;
-	});
+
+function dual_vec3_mulf(A/*: dual_vec3*/, f/*: number*/)/*: dual_vec3*/ {
+  return {
+    x: A.x * f,
+    dx: A.dx * f,
+    y: A.y * f,
+    dy: A.dy * f,
+    z: A.z * f,
+    dz: A.dz * f,
+  };
 }
+
+function dual_vec3_mul(A/*: dual_vec3*/, B/*: dual_vec3*/)/*: dual_vec3*/ {
+  return {
+    x: A.x * B.x,
+    dx: A.dx * B.x + A.x * B.dx,
+    y: A.y * B.y,
+    dy: A.dy * B.y + A.y * B.dy,
+    z: A.z * B.z,
+    dz: A.dz * B.z + A.z * B.dz,
+  };
+}
+
+function dual_vec3_div(A/*: dual_vec3*/, B/*: dual_vec3*/)/*: dual_vec3*/ {
+  return {
+    x: A.x / B.x,
+    dx: (A.dx * B.x - A.x * B.dx) / (B.x * B.x),
+    y: A.y / B.y,
+    dy: (A.dy * B.y - A.y * B.dy) / (B.y * B.y),
+    z: A.z / B.z,
+    dz: (A.dz * B.z - A.z * B.dz) / (B.z * B.z),
+  };
+}
+/*export type DateParts = {
+  year?: number;
+  month?: number;
+  date?: number;
+  hours?: number;
+  minutes?: number;
+  seconds?: number;
+  millis?: number;
+}*/;
+function reparseDate(date/*: Date*/, country/*: string*/ = "GMT")/*: Required<DateParts>*/ {
+  const localeString = date.toLocaleString("en-GB", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "numeric",
+    minute: "numeric",
+    second: "numeric",
+    fractionalSecondDigits: 3,
+    timeZone: country,
+  });
+  const [countryDate, countryMonth, countryYear, countryHours, countryMinutes, countrySeconds, countryMillis] = localeString.split(/\D+/);
+  return {
+    year: +countryYear,
+    month: +countryMonth - 1,
+    date: +countryDate,
+    hours: +countryHours,
+    minutes: +countryMinutes,
+    seconds: +countrySeconds,
+    millis: +countryMillis,
+  };
+}
+class CountryDate {
+  _countryUTCDate/*: Date*/;
+  country/*: string*/;
+  constructor(_countryUTCDate/*: Date*/, country/*: string*/ = "GMT") {
+    this._countryUTCDate = _countryUTCDate;
+    this.country = country;
+  }
+  get countryUTCString() {
+    return this._countryUTCDate.toISOString();
+  }
+  /** https://en.wikipedia.org/wiki/List_of_tz_database_time_zones - e.g. "Europe/Prague" */
+  static fromIsoString(isoString/*: string*/, country/*: string*/ = "GMT")/*: CountryDate*/ {
+    const match = isoString.match(/^(\d+)-(\d+)-(\d+)(?:T(\d+):(\d+):(\d+)(?:\.(\d+))?)?(?:([\-+\d]+):(\d+))?/);
+    if (match === null) throw new Error(`Invalid isoString: '${isoString}'`);
+    const [_, year, month, day, hour, minute, second, milli, tzOffsetHours, tzOffsetMinutes] = match;
+    const date = new Date(Date.UTC(+year, +month, +day, +(hour ?? 0), +(minute ?? 0), +(second ?? 0), +(milli ?? 0)));
+    const tzOffset = +(tzOffsetHours ?? 0)*60 + +(tzOffsetMinutes ?? 0);
+    date.setMinutes(date.getMinutes() - tzOffset);
+    const parts = reparseDate(date, country);
+    const countryYear = String(parts.year).padStart(4, "0");
+    const countryMonth = String(parts.month).padStart(2, "0");
+    const countryDate = String(parts.date).padStart(2, "0");
+    const countryHours = String(parts.hours).padStart(2, "0");
+    const countryMinutes = String(parts.minutes).padStart(2, "0");
+    const countrySeconds = String(parts.seconds).padStart(2, "0");
+    const countryMillis = String(parts.millis).padStart(3, "0");
+    const _countryUTCDate = new Date(Date.UTC(+countryYear, +countryMonth-1, +countryDate, +countryHours, +countryMinutes, +countrySeconds, +countryMillis));
+    return new CountryDate(_countryUTCDate, country);
+  }
+  add(offset/*: DateParts*/)/*: CountryDate*/ {
+    const date = this._countryUTCDate;
+    date.setUTCFullYear(date.getUTCFullYear() + (offset.year ?? 0));
+    date.setUTCMonth(date.getUTCMonth() + (offset.month ?? 0));
+    date.setUTCDate(date.getUTCDate() + (offset.date ?? 0));
+    date.setUTCHours(date.getUTCHours() + (offset.hours ?? 0));
+    date.setUTCMinutes(date.getUTCMinutes() + (offset.minutes ?? 0));
+    date.setUTCSeconds(date.getUTCSeconds() + (offset.seconds ?? 0));
+    date.setUTCMilliseconds(date.getUTCMilliseconds() + (offset.millis ?? 0));
+    return new CountryDate(date, this.country);
+  }
+  with(parts/*: DateParts*/, country/*?: string*/)/*: CountryDate*/ {
+    const date = new Date(this._countryUTCDate);
+    if (parts.year) date.setUTCFullYear(parts.year);
+    if (parts.month) date.setUTCMonth(parts.month);
+    if (parts.date) date.setUTCDate(parts.date);
+    if (parts.hours) date.setUTCHours(parts.hours);
+    if (parts.minutes) date.setUTCMinutes(parts.minutes);
+    if (parts.seconds) date.setUTCSeconds(parts.seconds);
+    if (parts.millis) date.setUTCMilliseconds(parts.millis);
+    return new CountryDate(date, country ?? this.country);
+  }
+  /** https://www.unicode.org/cldr/charts/45/supplemental/language_territory_information.html - e.g. "cs-CZ" */
+  toLocaleString(format/*: string*/ = "cs", options/*: Omit<Intl.DateTimeFormatOptions, "timeZone">*/ = {})/*: string*/ {
+    return this._countryUTCDate.toLocaleString(format, {...options, timeZone: "GMT"});
+  }
+  toIsoString()/*: string*/ {
+    return ""; // TODO: search for iso string matching this date
+  }
+}
+/*
+setTimeout(() => {
+  let a = CountryDate.fromIsoString("2022-03-01T00:00:00Z");
+  console.log("ayaya.date", a);
+  console.log('ayaya.dateString', a.toLocaleString());
+  a = CountryDate.fromIsoString("2022-03-01T00:00:00+01:00", "Europe/Prague");
+  console.log("ayaya.date", a);
+  console.log('ayaya.dateString', a.toLocaleString());
+})
+*/
 /*export type vec2 = {x: number; y: number}*/;
-function vec2(x/*: number*/, y/*: number*/) {
+function vec2(x/*: number*/, y/*: number*/)/*: vec2*/ {
   return {x, y};
 }
 /*export type vec3 = {x: number; y: number, z: number}*/;
-function vec3(x/*: number*/, y/*: number*/, z/*: number*/) {
+function vec3(x/*: number*/, y/*: number*/, z/*: number*/)/*: vec3*/ {
   return {x, y, z};
 }
 
@@ -160,258 +293,6 @@ function is_symbol(value/*: any*/)/*: value is Symbol*/ {
 function is_bigint(value/*: any*/)/*: value is BigInt*/ {
   return typeof value === "bigint";
 }
-function camelCaseToKebabCase(key/*: string*/) {
-  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
-}
-function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
-}
-function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
-  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
-}
-
-// css
-function rgbFromHexString(hexString/*: string*/)/*: string*/ {
-  let hexString2 = removePrefix(hexString.trim(), '#');
-  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
-}
-function addPx(pixelsOrString/*: string | number*/) {
-  return is_number(pixelsOrString) ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
-}
-function addPercent(fractionOrString/*: string | number*/) {
-  return is_number(fractionOrString) ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
-}
-
-/** Return stringified JSON with extra undefineds for printing */
-function stringifyJs(v/*: any*/)/*: string*/ {
-  if (v === undefined) return "undefined";
-  return JSON.stringify(v); // TODO: also handle nested undefineds
-}
-
-// json
-function stringifyJson(v/*: any*/)/*: string*/ {
-  return JSON.stringify(v);
-}
-function parseJson(v/*: string*/)/*: any*/ {
-  return JSON.parse(v);
-}
-/** Return stringified JSON with object keys and arrays sorted */
-function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
-  const replacer = (_key/*: string*/, value/*: any*/) =>
-    value instanceof Object
-      ? value instanceof Array
-        ? [...value].sort()
-        : Object.keys(value)
-            .sort()
-            .reduce((sorted/*: Record<string, any>*/, key) => {
-              sorted[key] = value[key];
-              return sorted;
-            }, {})
-      : value;
-  return JSON.stringify(data, replacer);
-}
-
-// path
-/*export type PathParts = {
-  origin?: string;
-  pathname?: string;
-  query?: string | Record<string, string>;
-  hash?: string;
-}*/;
-/** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
-function makePath(parts/*: string | PathParts*/)/*: string*/ {
-  if (is_string(parts)) {return parts}
-  let origin = parts.origin ?? window.location.origin;
-  let pathname = parts.pathname ?? window.location.pathname;
-  let query = parts.query ?? window.location.search;
-  let hash = parts.hash ?? window.location.hash;
-  // build path
-  let pathLocation = (origin ?? "") + (pathname ?? "");
-  if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
-  pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
-  let queryString = '';
-  if (is_string(query)) {
-    queryString = query;
-  } else if (Object.keys(query ?? {}).length) {
-    const queryObject = query /*as any*/;
-    queryString = `?${Object.entries(queryObject).map(([k, v]) => `${k}=${v}`).join("&")}`;
-  }
-  let hashString = hash ?? "";
-  if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
-  return pathLocation + queryString + hashString;
-}
-
-// search
-/** return `patternMask` for bitap_search() */
-function bitap_pattern_mask(pattern/*: string*/)/*: Record<string, number>*/ {
-  if (pattern.length > 31) throw new Error("Pattern too long! Bitap supports patterns up to 31 characters.");
-  const patternMask/*: Record<string, number>*/ = {};
-  for (let i = 0; i < pattern.length; i++) {
-    patternMask[pattern[i]] = (patternMask[pattern[i]] || ~0) & ~(1 << i);
-  }
-  return patternMask;
-}
-/** Usage:
- * ```ts
- * const patternMask = bitap_pattern_mask(pattern);
- * bitap_search(text1, pattern.length, patternMask);
- * bitap_search(text2, pattern.length, patternMask);
- * ```
- *
- * return `[index_of_pattern_in_text, number_of_edits]` (up to 1 add/replace/delete), return `[-1, -1]` if not found */
-function bitap_search(text/*: string*/, patternLength/*: number*/, patternMask/*: Record<string, number>*/)/*: [number, number]*/ {
-  if (patternLength === 0) return [0, 0];
-
-  let R_0 = ~1;
-  let R_1 = ~1;
-  let best_match_i = -1;
-  for (let i = 0; i < text.length; i++) {
-    let oldPrevR = R_0;
-    R_0 |= (patternMask[text[i]] || ~0);
-    R_0 <<= 1;
-
-    /* allow 1 edit */
-    //tmp = R_1
-    const match = (R_1 | (patternMask[text[i]] || ~0));
-    const replace = oldPrevR;
-    const add_or_delete = oldPrevR << 1;
-    R_1 = match & replace & add_or_delete;
-    R_1 <<= 1;
-    //oldPrevR = tmp;
-
-    if ((R_0 & (1 << patternLength)) === 0) {
-      return [i, 0];
-    } else if ((R_1 & (1 << patternLength)) === 0) {
-      best_match_i = i;
-    }
-  }
-
-  return best_match_i == -1 ? [-1, -1] : [best_match_i, 1];
-}
-function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*/ {
-  if (pattern.length === 0) return options;
-  const patternMask = bitap_pattern_mask(pattern);
-
-  /*type SearchInfo = {
-    option: string;
-    index: number;
-    editCount: number;
-  }*/;
-  const infos/*: SearchInfo[]*/ = [];
-  for (let option of options) {
-    let index, editCount = 0;
-    if (pattern.length > 31) {
-      index = option.indexOf(pattern);
-    } else {
-      [index, editCount] = bitap_search(option, pattern.length, patternMask);
-    }
-    if (index !== -1) {
-      infos.push({option, index, editCount});
-    }
-  }
-
-  return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
-}
-/*export type DateParts = {
-  year?: number;
-  month?: number;
-  date?: number;
-  hours?: number;
-  minutes?: number;
-  seconds?: number;
-  millis?: number;
-}*/;
-function reparseDate(date/*: Date*/, country/*: string*/ = "GMT")/*: Required<DateParts>*/ {
-  const localeString = date.toLocaleString("en-GB", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "numeric",
-    minute: "numeric",
-    second: "numeric",
-    fractionalSecondDigits: 3,
-    timeZone: country,
-  });
-  const [countryDate, countryMonth, countryYear, countryHours, countryMinutes, countrySeconds, countryMillis] = localeString.split(/\D+/);
-  return {
-    year: +countryYear,
-    month: +countryMonth - 1,
-    date: +countryDate,
-    hours: +countryHours,
-    minutes: +countryMinutes,
-    seconds: +countrySeconds,
-    millis: +countryMillis,
-  };
-}
-class CountryDate {
-  _countryUTCDate/*: Date*/;
-  country/*: string*/;
-  constructor(_countryUTCDate/*: Date*/, country/*: string*/ = "GMT") {
-    this._countryUTCDate = _countryUTCDate;
-    this.country = country;
-  }
-  get countryUTCString() {
-    return this._countryUTCDate.toISOString();
-  }
-  /** https://en.wikipedia.org/wiki/List_of_tz_database_time_zones - e.g. "Europe/Prague" */
-  static fromIsoString(isoString/*: string*/, country/*: string*/ = "GMT")/*: CountryDate*/ {
-    const match = isoString.match(/^(\d+)-(\d+)-(\d+)(?:T(\d+):(\d+):(\d+)(?:\.(\d+))?)?(?:([\-+\d]+):(\d+))?/);
-    if (match === null) throw new Error(`Invalid isoString: '${isoString}'`);
-    const [_, year, month, day, hour, minute, second, milli, tzOffsetHours, tzOffsetMinutes] = match;
-    const date = new Date(Date.UTC(+year, +month, +day, +(hour ?? 0), +(minute ?? 0), +(second ?? 0), +(milli ?? 0)));
-    const tzOffset = +(tzOffsetHours ?? 0)*60 + +(tzOffsetMinutes ?? 0);
-    date.setMinutes(date.getMinutes() - tzOffset);
-    const parts = reparseDate(date, country);
-    const countryYear = String(parts.year).padStart(4, "0");
-    const countryMonth = String(parts.month).padStart(2, "0");
-    const countryDate = String(parts.date).padStart(2, "0");
-    const countryHours = String(parts.hours).padStart(2, "0");
-    const countryMinutes = String(parts.minutes).padStart(2, "0");
-    const countrySeconds = String(parts.seconds).padStart(2, "0");
-    const countryMillis = String(parts.millis).padStart(3, "0");
-    const _countryUTCDate = new Date(Date.UTC(+countryYear, +countryMonth-1, +countryDate, +countryHours, +countryMinutes, +countrySeconds, +countryMillis));
-    return new CountryDate(_countryUTCDate, country);
-  }
-  add(offset/*: DateParts*/)/*: CountryDate*/ {
-    const date = this._countryUTCDate;
-    date.setUTCFullYear(date.getUTCFullYear() + (offset.year ?? 0));
-    date.setUTCMonth(date.getUTCMonth() + (offset.month ?? 0));
-    date.setUTCDate(date.getUTCDate() + (offset.date ?? 0));
-    date.setUTCHours(date.getUTCHours() + (offset.hours ?? 0));
-    date.setUTCMinutes(date.getUTCMinutes() + (offset.minutes ?? 0));
-    date.setUTCSeconds(date.getUTCSeconds() + (offset.seconds ?? 0));
-    date.setUTCMilliseconds(date.getUTCMilliseconds() + (offset.millis ?? 0));
-    return new CountryDate(date, this.country);
-  }
-  with(parts/*: DateParts*/, country/*?: string*/)/*: CountryDate*/ {
-    const date = new Date(this._countryUTCDate);
-    if (parts.year) date.setUTCFullYear(parts.year);
-    if (parts.month) date.setUTCMonth(parts.month);
-    if (parts.date) date.setUTCDate(parts.date);
-    if (parts.hours) date.setUTCHours(parts.hours);
-    if (parts.minutes) date.setUTCMinutes(parts.minutes);
-    if (parts.seconds) date.setUTCSeconds(parts.seconds);
-    if (parts.millis) date.setUTCMilliseconds(parts.millis);
-    return new CountryDate(date, country ?? this.country);
-  }
-  /** https://www.unicode.org/cldr/charts/45/supplemental/language_territory_information.html - e.g. "cs-CZ" */
-  toLocaleString(format/*: string*/ = "cs", options/*: Omit<Intl.DateTimeFormatOptions, "timeZone">*/ = {})/*: string*/ {
-    return this._countryUTCDate.toLocaleString(format, {...options, timeZone: "GMT"});
-  }
-  toIsoString()/*: string*/ {
-    return ""; // TODO: search for iso string matching this date
-  }
-}
-/*
-setTimeout(() => {
-  let a = CountryDate.fromIsoString("2022-03-01T00:00:00Z");
-  console.log("ayaya.date", a);
-  console.log('ayaya.dateString', a.toLocaleString());
-  a = CountryDate.fromIsoString("2022-03-01T00:00:00+01:00", "Europe/Prague");
-  console.log("ayaya.date", a);
-  console.log('ayaya.dateString', a.toLocaleString());
-})
-*/
 /** clamp value between min and max (defaulting to min) */
 function clamp(value/*: number*/, min/*: number*/, max/*: number*/)/*: number*/ {
   return Math.max(min, Math.min(value, max));
@@ -481,6 +362,250 @@ function round_to_odd(value/*: number*/) {
   if (is_tie && result_is_even) result -= 1;
   return result;
 }
+function makeArray/*<T>*/(N/*: number*/, map/*: (v: undefined, i: number) => T*/)/*: T[]*/ {
+	const arr = Array(N);
+	for (let i = 0; i < arr.length; i++) {
+		arr[i] = map(undefined, i);
+	}
+	return arr;
+}
+function asArray/*<T>*/(valueOrArrayOrNullsy/*: T | T[] | undefined | null*/)/*: T[]*/ {
+	if (is_array(valueOrArrayOrNullsy)) return valueOrArrayOrNullsy;
+	return valueOrArrayOrNullsy == null ? [] : [valueOrArrayOrNullsy];
+}
+
+// group
+/*type Group<T> = {
+	groupId: string;
+	items: T[];
+}
+*/function groupBy/*<T>*/(items/*: T[]*/, key/*: (v: T) => string*/)/*: Group<T>[]*/ {
+	const groups = {} /*as Record<string, T[]>*/;
+	for (let item of items) {
+		const item_key = key(item);
+		const groupItems = groups[item_key /*as string*/] ?? [];
+		groupItems.push(item);
+		groups[item_key /*as string*/] = groupItems;
+	}
+	return Object.entries(groups).map(([groupId, groupItems]) => ({groupId: groupId, items: groupItems}));
+}
+
+// sort
+/*type Comparable = number | string | Date | BigInt | undefined | null*/;
+function compare(a/*: any*/, b/*: any*/)/*: number*/ {
+	return ((a > b) /*as unknown*/ /*as number*/) - ((a < b) /*as unknown*/ /*as number*/);
+}
+function sortBy/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) => K*/, descending = false)/*: T[]*/ {
+	return arr.sort((a, b) => {
+		let comparison = compare(key(a), key(b));
+		if (descending) {comparison = -comparison;}
+		return comparison;
+	});
+}
+function sortByArray/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) => K[]*/, descending/*: boolean[]*/ = [])/*: T[]*/ {
+	return arr.sort((a, b) => {
+		const a_key = key(a);
+		const b_key = key(b);
+		const n = Math.max(a_key.length, b_key.length);
+		for (let i = 0; i < n; i++) {
+			let comparison = compare(a_key[i], b_key[i]);
+			if (descending[i]) {comparison = -comparison;}
+			if (comparison !== 0) return comparison;
+		}
+		return 0;
+	});
+}
+/*export type DialogProps = BaseProps & ({
+  open: boolean;
+  onClose?: () => void;
+  closeOnClickBackdrop?: boolean;
+})*/;
+export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
+  const {open, onClose, closeOnClickBackdrop} = props;
+  const [state] = this.useState({prevOpen: false});
+  const element = this.useNode(() => document.createElement("dialog"));
+  element.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
+  }
+  return {
+    onMount: () => {
+      if (open !== state.prevOpen) {
+        if (open) {
+          element.showModal();
+        } else {
+          element.close();
+        }
+        state.prevOpen = open;
+      }
+    },
+  };
+});
+
+// popup
+/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
+function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
+  mouse: {x: number, y: number},
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  const {mouse, popupRect, wrapperRect} = props;
+  switch (direction) {
+    case "up":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top - popupRect.height
+      ];
+    case "right":
+      return [
+        wrapperRect.left + wrapperRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "down":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top + wrapperRect.height
+      ]
+    case "left":
+      return [
+        wrapperRect.left - popupRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "mouse":
+      return [
+        mouse.x,
+        mouse.y - popupRect.height
+      ];
+  }
+}
+function _getPopupLeftTopWithFlipAndClamp(props/*: {
+  direction: PopupDirection,
+  mouse: {x: number, y: number},
+  windowRight: number;
+  windowBottom: number;
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  let {direction, windowBottom, windowRight, popupRect} = props;
+  // flip
+  let [left, top] = _getPopupLeftTop(direction, props);
+  switch (direction) {
+    case "up":
+      if (top < 0) {
+        direction = "down";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "down": {
+      const bottom = top + popupRect.height;
+      if (bottom >= windowBottom) {
+        direction = "up";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "left":
+      if (left < 0) {
+        direction = "right";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "right": {
+      const right = left + popupRect.width;
+      if (right >= windowRight) {
+        direction = "left";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+  }
+  // clamp
+  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+  left = clamp(left, 0, maxLeft);
+  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+  top = clamp(top, 0, maxTop);
+  return [left, top] /*as [number, number]*/;
+}
+/*export type PopupWrapperProps = {
+  content: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+  /** NOTE: open on hover if undefined *//*
+  open?: boolean;
+  interactable?: boolean;
+}*/;
+export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
+  const {content, direction: _direction = "up", open, interactable = false} = props;
+  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
+  const wrapper = this.useNode(() => document.createElement("div"));
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
+  const movePopup = () => {
+    if (!state.open) return;
+    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
+    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+    popupNode.style.top = "0px";
+    const popupRect = popupContentWrapperNode.getBoundingClientRect();
+    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
+      direction: _direction,
+      mouse: state.mouse,
+      popupRect,
+      windowBottom,
+      windowRight,
+      wrapperRect
+    });
+    popupNode.style.left = addPx(left);
+    popupNode.style.top = addPx(top);
+  }
+  const openPopup = () => {
+    state.open = true;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
+    movePopup();
+  }
+  const closePopup = () => {
+    state.open = false;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
+  };
+  if (open == null) {
+    wrapper.onmouseenter = openPopup;
+    wrapper.onmouseleave = closePopup;
+  }
+  if (_direction === "mouse") {
+    wrapper.onmousemove = (event) => {
+      state.mouse = {x: event.clientX, y: event.clientY};
+      movePopup();
+    }
+  }
+  const popup = this.append(div({
+    className: "popup",
+    attribute: {popover: "manual", dataInteractable: interactable},
+  }));
+  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
+  popupContentWrapper.append(content);
+  return {
+    onMount: () => {
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+        acc.addEventListener("scroll", movePopup, {passive: true});
+      }
+      state.prevOnScroll = movePopup;
+      if (open == null) return;
+      if (open != state.open) {
+        if (open) {
+          openPopup();
+        } else {
+          closePopup();
+        }
+      }
+    },
+    onUnmount: (removed/*: boolean*/) => {
+      if (!removed) return;
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+      }
+    },
+  };
+});
 export const JSGUI_VERSION = "v0.19-dev";
 function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
@@ -489,7 +614,6 @@ function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
     return null;
   }
 }
-// TODO!: sortBy(), groupBy(), asArray()
 /*export type Nullsy = undefined | null*/;
 /*export type StringMap<T = any> = Record<string, T>*/;
 /*export type JSONValue = string | number | any[] | StringMap | null*/;
@@ -502,7 +626,7 @@ function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
 /*export type EventsMap = {
   // NOTE: Safari iOS and Chrome android don't support onclick - use onpointerup instead
   // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
-  touchstart: _EventListener<TouchEvent> | null; // NOTE: we need to call .preventDefault() on this event specifically..
+  touchstart?: _EventListener<TouchEvent> | null; // NOTE: if you want to prevent drag to scroll on mobile, you need to call .preventDefault() on this event specifically..
 
   pointerenter?: _EventListener<PointerEvent> | null; // same as pointerover?
   pointerleave?: _EventListener<PointerEvent> | null; // same as pointerout?
@@ -602,6 +726,9 @@ function _setDefaultChildKey(component/*: Component*/, child/*: Component*/) {
   }
   child.key = key;
 }
+function DEFAULT_STATE_UPDATER/*<T extends object>*/(diff/*: Partial<T>*/, prevState/*: T | undefined*/) {
+  return {...prevState, ...diff} /*as T*/;
+}
 class Component {
   // props
   name/*: string*/;
@@ -654,15 +781,17 @@ class Component {
     this.children.push(child);
     return child;
   }
-  /** `return [value, setValueAndDispatch, setValue]` */
-  useState/*<T extends object>*/(defaultState/*: T*/)/*: [T, SetState<T>, SetState<T>]*/ {
+  /** `return [value, setStateAndRerender, setValue]` */
+  useState/*<T extends object>*/(defaultStateOrUpdater/*: T | ((diff: Partial<T>, prevState: T | undefined) => T)*/)/*: [T, SetState<T>, SetState<T>]*/ {
     const {_} = this;
-    if (!_.stateIsInitialized) {
-      _.state = defaultState;
-      _.stateIsInitialized = true;
+    const userInputIsUpdater = typeof defaultStateOrUpdater === "function";
+    const updater = userInputIsUpdater ? defaultStateOrUpdater : DEFAULT_STATE_UPDATER;
+    if (_.state === undefined) {
+      const defaultState = userInputIsUpdater ? {} : defaultStateOrUpdater;
+      _.state = updater(defaultState, undefined);
     }
     const setState = (newValue/*: Partial<T>*/) => {
-      const newState = {..._.state, ...newValue} /*as T*/;
+      const newState = updater(newValue, _.state /*as T*/);
       _.state = newState;
       return newState;
     };
@@ -677,7 +806,7 @@ class Component {
     return () => {
       let errors/*: Partial<Record<K, string>>*/ = {};
       getErrors(errors);
-      const {state} = this._;
+      const state = this._.state /*as StringMap*/;
       state.errors = errors;
       state.didValidate = true;
       const hasErrors = Object.keys(errors).length > 0;
@@ -915,8 +1044,7 @@ function navigate(urlOrParts/*: string | PathParts*/, navType/*: NavType*/ = Nav
 // metadata
 class ComponentMetadata {
   // state
-  stateIsInitialized/*: boolean*/ = false;
-  state/*: StringMap*/ = {};
+  state/*: StringMap | undefined*/;
   prevState/*: any | null*/ = null;
   prevNode/*: NodeType | null*/ = null;
   prevBaseProps/*: InheritedBaseProps*/ = _START_BASE_PROPS;
@@ -1176,197 +1304,6 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-/*export type DialogProps = BaseProps & ({
-  open: boolean;
-  onClose?: () => void;
-  closeOnClickBackdrop?: boolean;
-})*/;
-export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
-  const {open, onClose, closeOnClickBackdrop} = props;
-  const [state] = this.useState({ prevOpen: false });
-  const element = this.useNode(() => document.createElement("dialog"));
-  element.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
-  }
-  return {
-    onMount: () => {
-      if (open !== state.prevOpen) {
-        if (open) {
-          element.showModal();
-        } else {
-          element.close();
-        }
-        state.prevOpen = open;
-      }
-    },
-  };
-});
-
-// popup
-/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
-function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
-  mouse: {x: number, y: number},
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  const {mouse, popupRect, wrapperRect} = props;
-  switch (direction) {
-    case "up":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top - popupRect.height
-      ];
-    case "right":
-      return [
-        wrapperRect.left + wrapperRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "down":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top + wrapperRect.height
-      ]
-    case "left":
-      return [
-        wrapperRect.left - popupRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "mouse":
-      return [
-        mouse.x,
-        mouse.y - popupRect.height
-      ];
-  }
-}
-function _getPopupLeftTopWithFlipAndClamp(props/*: {
-  direction: PopupDirection,
-  mouse: {x: number, y: number},
-  windowRight: number;
-  windowBottom: number;
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  let {direction, windowBottom, windowRight, popupRect} = props;
-  // flip
-  let [left, top] = _getPopupLeftTop(direction, props);
-  switch (direction) {
-    case "up":
-      if (top < 0) {
-        direction = "down";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "down": {
-      const bottom = top + popupRect.height;
-      if (bottom >= windowBottom) {
-        direction = "up";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-    case "left":
-      if (left < 0) {
-        direction = "right";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "right": {
-      const right = left + popupRect.width;
-      if (right >= windowRight) {
-        direction = "left";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-  }
-  // clamp
-  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
-  left = clamp(left, 0, maxLeft);
-  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
-  top = clamp(top, 0, maxTop);
-  return [left, top] /*as [number, number]*/;
-}
-/*export type PopupWrapperProps = {
-  content: Component;
-  direction?: PopupDirection;
-  // TODO: arrow?: boolean;
-  /** NOTE: open on hover if undefined *//*
-  open?: boolean;
-  interactable?: boolean;
-}*/;
-export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
-  const {content, direction: _direction = "up", open, interactable = false} = props;
-  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
-  const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
-  const movePopup = () => {
-    if (!state.open) return;
-    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
-    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
-    const wrapperRect = wrapper.getBoundingClientRect();
-    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
-    popupNode.style.top = "0px";
-    const popupRect = popupContentWrapperNode.getBoundingClientRect();
-    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
-      direction: _direction,
-      mouse: state.mouse,
-      popupRect,
-      windowBottom,
-      windowRight,
-      wrapperRect
-    });
-    popupNode.style.left = addPx(left);
-    popupNode.style.top = addPx(top);
-  }
-  const openPopup = () => {
-    state.open = true;
-    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
-    movePopup();
-  }
-  const closePopup = () => {
-    state.open = false;
-    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
-  };
-  if (open == null) {
-    wrapper.onmouseenter = openPopup;
-    wrapper.onmouseleave = closePopup;
-  }
-  if (_direction === "mouse") {
-    wrapper.onmousemove = (event) => {
-      state.mouse = {x: event.clientX, y: event.clientY};
-      movePopup();
-    }
-  }
-  const popup = this.append(div({
-    className: "popup",
-    attribute: {popover: "manual", dataInteractable: interactable},
-  }));
-  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
-  popupContentWrapper.append(content);
-  return {
-    onMount: () => {
-      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-        acc.addEventListener("scroll", movePopup, {passive: true});
-      }
-      state.prevOnScroll = movePopup;
-      if (open == null) return;
-      if (open != state.open) {
-        if (open) {
-          openPopup();
-        } else {
-          closePopup();
-        }
-      }
-    },
-    onUnmount: (removed/*: boolean*/) => {
-      if (!removed) return;
-      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-      }
-    },
-  };
-});
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
@@ -1537,6 +1474,7 @@ export const span = makeComponent(function _span(text/*: string | number | null 
         event.preventDefault();
       });
     }
+    // TODO!: do we need to implement our own onClick, or can we just use pointerup?
     if (events.pointerdown === undefined) {
       events.pointerdown = onClick;
     }
@@ -2418,33 +2356,157 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     contentWrapper.append(currentRoute.component(currentRouteParams));
   }
 });
-function binary_search_float(start/*: number*/, end/*: number*/, condition/*: (value: number) => boolean*/)/*: number | null*/ {
-  // find some endpoint, such that `condition(endpoint) == true`
-  for (let i = 0; i < 1000; i++) { // runs in <100 steps
-    let new_end = end + (start - end)*noise(i);
-    if (condition(new_end)) {
-      end = new_end;
-      break;
+function camelCaseToKebabCase(key/*: string*/) {
+  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
+}
+function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
+}
+
+// css
+function rgbFromHexString(hexString/*: string*/)/*: string*/ {
+  let hexString2 = removePrefix(hexString.trim(), '#');
+  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
+}
+function addPx(pixelsOrString/*: string | number*/) {
+  return is_number(pixelsOrString) ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
+}
+function addPercent(fractionOrString/*: string | number*/) {
+  return is_number(fractionOrString) ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
+}
+
+/** Return stringified JSON with extra undefineds for printing */
+function stringifyJs(v/*: any*/)/*: string*/ {
+  if (v === undefined) return "undefined";
+  return JSON.stringify(v); // TODO: also handle nested undefineds
+}
+
+// json
+function stringifyJson(v/*: any*/)/*: string*/ {
+  return JSON.stringify(v);
+}
+function parseJson(v/*: string*/)/*: any*/ {
+  return JSON.parse(v);
+}
+/** Return stringified JSON with object keys and arrays sorted */
+function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
+  const replacer = (_key/*: string*/, value/*: any*/) =>
+    value instanceof Object
+      ? value instanceof Array
+        ? [...value].sort()
+        : Object.keys(value)
+            .sort()
+            .reduce((sorted/*: Record<string, any>*/, key) => {
+              sorted[key] = value[key];
+              return sorted;
+            }, {})
+      : value;
+  return JSON.stringify(data, replacer);
+}
+
+// path
+/*export type PathParts = {
+  origin?: string;
+  pathname?: string;
+  query?: string | Record<string, string>;
+  hash?: string;
+}*/;
+/** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
+function makePath(parts/*: string | PathParts*/)/*: string*/ {
+  if (is_string(parts)) {return parts}
+  let origin = parts.origin ?? window.location.origin;
+  let pathname = parts.pathname ?? window.location.pathname;
+  let query = parts.query ?? window.location.search;
+  let hash = parts.hash ?? window.location.hash;
+  // build path
+  let pathLocation = (origin ?? "") + (pathname ?? "");
+  if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
+  pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
+  let queryString = '';
+  if (is_string(query)) {
+    queryString = query;
+  } else if (Object.keys(query ?? {}).length) {
+    const queryObject = query /*as any*/;
+    queryString = `?${Object.entries(queryObject).map(([k, v]) => `${k}=${v}`).join("&")}`;
+  }
+  let hashString = hash ?? "";
+  if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
+  return pathLocation + queryString + hashString;
+}
+
+// search
+/** return `patternMask` for bitap_search() */
+function bitap_pattern_mask(pattern/*: string*/)/*: Record<string, number>*/ {
+  if (pattern.length > 31) throw new Error("Pattern too long! Bitap supports patterns up to 31 characters.");
+  const patternMask/*: Record<string, number>*/ = {};
+  for (let i = 0; i < pattern.length; i++) {
+    patternMask[pattern[i]] = (patternMask[pattern[i]] || ~0) & ~(1 << i);
+  }
+  return patternMask;
+}
+/** Usage:
+ * ```ts
+ * const patternMask = bitap_pattern_mask(pattern);
+ * bitap_search(text1, pattern.length, patternMask);
+ * bitap_search(text2, pattern.length, patternMask);
+ * ```
+ *
+ * return `[index_of_pattern_in_text, number_of_edits]` (up to 1 add/replace/delete), return `[-1, -1]` if not found */
+function bitap_search(text/*: string*/, patternLength/*: number*/, patternMask/*: Record<string, number>*/)/*: [number, number]*/ {
+  if (patternLength === 0) return [0, 0];
+
+  let R_0 = ~1;
+  let R_1 = ~1;
+  let best_match_i = -1;
+  for (let i = 0; i < text.length; i++) {
+    let oldPrevR = R_0;
+    R_0 |= (patternMask[text[i]] || ~0);
+    R_0 <<= 1;
+
+    /* allow 1 edit */
+    //tmp = R_1
+    const match = (R_1 | (patternMask[text[i]] || ~0));
+    const replace = oldPrevR;
+    const add_or_delete = oldPrevR << 1;
+    R_1 = match & replace & add_or_delete;
+    R_1 <<= 1;
+    //oldPrevR = tmp;
+
+    if ((R_0 & (1 << patternLength)) === 0) {
+      return [i, 0];
+    } else if ((R_1 & (1 << patternLength)) === 0) {
+      best_match_i = i;
     }
   }
-  if (!condition(end)) return null;
-  // NOTE: `condition` must be monotonic here
-  while (true) {
-    let midpoint = end + (start - end)*0.5;
-    if (midpoint === start || midpoint === end) break;
-    if (condition(midpoint)) {
-      end = midpoint;
+
+  return best_match_i == -1 ? [-1, -1] : [best_match_i, 1];
+}
+function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*/ {
+  if (pattern.length === 0) return options;
+  const patternMask = bitap_pattern_mask(pattern);
+
+  /*type SearchInfo = {
+    option: string;
+    index: number;
+    editCount: number;
+  }*/;
+  const infos/*: SearchInfo[]*/ = [];
+  for (let option of options) {
+    let index, editCount = 0;
+    if (pattern.length > 31) {
+      index = option.indexOf(pattern);
     } else {
-      start = midpoint;
+      [index, editCount] = bitap_search(option, pattern.length, patternMask);
+    }
+    if (index !== -1) {
+      infos.push({option, index, editCount});
     }
   }
-  if (condition(start)) {
-    return start;
-  } else if (condition(end)) {
-    return end;
-  } else {
-    return null;
-  }
+
+  return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
 }
 /*export type TableColumn = {
   label: string;
@@ -2497,16 +2559,6 @@ export const table = makeComponent(function table(props/*: TableProps & BaseProp
     }
   }
 });
-export const dialogPage = makeComponent(function dialogPage() {
-    const [state, setState] = this.useState({dialogOpen: false});
-
-    const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
-    row.append(coloredButton("Open dialog", {color: "secondary", onClick: () => setState({dialogOpen: true})}));
-
-    const closeDialog = () => setState({dialogOpen: false});
-    const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
-    dialogWrapper.append(span("Hello world"));
-});
 /*export type DocsSection = {
   id: string;
   label: string;
@@ -2525,6 +2577,42 @@ function getGithubPagesPrefix()/*: string*/ {
   const githubPrefix = "/jsgui";
   return window.location.pathname.startsWith(githubPrefix) ? githubPrefix : "";
 }
+function binary_search_float(start/*: number*/, end/*: number*/, condition/*: (value: number) => boolean*/)/*: number | null*/ {
+  // find some endpoint, such that `condition(endpoint) == true`
+  for (let i = 0; i < 1000; i++) { // runs in <100 steps
+    let new_end = end + (start - end)*noise(i);
+    if (condition(new_end)) {
+      end = new_end;
+      break;
+    }
+  }
+  if (!condition(end)) return null;
+  // NOTE: `condition` must be monotonic here
+  while (true) {
+    let midpoint = end + (start - end)*0.5;
+    if (midpoint === start || midpoint === end) break;
+    if (condition(midpoint)) {
+      end = midpoint;
+    } else {
+      start = midpoint;
+    }
+  }
+  if (condition(start)) {
+    return start;
+  } else if (condition(end)) {
+    return end;
+  } else {
+    return null;
+  }
+}
+
+
+/**
+ * solve linear system(s) `MX = Y` in-place
+ * @param M left square submatrix
+ * @param Y any column after M
+ * @returns `X`
+ * */
 function solveLinearSystem(rows/*: number[][]*/) {
   const width = rows[0].length;
   const height = rows.length;
@@ -2611,7 +2699,7 @@ function goldenSectionSearch(options/*: GoldenSectionSearchOptions*/) {
 function minimax(options/*: MinimaxOptions*/) {
   const {reference, range, params, matchEnds = true} = options;
   const nodeCount = params.length + 1;
-  let nodes = makeArray(nodeCount, (i) => {
+  let nodes = makeArray(nodeCount, (_, i) => {
     const t = matchEnds ? i / (nodeCount - 1) : (i + 1) / (nodeCount + 1);
     return lerp(t, range[0], range[1])
   });
@@ -2667,6 +2755,103 @@ function minimax(options/*: MinimaxOptions*/) {
   params: [() => 1, (v) => v*v, (v) => v*v*v*v],
   matchEnds: true,
 })*/ // {"coefficients": [1, -0.49974056901418235, 0.040398729230590104], "maxError": 0.000015342201404119158}
+export const htmlPage = makeComponent(function htmlPage() {
+    let row = this.append(div({className: "display-row"}));
+    row.append(span("span"));
+
+    row.append(input({
+      style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
+      attribute: {placeholder: "input"}},
+    ));
+
+    row.append(textarea({
+      attribute: {placeholder: "textarea"}},
+    ));
+
+    const someButton = row.append(button("button", {
+      style: {height: 'var(--size-normal)', fontSize: "14px"},
+    }));
+    someButton.append(svg(`
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="50" cy="50" r="50" />
+      </svg>`, {style: {width: "1em", height: "1em"}}));
+
+    row.append(img(
+      "/jsgui/assets/test_image.bmp",
+      {style: {width: 24}, attribute: {title: "img"}}
+    ));
+
+    row.append(audio(
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
+      {attribute: {controls: true, title: "audio"}}
+    ));
+
+    this.append(video([
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
+      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
+    ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
+});
+export const spanPage = makeComponent(function spanPage() {
+  for (let href of [undefined]) {
+    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
+    row.append(span("Small", {size: Size.small, href}));
+    row.append(span("Normal", {size: Size.normal, href}));
+    row.append(span("Big", {size: Size.big, href}));
+    row.append(span("Bigger", {size: Size.bigger, href}));
+  }
+
+  for (let baseColor of Object.keys(BASE_COLORS)) {
+    let row = this.append(div({className: "display-row"}))
+    for (let shade = 0; shade < COLOR_SHADE_COUNT; shade++) {
+      const color = `${baseColor}-${shade}`;
+      row.append(span(color, {color}));
+    }
+  }
+});
+export const anchorPage = makeComponent(function anchorPage() {
+  for (let href of ["https://www.google.com"]) {
+    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
+    row.append(span("Small", {size: Size.small, href}));
+    row.append(span("Normal", {size: Size.normal, href}));
+    row.append(span("Big", {size: Size.big, href}));
+    row.append(span("Bigger", {size: Size.bigger, href}));
+    row.append(span("Open in new tab", {size: Size.small, href, navType: NavType.OpenInNewTab}));
+  }
+
+  for (let href of ["assets/test_image.bmp"]) {
+    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
+    row.append(span("Download image", {size: Size.small, href, download: "test_image.bmp"}));
+    row.append(span("Open in new tab", {size: Size.small, href, navType: NavType.OpenInNewTab}));
+  }
+});
+export const buttonPage = makeComponent(function buttonPage() {
+  let row = this.append(div({className: "display-row"}));
+  for (let size of Object.values(Size)) row.append(coloredButton(getSizeLabel(size), {size}));
+
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  for (let size of Object.values(Size)) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
+
+  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
+  for (let size of Object.values(Size)) row.append(coloredButton("Disabled", {disabled: true, size}));
+});
+export const iconPage = makeComponent(function iconPage() {
+  let row = this.append(div({className: "display-row"}));
+  row.append(span("Static icon font from:"))
+  row.append(span("https://fonts.google.com/icons", {href: "https://fonts.google.com/icons"}));
+
+  row = this.append(div({className: "display-row"}));
+  for (let size of Object.values(Size)) {
+    row.append(icon("link", {size}));
+  }
+
+  row = this.append(div({className: "display-row"}));
+  for (let size of Object.values(Size)) {
+    const buttonWrapper = row.append(coloredButton("", {size, color: "secondary"}));
+    buttonWrapper.append(icon("add", {size}));
+    buttonWrapper.append(span(getSizeLabel(size)));
+  }
+  // TODO: circle buttons
+});
 /*type CodeFormatterProps = {
   text: string;
   getTokens: (text: string) => Component[];
@@ -2911,19 +3096,20 @@ export const jsFormatter = makeComponent(function javascriptFormatter(text/*: st
   }));
 });
 function oklch_to_srgb255(oklch/*: vec3*/)/*: vec3*/ {
-  const oklab = oklch_to_oklab(oklch);
-  const srgb = oklab_to_linear_srgb(oklab);
-  return srgb_to_srgb255(srgb);
+  const oklab = _oklch_to_oklab(oklch);
+  const linear_srgb = _oklab_to_linear_srgb(oklab);
+  const srgb = _linear_srgb_to_srgb(linear_srgb);
+  return _srgb_to_srgb255(srgb);
 }
 function oklch_to_srgb255i(oklch/*: vec3*/)/*: vec3*/ {
-  return srgb255_to_srgb255i(oklch_to_srgb255(oklch))
+  return _srgb255_to_srgb255i(oklch_to_srgb255(oklch))
 }
 
-function oklch_to_oklab(oklch/*: vec3*/)/*: vec3*/ {
+function _oklch_to_oklab(oklch/*: vec3*/)/*: vec3*/ {
   return vec3(oklch.x, oklch.y * Math.cos(oklch.z), oklch.y * Math.sin(oklch.z));
 }
 // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
-function oklab_to_linear_srgb(c/*: vec3*/)/*: vec3*/ {
+function _oklab_to_linear_srgb(c/*: vec3*/)/*: vec3*/ {
   let l_ = c.x + 0.3963377774 * c.y + 0.2158037573 * c.z;
   let m_ = c.x - 0.1055613458 * c.y - 0.0638541728 * c.z;
   let s_ = c.x - 0.0894841775 * c.y - 1.2914855480 * c.z;
@@ -2938,10 +3124,16 @@ function oklab_to_linear_srgb(c/*: vec3*/)/*: vec3*/ {
     -0.0041960863 * l - 0.7034186147 * m + 1.7076147010 * s,
   );
 }
-function srgb_to_srgb255(srgb/*: vec3*/)/*: vec3*/ {
+function _linear_srgb_to_srgb(linear_srgb/*: vec3*/)/*: vec3*/ {
+  const srgb_companding = (v/*: number*/) => {
+    return v <= 0.0031308 ? 12.92 * v : 1.055 * v**(1/2.4) - 0.055
+  }
+  return vec3(srgb_companding(linear_srgb.x), srgb_companding(linear_srgb.y), srgb_companding(linear_srgb.z))
+}
+function _srgb_to_srgb255(srgb/*: vec3*/)/*: vec3*/ {
   return vec3(srgb.x * 255.0, srgb.y * 255.0, srgb.z * 255.0);
 }
-function srgb255_to_srgb255i(srgb255/*: vec3*/)/*: vec3*/ {
+function _srgb255_to_srgb255i(srgb255/*: vec3*/)/*: vec3*/ {
   return vec3(
     round_away_from_zero(srgb255.x),
     round_away_from_zero(srgb255.y),
@@ -2962,7 +3154,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
     }
   }));
   wrapper.append(oklchInput({
-    defaultValue: vec3(0.7482, 0.127, 4.656014845545272),
+    defaultValue: vec3(0.68, 0.18, -2.7041853071795865),
     onChange: (oklch) => {
       const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
       console.log('onchange', {
@@ -3024,17 +3216,13 @@ const OKLCH_InputMode = {
   onChange?: (newValue: vec3 | null) => void;
 }*/;
 const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/) {
-  const {defaultValue = vec3(0.50, 0.10, 0.4), inputMode = 1, onChange} = props;
+  const {defaultValue = vec3(0.50, 0.10, 0.4), inputMode = OKLCH_InputMode.CH_L, onChange} = props;
 
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] /*as [number, number, number]*/;
   const chroma_max = inputMode === 0 ? 0.127 : 0.3171;
-  const defaultDotPos = oklch_to_dot_pos({
-    inputMode,
-    oklch: defaultValue,
-    chroma_max: chroma_max,
-  });
 
   /*type OKLCHState = {
+    _prevValue: vec3 | null;
     /** input dot position *//*
     dotOffset: vec2;
     /** input slider *//*
@@ -3042,16 +3230,23 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
     /** clamped output *//*
     _clamped_oklch: vec3;
   }
- */ const [state, _setState] = this.useState/*<OKLCHState>*/({
-    dotOffset: defaultDotPos.dotOffset,
-    slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
-    _clamped_oklch: defaultValue,
-  });
-  //console.log('oklchInput', state);
-
-  const updateState = (diff/*: Partial<OKLCHState>*/) => {
-    //console.log('updateState', diff);
-    const newState = {...state, ...diff};
+ */ const [state, setState] = this.useState/*<OKLCHState>*/((diff, prevState) => {
+    let newState = {...prevState, ...diff} /*as OKLCHState*/;
+    // default values
+    if (prevState === undefined) {
+      const defaultDotPos = oklch_to_dot_pos({
+        inputMode,
+        oklch: defaultValue,
+        chroma_max: chroma_max,
+      });
+      newState = {
+        _prevValue: null,
+        dotOffset: defaultDotPos.dotOffset,
+        slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
+        _clamped_oklch: defaultValue,
+      };
+    }
+    // clamp to nearest valid oklch
     let {dotOffset, slider} = newState;
     let oklch = dot_pos_to_oklch({
       inputMode,
@@ -3096,19 +3291,20 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
 
     if (L != null && C != null) {
       const _clamped_oklch = vec3(L, C, H);
-      _setState({...newState, _clamped_oklch})
-      if (onChange) onChange(_clamped_oklch);
-    } else {
-      _setState(newState);
+      newState._clamped_oklch = _clamped_oklch;
+      setTimeout(() => {
+        if (onChange) onChange(_clamped_oklch);
+      });
     }
-  };
+    return newState;
+  });
 
   // LH circle input
   const wrapper = this.append(div());
   const updateDotPos = (_event/*: PointerEvent*/, pointerPos/*: UseOnPointerMoveValue*/) => {
     const {fractionX, fractionY} = pointerPos;
     const dotOffset = vec2(clamp(fractionX, 0, 1), clamp(fractionY, 0, 1));
-    updateState({dotOffset});
+    setState({dotOffset});
   }
   const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
     onPointerDown: updateDotPos,
@@ -3168,6 +3364,12 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
             vec3 srgb = M1_inv * lms;
             return srgb;
           }
+          float srgb_companding(float v) {
+            return v <= 0.0031308 ? 12.92 * v : 1.055 * pow(v, 1.0/2.4) - 0.055;
+          }
+          vec3 linear_srgb_to_srgb(vec3 linear_srgb) {
+            return vec3(srgb_companding(linear_srgb.x), srgb_companding(linear_srgb.y), srgb_companding(linear_srgb.z));
+          }
           vec3 srgb_to_srgb255(vec3 srgb) {
             return roundAwayFromZero(srgb * 255.0);
           }
@@ -3199,7 +3401,8 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
             vec3 oklch = vec3(L, C, angle);
             vec3 oklab = oklch_to_oklab(oklch);
 
-            vec3 srgb = oklab_to_linear_srgb(oklab);
+            vec3 linear_srgb = oklab_to_linear_srgb(oklab);
+            vec3 srgb = linear_srgb_to_srgb(linear_srgb);
             vec3 srgb255 = srgb_to_srgb255(srgb);
             // emulate round to screen color
             if (min3(srgb) < 0.0 || max3(srgb255) > 255.0) {
@@ -3255,7 +3458,7 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
     decimalPlaces: 3,
     value: state.slider,
     onInput: (event) => {
-      updateState({
+      setState({
         slider: event.target.value,
       });
     }
@@ -3282,12 +3485,25 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
       });
       oklch.z = event.target.value;
       const dotOffset = oklch_to_dot_pos({inputMode, oklch, chroma_max}).dotOffset;
-      updateState({dotOffset});
+      setState({dotOffset});
     }
   }));
 
   // hex string
   wrapper.append(span("#" + [srgb255.x, srgb255.y, srgb255.z].map(v => v.toString(16).padStart(2, "0")).join(""), {style: {marginLeft: 4}}))
+});
+export const dialogPage = makeComponent(function dialogPage() {
+    const [state, setState] = this.useState({dialogOpen: false});
+
+    const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
+    row.append(coloredButton("Open dialog", {color: "secondary", onClick: () => setState({dialogOpen: true})}));
+
+    const closeDialog = () => setState({dialogOpen: false});
+    const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
+    dialogWrapper.append(span("Hello world"));
+});
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
 });
 export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     const column = this.append(div({className: "display-column"}));
@@ -3302,42 +3518,6 @@ export const mediaQueryPage = makeComponent(function mediaQueryPage() {
 
     const xlOrBigger = this.useMedia({minWidth: 1500});
     column.append(span(`xlOrBigger: ${xlOrBigger}`));
-});
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
-export const popupPage = makeComponent(function popupPage() {
-    for (let direction of ["up", "right", "down", "left", "mouse"] /*as PopupDirection[]*/) {
-        const row = this.append(div({className: "wide-display-row"}));
-        const leftPopup = row.append(popupWrapper({
-            content: span("Tiny"),
-            direction,
-            interactable: direction !== "mouse",
-        }));
-        leftPopup.append(span(`direction: "${direction}"`));
-        const rightPopup = row.append(popupWrapper({
-            content: span("I can be too big to naively fit on the screen!"),
-            direction,
-            interactable: direction !== "mouse",
-        }));
-        rightPopup.append(span(`direction: "${direction}"`));
-    }
-
-    const [state, setState] = this.useState({buttonPopupOpen: false});
-
-    const row = this.append(div({className: "wide-display-row"}));
-    const popup = row.append(popupWrapper({
-        content: span("Tiny"),
-        direction: "down",
-        open: state.buttonPopupOpen,
-        interactable: true,
-    }));
-
-    popup.append(coloredButton(`Toggle popup`, {
-        onClick: () => {
-            setState({buttonPopupOpen: !state.buttonPopupOpen});
-        },
-    }));
 });
 export const debugKeysPage = makeComponent(function debugKeysPage() {
   const [state, setState] = this.useState({
@@ -3728,7 +3908,7 @@ export const progressPage = makeComponent(function progressPage() {
     row.append(progress({color: 'secondary-0'}));
 
     // linear progress determinate
-    const [state, setState] = this.useState({ progress: 0.0 });
+    const [state, setState] = this.useState({progress: 0.0});
     row = this.append(div({className: "wide-display-row", style: {marginBottom: 4, maxWidth: 900}}));
     row.append(progress({fraction: state.progress, color: 'secondary-0'}));
 
@@ -3741,102 +3921,38 @@ export const progressPage = makeComponent(function progressPage() {
         }
     }));
 });
-export const htmlPage = makeComponent(function htmlPage() {
-    let row = this.append(div({className: "display-row"}));
-    row.append(span("span"));
-
-    row.append(input({
-      style: {height: 'var(--size-normal)'}, // TODO: make size a baseProp?
-      attribute: {placeholder: "input"}},
-    ));
-
-    row.append(textarea({
-      attribute: {placeholder: "textarea"}},
-    ));
-
-    const someButton = row.append(button("button", {
-      style: {height: 'var(--size-normal)', fontSize: "14px"},
-    }));
-    someButton.append(svg(`
-      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-        <circle cx="50" cy="50" r="50" />
-      </svg>`, {style: {width: "1em", height: "1em"}}));
-
-    row.append(img(
-      "/jsgui/assets/test_image.bmp",
-      {style: {width: 24}, attribute: {title: "img"}}
-    ));
-
-    row.append(audio(
-      "https://interactive-examples.mdn.mozilla.net/media/cc0-audio/t-rex-roar.mp3",
-      {attribute: {controls: true, title: "audio"}}
-    ));
-
-    this.append(video([
-      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.webm",
-      "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
-    ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
-});
-export const spanPage = makeComponent(function spanPage() {
-  for (let href of [undefined]) {
-    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
-    row.append(span("Small", {size: Size.small, href}));
-    row.append(span("Normal", {size: Size.normal, href}));
-    row.append(span("Big", {size: Size.big, href}));
-    row.append(span("Bigger", {size: Size.bigger, href}));
-  }
-
-  for (let baseColor of Object.keys(BASE_COLORS)) {
-    let row = this.append(div({className: "display-row"}))
-    for (let shade = 0; shade < COLOR_SHADE_COUNT; shade++) {
-      const color = `${baseColor}-${shade}`;
-      row.append(span(color, {color}));
+export const popupPage = makeComponent(function popupPage() {
+    for (let direction of ["up", "right", "down", "left", "mouse"] /*as PopupDirection[]*/) {
+        const row = this.append(div({className: "wide-display-row"}));
+        const leftPopup = row.append(popupWrapper({
+            content: span("Tiny"),
+            direction,
+            interactable: direction !== "mouse",
+        }));
+        leftPopup.append(span(`direction: "${direction}"`));
+        const rightPopup = row.append(popupWrapper({
+            content: span("I can be too big to naively fit on the screen!"),
+            direction,
+            interactable: direction !== "mouse",
+        }));
+        rightPopup.append(span(`direction: "${direction}"`));
     }
-  }
-});
-export const anchorPage = makeComponent(function anchorPage() {
-  for (let href of ["https://www.google.com"]) {
-    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
-    row.append(span("Small", {size: Size.small, href}));
-    row.append(span("Normal", {size: Size.normal, href}));
-    row.append(span("Big", {size: Size.big, href}));
-    row.append(span("Bigger", {size: Size.bigger, href}));
-    row.append(span("Open in new tab", {size: Size.small, href, navType: NavType.OpenInNewTab}));
-  }
 
-  for (let href of ["assets/test_image.bmp"]) {
-    let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
-    row.append(span("Download image", {size: Size.small, href, download: "test_image.bmp"}));
-    row.append(span("Open in new tab", {size: Size.small, href, navType: NavType.OpenInNewTab}));
-  }
-});
-export const buttonPage = makeComponent(function buttonPage() {
-  let row = this.append(div({className: "display-row"}));
-  for (let size of Object.values(Size)) row.append(coloredButton(getSizeLabel(size), {size}));
+    const [state, setState] = this.useState({buttonPopupOpen: false});
 
-  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
-  for (let size of Object.values(Size)) row.append(coloredButton(getSizeLabel(size), {color: "secondary", size}));
+    const row = this.append(div({className: "wide-display-row"}));
+    const popup = row.append(popupWrapper({
+        content: span("Tiny"),
+        direction: "down",
+        open: state.buttonPopupOpen,
+        interactable: true,
+    }));
 
-  row = this.append(div({className: "display-row", style: {marginTop: 4}}));
-  for (let size of Object.values(Size)) row.append(coloredButton("Disabled", {disabled: true, size}));
-});
-export const iconPage = makeComponent(function iconPage() {
-  let row = this.append(div({className: "display-row"}));
-  row.append(span("Static icon font from:"))
-  row.append(span("https://fonts.google.com/icons", {href: "https://fonts.google.com/icons"}));
-
-  row = this.append(div({className: "display-row"}));
-  for (let size of Object.values(Size)) {
-    row.append(icon("link", {size}));
-  }
-
-  row = this.append(div({className: "display-row"}));
-  for (let size of Object.values(Size)) {
-    const buttonWrapper = row.append(coloredButton("", {size, color: "secondary"}));
-    buttonWrapper.append(icon("add", {size}));
-    buttonWrapper.append(span(getSizeLabel(size)));
-  }
-  // TODO: circle buttons
+    popup.append(coloredButton(`Toggle popup`, {
+        onClick: () => {
+            setState({buttonPopupOpen: !state.buttonPopupOpen});
+        },
+    }));
 });
 export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   {

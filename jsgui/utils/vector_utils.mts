@@ -1,10 +1,10 @@
 
 export type vec2 = {x: number; y: number};
-export function vec2(x: number, y: number) {
+export function vec2(x: number, y: number): vec2 {
   return {x, y};
 }
 export type vec3 = {x: number; y: number, z: number};
-export function vec3(x: number, y: number, z: number) {
+export function vec3(x: number, y: number, z: number): vec3 {
   return {x, y, z};
 }
 

@@ -10,7 +10,7 @@ export const progressPage = makeComponent(function progressPage() {
     row.append(progress({color: 'secondary-0'}));
 
     // linear progress determinate
-    const [state, setState] = this.useState({ progress: 0.0 });
+    const [state, setState] = this.useState({progress: 0.0});
     row = this.append(div({className: "wide-display-row", style: {marginBottom: 4, maxWidth: 900}}));
     row.append(progress({fraction: state.progress, color: 'secondary-0'}));
 

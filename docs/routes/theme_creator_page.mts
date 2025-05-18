@@ -1,5 +1,8 @@
-import { addPercent, BaseProps, binary_search_float, clamp, div, glSetBuffer, glUseProgram, makeComponent, mod, sliderInput, span, useOnPointerMove, UseOnPointerMoveValue, vec2, vec2_circle_norm, vec2_clamp_to_square, vec3, vec3_max_component, vec3_min_component, webgl } from "../../jsgui/out/jsgui.mts";
+import { addPercent, BaseProps, clamp, div, glSetBuffer, glUseProgram, makeComponent, mod, sliderInput, span, useOnPointerMove, UseOnPointerMoveValue, vec2, vec2_circle_norm, vec2_clamp_to_square, vec3, vec3_max_component, vec3_min_component, webgl } from "../../jsgui/out/jsgui.mts";
 import { oklch_to_srgb255, oklch_to_srgb255i } from "../utils/color_utils.mts";
+import { binary_search_float } from "../utils/optimization/optimization_utils.mts";
+
+// TODO: verify against 3rd party library
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
@@ -16,7 +19,7 @@ export const themeCreatorPage = makeComponent(function themeCreatorPage() {
     }
   }));
   wrapper.append(oklchInput({
-    defaultValue: vec3(0.7482, 0.127, 4.656014845545272),
+    defaultValue: vec3(0.68, 0.18, -2.7041853071795865),
     onChange: (oklch) => {
       const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
       console.log('onchange', {
@@ -78,17 +81,13 @@ type OKLCHInputProps = BaseProps & {
   onChange?: (newValue: vec3 | null) => void;
 };
 const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
-  const {defaultValue = vec3(0.50, 0.10, 0.4), inputMode = 1, onChange} = props;
+  const {defaultValue = vec3(0.50, 0.10, 0.4), inputMode = OKLCH_InputMode.CH_L, onChange} = props;
 
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] as [number, number, number];
   const chroma_max = inputMode === 0 ? 0.127 : 0.3171;
-  const defaultDotPos = oklch_to_dot_pos({
-    inputMode,
-    oklch: defaultValue,
-    chroma_max: chroma_max,
-  });
 
   type OKLCHState = {
+    _prevValue: vec3 | null;
     /** input dot position */
     dotOffset: vec2;
     /** input slider */
@@ -96,16 +95,23 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
     /** clamped output */
     _clamped_oklch: vec3;
   }
-  const [state, _setState] = this.useState<OKLCHState>({
-    dotOffset: defaultDotPos.dotOffset,
-    slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
-    _clamped_oklch: defaultValue,
-  });
-  //console.log('oklchInput', state);
-
-  const updateState = (diff: Partial<OKLCHState>) => {
-    //console.log('updateState', diff);
-    const newState = {...state, ...diff};
+  const [state, setState] = this.useState<OKLCHState>((diff, prevState) => {
+    let newState = {...prevState, ...diff} as OKLCHState;
+    // default values
+    if (prevState === undefined) {
+      const defaultDotPos = oklch_to_dot_pos({
+        inputMode,
+        oklch: defaultValue,
+        chroma_max: chroma_max,
+      });
+      newState = {
+        _prevValue: null,
+        dotOffset: defaultDotPos.dotOffset,
+        slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
+        _clamped_oklch: defaultValue,
+      };
+    }
+    // clamp to nearest valid oklch
     let {dotOffset, slider} = newState;
     let oklch = dot_pos_to_oklch({
       inputMode,
@@ -150,19 +156,20 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
 
     if (L != null && C != null) {
       const _clamped_oklch = vec3(L, C, H);
-      _setState({...newState, _clamped_oklch})
-      if (onChange) onChange(_clamped_oklch);
-    } else {
-      _setState(newState);
+      newState._clamped_oklch = _clamped_oklch;
+      setTimeout(() => {
+        if (onChange) onChange(_clamped_oklch);
+      });
     }
-  };
+    return newState;
+  });
 
   // LH circle input
   const wrapper = this.append(div());
   const updateDotPos = (_event: PointerEvent, pointerPos: UseOnPointerMoveValue) => {
     const {fractionX, fractionY} = pointerPos;
     const dotOffset = vec2(clamp(fractionX, 0, 1), clamp(fractionY, 0, 1));
-    updateState({dotOffset});
+    setState({dotOffset});
   }
   const {onPointerDown: LHCircleOnPointerDown} = useOnPointerMove({
     onPointerDown: updateDotPos,
@@ -222,6 +229,12 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
             vec3 srgb = M1_inv * lms;
             return srgb;
           }
+          float srgb_companding(float v) {
+            return v <= 0.0031308 ? 12.92 * v : 1.055 * pow(v, 1.0/2.4) - 0.055;
+          }
+          vec3 linear_srgb_to_srgb(vec3 linear_srgb) {
+            return vec3(srgb_companding(linear_srgb.x), srgb_companding(linear_srgb.y), srgb_companding(linear_srgb.z));
+          }
           vec3 srgb_to_srgb255(vec3 srgb) {
             return roundAwayFromZero(srgb * 255.0);
           }
@@ -253,7 +266,8 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
             vec3 oklch = vec3(L, C, angle);
             vec3 oklab = oklch_to_oklab(oklch);
 
-            vec3 srgb = oklab_to_linear_srgb(oklab);
+            vec3 linear_srgb = oklab_to_linear_srgb(oklab);
+            vec3 srgb = linear_srgb_to_srgb(linear_srgb);
             vec3 srgb255 = srgb_to_srgb255(srgb);
             // emulate round to screen color
             if (min3(srgb) < 0.0 || max3(srgb255) > 255.0) {
@@ -309,7 +323,7 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
     decimalPlaces: 3,
     value: state.slider,
     onInput: (event) => {
-      updateState({
+      setState({
         slider: event.target.value,
       });
     }
@@ -336,7 +350,7 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
       });
       oklch.z = event.target.value;
       const dotOffset = oklch_to_dot_pos({inputMode, oklch, chroma_max}).dotOffset;
-      updateState({dotOffset});
+      setState({dotOffset});
     }
   }));
 

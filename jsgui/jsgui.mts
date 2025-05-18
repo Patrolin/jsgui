@@ -21,7 +21,7 @@ export type _EventListener<T = Event> = ((event: T) => void);
 export type EventsMap = {
   // NOTE: Safari iOS and Chrome android don't support onclick - use onpointerup instead
   // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
-  touchstart: _EventListener<TouchEvent> | null; // NOTE: we need to call .preventDefault() on this event specifically..
+  touchstart?: _EventListener<TouchEvent> | null; // NOTE: if you want to prevent drag to scroll on mobile, you need to call .preventDefault() on this event specifically..
 
   pointerenter?: _EventListener<PointerEvent> | null; // same as pointerover?
   pointerleave?: _EventListener<PointerEvent> | null; // same as pointerout?
@@ -121,6 +121,9 @@ export function _setDefaultChildKey(component: Component, child: Component) {
   }
   child.key = key;
 }
+function DEFAULT_STATE_UPDATER<T extends object>(diff: Partial<T>, prevState: T | undefined) {
+  return {...prevState, ...diff} as T;
+}
 export class Component {
   // props
   name: string;
@@ -173,15 +176,17 @@ export class Component {
     this.children.push(child);
     return child;
   }
-  /** `return [value, setValueAndDispatch, setValue]` */
-  useState<T extends object>(defaultState: T): [T, SetState<T>, SetState<T>] {
+  /** `return [value, setStateAndRerender, setValue]` */
+  useState<T extends object>(defaultStateOrUpdater: T | ((diff: Partial<T>, prevState: T | undefined) => T)): [T, SetState<T>, SetState<T>] {
     const {_} = this;
-    if (!_.stateIsInitialized) {
-      _.state = defaultState;
-      _.stateIsInitialized = true;
+    const userInputIsUpdater = typeof defaultStateOrUpdater === "function";
+    const updater = userInputIsUpdater ? defaultStateOrUpdater : DEFAULT_STATE_UPDATER;
+    if (_.state === undefined) {
+      const defaultState = userInputIsUpdater ? {} : defaultStateOrUpdater;
+      _.state = updater(defaultState, undefined);
     }
     const setState = (newValue: Partial<T>) => {
-      const newState = {..._.state, ...newValue} as T;
+      const newState = updater(newValue, _.state as T);
       _.state = newState;
       return newState;
     };
@@ -196,7 +201,7 @@ export class Component {
     return () => {
       let errors: Partial<Record<K, string>> = {};
       getErrors(errors);
-      const {state} = this._;
+      const state = this._.state as StringMap;
       state.errors = errors;
       state.didValidate = true;
       const hasErrors = Object.keys(errors).length > 0;
@@ -434,8 +439,7 @@ export function navigate(urlOrParts: string | PathParts, navType: NavType = NavT
 // metadata
 export class ComponentMetadata {
   // state
-  stateIsInitialized: boolean = false;
-  state: StringMap = {};
+  state: StringMap | undefined;
   prevState: any | null = null;
   prevNode: NodeType | null = null;
   prevBaseProps: InheritedBaseProps = _START_BASE_PROPS;
