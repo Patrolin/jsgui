@@ -3,6 +3,7 @@ import { oklch_to_srgb255, oklch_to_srgb255i } from "../utils/color_utils.mts";
 import { binary_search_float } from "../utils/optimization/optimization_utils.mts";
 
 // TODO: verify against 3rd party library
+// TODO: use CH_L mode, clamp to unit circle and clamp chroma in shader (and have toggle for clamp vs alpha)
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
@@ -87,7 +88,6 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
   const chroma_max = inputMode === 0 ? 0.127 : 0.3171;
 
   type OKLCHState = {
-    _prevValue: vec3 | null;
     /** input dot position */
     dotOffset: vec2;
     /** input slider */
@@ -105,7 +105,6 @@ const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
         chroma_max: chroma_max,
       });
       newState = {
-        _prevValue: null,
         dotOffset: defaultDotPos.dotOffset,
         slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
         _clamped_oklch: defaultValue,

@@ -3222,7 +3222,6 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
   const chroma_max = inputMode === 0 ? 0.127 : 0.3171;
 
   /*type OKLCHState = {
-    _prevValue: vec3 | null;
     /** input dot position *//*
     dotOffset: vec2;
     /** input slider *//*
@@ -3240,7 +3239,6 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
         chroma_max: chroma_max,
       });
       newState = {
-        _prevValue: null,
         dotOffset: defaultDotPos.dotOffset,
         slider: inputMode === 0 ? defaultValue.y : defaultValue.x,
         _clamped_oklch: defaultValue,
