@@ -3,7 +3,8 @@ import { OKLCH_InputMode, oklchInput } from "../components/inputs/oklch_input.mt
 import { oklch_to_srgb255i } from "../utils/color_utils.mts";
 
 // TODO: verify against 3rd party library
-// TODO: use CH_L mode, clamp to unit circle and clamp chroma in shader (and have toggle for clamp vs alpha)
+// TODO: use LH_C mode, clamp to unit circle and clamp chroma in shader (and have toggle for clamp vs alpha)
+// TODO: delete CH_L mode
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
