@@ -313,6 +313,7 @@ export function _copyComponent(component: Component) {
   return newComponent;
 }
 
+// TODO: remove this whole mess, and just always rerender the whole tree
 export type DispatchTargetAddListeners = (dispatch: () => void) => any;
 // dispatch
 export class DispatchTarget {

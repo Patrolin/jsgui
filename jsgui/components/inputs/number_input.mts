@@ -89,12 +89,12 @@ export const numberInput = makeComponent(function numberInput(props: NumberInput
       acc.append(numberArrows({
         onClickUp: (_event: PointerEvent) => {
           incrementValue(step ?? 1);
-          inputComponent._.state.needFocus = true;
+          inputComponent._.state!.needFocus = true;
           inputComponent.rerender();
         },
         onClickDown: (_event: PointerEvent) => {
           incrementValue(-(step ?? 1));
-          inputComponent._.state.needFocus = true;
+          inputComponent._.state!.needFocus = true;
           inputComponent.rerender();
         },
       }));

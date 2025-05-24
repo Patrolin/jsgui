@@ -918,6 +918,7 @@ function _copyComponent(component/*: Component*/) {
   return newComponent;
 }
 
+// TODO: remove this whole mess, and just always rerender the whole tree
 /*export type DispatchTargetAddListeners = (dispatch: () => void) => any*/;
 // dispatch
 class DispatchTarget {
@@ -1304,6 +1305,112 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
+/*export type Route = {
+  path: string;
+  defaultPath?: string;
+  component: ComponentFunction<[routeParams: any]>
+  roles?: string[];
+  wrapper?: boolean;
+  showInNavigation?: boolean;
+  label?: string;
+  group?: string;
+}*/;
+/*export type FallbackRoute = Omit<Route, "path">*/;
+/*export type RouterProps = {
+  prefix?: string;
+  routes: Route[];
+  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
+  contentWrapperComponent?: ComponentFunction<any>,
+  currentRoles?: string[];
+  isLoggedIn?: boolean;
+  notLoggedInRoute?: FallbackRoute;
+  notFoundRoute?: FallbackRoute;
+  unauthorizedRoute?: FallbackRoute;
+}*/;
+/*export type PageWrapperProps = {
+  routes: Route[];
+  currentRoute: Route;
+  routeParams: Record<string, string>,
+  contentWrapperComponent: ComponentFunction<any>,
+}*/;
+export const router = makeComponent(function router(props/*: RouterProps*/) {
+  const {
+    prefix = "",
+    routes,
+    pageWrapperComponent = () => fragment(),
+    contentWrapperComponent = () => div({ className: "page-content" }),
+    currentRoles,
+    isLoggedIn,
+    notLoggedInRoute = { component: fragment },
+    notFoundRoute,
+    unauthorizedRoute = { component: fragment },
+  } = props;
+  this.useLocation(); // rerender on location change
+  let currentPath = makePath({origin: '', query: '', hash: ''});
+  let currentRoute/*: Route | null*/ = null;
+  let currentRouteParams/*: Record<string, string>*/ = {};
+  /*type RouteInfo = {
+    route: Route;
+    paramNames: string[];
+    pathRegex: string;
+    sortKey: string;
+  }*/;
+  const routeInfos/*: RouteInfo[]*/ = routes.map(route => {
+    const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
+    const path = makePath({
+      origin: '',
+      pathname: routePrefix + route.path,
+      query: '',
+      hash: '',
+    });
+    const paramNames/*: string[]*/ = [];
+    const pathRegex = path.replace(/:([^/]*)/g, (_m, g1) => {
+      paramNames.push(g1);
+      return `([^/?]*)`;
+    });
+    const sortKey = path.replace(/:([^/]*)/g, '');
+    return {route, paramNames, pathRegex, sortKey};
+  }).sort((a, b) => {
+    const aKey = a.sortKey;
+    const bKey = b.sortKey;
+    return +(aKey < bKey) - +(aKey > bKey); // NOTE: sort descending
+  });
+  for (let routeInfo of routeInfos) {
+    const regex = new RegExp(`^${routeInfo.pathRegex}$`);
+    const match = currentPath.match(regex);
+    if (match != null) {
+      const routeParamEntries = routeInfo.paramNames.map((key, i) => [key, match[i + 1]]);
+      currentRouteParams = Object.fromEntries(routeParamEntries);
+      const route = routeInfo.route;
+      const roles = route.roles ?? [];
+      const needSomeRole = (roles.length > 0);
+      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
+      if (!needSomeRole || haveSomeRole) {
+        currentRoute = route;
+      } else {
+        currentRoute = {
+          path: ".*",
+          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
+        };
+      }
+      break;
+    }
+  }
+  if (!currentRoute) {
+    currentRoute = {path: '*', component: () => span("404 Not found")};
+    if (notFoundRoute) {
+      currentRoute = {...currentRoute, ...notFoundRoute};
+    } else {
+      console.warn(`Route '${currentPath}' not found. routes:`, routes);
+    }
+  }
+  if (currentRoute.wrapper ?? true) {
+    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
+  } else {
+    const contentWrapper = this.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component(currentRouteParams));
+  }
+});
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
@@ -1802,12 +1909,12 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
       acc.append(numberArrows({
         onClickUp: (_event/*: PointerEvent*/) => {
           incrementValue(step ?? 1);
-          inputComponent._.state.needFocus = true;
+          inputComponent._.state/*!*/.needFocus = true;
           inputComponent.rerender();
         },
         onClickDown: (_event/*: PointerEvent*/) => {
           incrementValue(-(step ?? 1));
-          inputComponent._.state.needFocus = true;
+          inputComponent._.state/*!*/.needFocus = true;
           inputComponent.rerender();
         },
       }));
@@ -2250,112 +2357,67 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
     }));
   });
 });
-/*export type Route = {
-  path: string;
-  defaultPath?: string;
-  component: ComponentFunction<[routeParams: any]>
-  roles?: string[];
-  wrapper?: boolean;
-  showInNavigation?: boolean;
-  label?: string;
-  group?: string;
+const request_cache/*: Record<string, any>*/ = {};
+function defaultOnError(error/*: Response*/) {
+  console.error(error);
+}
+/*type ResponseType = 'json' | 'text' | 'blob'*/;
+
+/*type UseCachedRequestProps<R extends ResponseType> = {
+  component: Component | undefined;
+  url: RequestInfo | URL;
+  responseType?: R;
+  onError?: (error: Response) => void;
+} & RequestInit*/;
+/*type UseCachedRequest<T, R extends ResponseType> = {
+  data: R extends 'text' ? string | undefined : (
+    R extends 'blob' ? Blob | undefined : T | undefined
+  );
+  refetch: () => void;
 }*/;
-/*export type FallbackRoute = Omit<Route, "path">*/;
-/*export type RouterProps = {
-  prefix?: string;
-  routes: Route[];
-  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
-  contentWrapperComponent?: ComponentFunction<any>,
-  currentRoles?: string[];
-  isLoggedIn?: boolean;
-  notLoggedInRoute?: FallbackRoute;
-  notFoundRoute?: FallbackRoute;
-  unauthorizedRoute?: FallbackRoute;
-}*/;
-/*export type PageWrapperProps = {
-  routes: Route[];
-  currentRoute: Route;
-  routeParams: Record<string, string>,
-  contentWrapperComponent: ComponentFunction<any>,
-}*/;
-export const router = makeComponent(function router(props/*: RouterProps*/) {
-  const {
-    prefix = "",
-    routes,
-    pageWrapperComponent = () => fragment(),
-    contentWrapperComponent = () => div({ className: "page-content" }),
-    currentRoles,
-    isLoggedIn,
-    notLoggedInRoute = { component: fragment },
-    notFoundRoute,
-    unauthorizedRoute = { component: fragment },
-  } = props;
-  this.useLocation(); // rerender on location change
-  let currentPath = makePath({origin: '', query: '', hash: ''});
-  let currentRoute/*: Route | null*/ = null;
-  let currentRouteParams/*: Record<string, string>*/ = {};
-  /*type RouteInfo = {
-    route: Route;
-    paramNames: string[];
-    pathRegex: string;
-    sortKey: string;
-  }*/;
-  const routeInfos/*: RouteInfo[]*/ = routes.map(route => {
-    const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
-    const path = makePath({
-      origin: '',
-      pathname: routePrefix + route.path,
-      query: '',
-      hash: '',
-    });
-    const paramNames/*: string[]*/ = [];
-    const pathRegex = path.replace(/:([^/]*)/g, (_m, g1) => {
-      paramNames.push(g1);
-      return `([^/?]*)`;
-    });
-    const sortKey = path.replace(/:([^/]*)/g, '');
-    return {route, paramNames, pathRegex, sortKey};
-  }).sort((a, b) => {
-    const aKey = a.sortKey;
-    const bKey = b.sortKey;
-    return +(aKey < bKey) - +(aKey > bKey); // NOTE: sort descending
-  });
-  for (let routeInfo of routeInfos) {
-    const regex = new RegExp(`^${routeInfo.pathRegex}$`);
-    const match = currentPath.match(regex);
-    if (match != null) {
-      const routeParamEntries = routeInfo.paramNames.map((key, i) => [key, match[i + 1]]);
-      currentRouteParams = Object.fromEntries(routeParamEntries);
-      const route = routeInfo.route;
-      const roles = route.roles ?? [];
-      const needSomeRole = (roles.length > 0);
-      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
-      if (!needSomeRole || haveSomeRole) {
-        currentRoute = route;
-      } else {
-        currentRoute = {
-          path: ".*",
-          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
-        };
+function useCachedRequest/*<T, R extends ResponseType = 'json'>*/(props/*: UseCachedRequestProps<R>*/)/*: UseCachedRequest<T, R>*/ {
+  const {component, url, responseType = 'json', onError = defaultOnError, ...extraOptions} = props;
+  const cache_key = [
+    url,
+    props.method ?? 'GET',
+    JSON.stringify(props.headers ?? {}),
+    JSON.stringify(props.body ?? {}),
+  ].join(',');
+  const cached_response = request_cache[cache_key];
+  if (cached_response === undefined) {
+    request_cache[cache_key] = null;
+    fetch(url, extraOptions).then(async (response) => {
+      let response_mapped;
+      switch (responseType) {
+      case 'json':
+        response_mapped = await response.json();
+        break;
+      case 'text':
+        response_mapped = await response.text();
+        break;
+      case 'blob':
+        response_mapped = await response.blob();
+        break;
       }
-      break;
+      request_cache[cache_key] = response_mapped;
+      component?.rerender();
+    }).catch(onError);
+  }
+  return {
+    data: cached_response ?? undefined,
+    refetch: () => {
+      delete request_cache[cache_key];
+      component?.rerender();
+    },
+  };
+}
+function clearRequestCache(prefix/*: string*/ = '') {
+  for (let key of Object.keys(request_cache)) {
+    if (key.startsWith(prefix)) {
+      delete request_cache[key];
     }
   }
-  if (!currentRoute) {
-    currentRoute = {path: '*', component: () => span("404 Not found")};
-    if (notFoundRoute) {
-      currentRoute = {...currentRoute, ...notFoundRoute};
-    } else {
-      console.warn(`Route '${currentPath}' not found. routes:`, routes);
-    }
-  }
-  if (currentRoute.wrapper ?? true) {
-    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
-  } else {
-    const contentWrapper = this.append(contentWrapperComponent());
-    contentWrapper.append(currentRoute.component(currentRouteParams));
-  }
-});
+}
 function camelCaseToKebabCase(key/*: string*/) {
   return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
 }
@@ -3140,32 +3202,102 @@ function _srgb255_to_srgb255i(srgb255/*: vec3*/)/*: vec3*/ {
     round_away_from_zero(srgb255.z),
   );
 }
-export const themeCreatorPage = makeComponent(function themeCreatorPage() {
-  const wrapper = this.append(div());
-  wrapper.append(oklchInput({
-    defaultValue: vec3(0.7482, 0.127, -2.7041853071795865),
-    inputMode: 0,
-    onChange: (oklch) => {
-      const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
-      console.log('onchange', {
-        oklch,
-        srgb255i,
-      });
-    }
-  }));
-  wrapper.append(oklchInput({
-    defaultValue: vec3(0.68, 0.18, -2.7041853071795865),
-    onChange: (oklch) => {
-      const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
-      console.log('onchange', {
-        oklch,
-        srgb255i,
-      });
-    }
-  }));
-});
+export const dialogPage = makeComponent(function dialogPage() {
+    const [state, setState] = this.useState({dialogOpen: false});
 
-// OKLCH color picker (perceptual Lightness, Chroma, Hue)
+    const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
+    row.append(coloredButton("Open dialog", {color: "secondary", onClick: () => setState({dialogOpen: true})}));
+
+    const closeDialog = () => setState({dialogOpen: false});
+    const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
+    dialogWrapper.append(span("Hello world"));
+});
+export const notFoundPage = makeComponent(function notFoundPage() {
+  this.append(span("Page not found"));
+});
+export const mediaQueryPage = makeComponent(function mediaQueryPage() {
+    const column = this.append(div({className: "display-column"}));
+    const smOrBigger = this.useMedia({minWidth: 600});
+    column.append(span(`smOrBigger: ${smOrBigger}`));
+
+    const mdOrBigger = this.useMedia({minWidth: 900});
+    column.append(span(`mdOrBigger: ${mdOrBigger}`));
+
+    const lgOrBigger = this.useMedia({minWidth: 1200});
+    column.append(span(`lgOrBigger: ${lgOrBigger}`));
+
+    const xlOrBigger = this.useMedia({minWidth: 1500});
+    column.append(span(`xlOrBigger: ${xlOrBigger}`));
+});
+export const debugKeysPage = makeComponent(function debugKeysPage() {
+  const [state, setState] = this.useState({
+    toggle: false,
+  });
+  this.append(button("Toggle", {events: {
+    click: () => {
+      setState({toggle: !state.toggle});
+    }
+  }}));
+  if (state.toggle) {
+    //this.append(span("wow"));
+    this.append(span("wow", {key: undefined}));
+    //this.append(span("wow", {key: null}));
+    //this.append(span("wow", {key: ''}));
+  }
+});
+export const popupPage = makeComponent(function popupPage() {
+    for (let direction of ["up", "right", "down", "left", "mouse"] /*as PopupDirection[]*/) {
+        const row = this.append(div({className: "wide-display-row"}));
+        const leftPopup = row.append(popupWrapper({
+            content: span("Tiny"),
+            direction,
+            interactable: direction !== "mouse",
+        }));
+        leftPopup.append(span(`direction: "${direction}"`));
+        const rightPopup = row.append(popupWrapper({
+            content: span("I can be too big to naively fit on the screen!"),
+            direction,
+            interactable: direction !== "mouse",
+        }));
+        rightPopup.append(span(`direction: "${direction}"`));
+    }
+
+    const [state, setState] = this.useState({buttonPopupOpen: false});
+
+    const row = this.append(div({className: "wide-display-row"}));
+    const popup = row.append(popupWrapper({
+        content: span("Tiny"),
+        direction: "down",
+        open: state.buttonPopupOpen,
+        interactable: true,
+    }));
+
+    popup.append(coloredButton(`Toggle popup`, {
+        onClick: () => {
+            setState({buttonPopupOpen: !state.buttonPopupOpen});
+        },
+    }));
+});
+export const textInputPage = makeComponent(function textInputPage() {
+  // username
+  const [state, setState] = this.useState({username: ""});
+
+  let row = this.append(div({className: "display-row"}));
+  row.append(
+    textInput({
+      label: "Username",
+      value: state.username,
+      onInput: (event) => {
+        setState({username: event.target.value});
+      },
+      //autoFocus: true,
+    })
+  );
+  row.append(span("This input is stored in the component state."));
+
+  row = this.append(div({className: "display-row"}));
+  row.append(span(`state: ${JSON.stringify(state)}`));
+});
 function oklch_to_dot_pos(props/*: {inputMode: OKLCH_InputMode, oklch: vec3, chroma_max: number}*/) {
   const {inputMode, oklch, chroma_max} = props;
   // TODO: checkbox or something for switching input_mode
@@ -3206,7 +3338,7 @@ function dot_pos_to_oklch(props/*: {inputMode: OKLCH_InputMode, slider: number, 
   return vec3(L, C, H);
 }
 
-const OKLCH_InputMode = {
+export const OKLCH_InputMode = {
   LH_C: 0,
   CH_L: 1,
 }
@@ -3215,7 +3347,7 @@ const OKLCH_InputMode = {
   inputMode?: OKLCH_InputMode
   onChange?: (newValue: vec3 | null) => void;
 }*/;
-const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/) {
+export const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/) {
   const {defaultValue = vec3(0.50, 0.10, 0.4), inputMode = OKLCH_InputMode.CH_L, onChange} = props;
 
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] /*as [number, number, number]*/;
@@ -3309,133 +3441,47 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
     onPointerMove: updateDotPos,
   });
   const circleInputWrapper = wrapper.append(div({className: "color-circle-wrapper"}));
-  circleInputWrapper.append(webgl({
-    events: {
-      pointerdown: LHCircleOnPointerDown,
-    },
-    programs: {
-      colorWheel: {
-        vertex: `
-          in vec2 v_position;
-          void main() {
-            gl_Position = vec4(v_position, 0, 1);
-          }
-        `,
-        fragment: `
-          /* vec utils */
-          float sum(vec2 v) {
-            return v.x + v.y;
-          }
-          float min3(vec3 v) {
-            return min(min(v.x, v.y), v.z);
-          }
-          float max3(vec3 v) {
-            return max(max(v.x, v.y), v.z);
-          }
-          vec3 lerp3(float t, vec3 a, vec3 b) {
-            return (1.0 - t) * a + t*b;
-          }
-          float roundAwayFromZero(float x) {
-            return (x >= 0.0) ? floor(x + 0.5) : ceil(x - 0.5);
-          }
-          vec3 roundAwayFromZero(vec3 v) {
-            return vec3(roundAwayFromZero(v.x), roundAwayFromZero(v.y), roundAwayFromZero(v.z));
-          }
-          /* color utils */
-          vec3 oklch_to_oklab(vec3 oklch) {
-            return vec3(oklch.x, oklch.y * cos(oklch.z), oklch.y * sin(oklch.z));
-          }
-          // oklab_to_linear_srgb() from https://bottosson.github.io/posts/oklab/
-          vec3 oklab_to_linear_srgb(vec3 oklab) {
-            mat3 M2_inv = mat3(
-              +1.0, +1.0, +1.0,
-              +0.3963377774, -0.1055613458, -0.0894841775,
-              +0.2158037573, -0.0638541728, -1.2914855480
-            );
-            vec3 lms_cbrt = M2_inv * oklab;
-            vec3 lms = lms_cbrt * lms_cbrt * lms_cbrt;
-            mat3 M1_inv = mat3(
-              +4.0767416621, -1.2684380046, -0.0041960863,
-              -3.3077115913, +2.6097574011, -0.7034186147,
-              +0.2309699292, -0.3413193965, +1.7076147010
-            );
-            vec3 srgb = M1_inv * lms;
-            return srgb;
-          }
-          float srgb_companding(float v) {
-            return v <= 0.0031308 ? 12.92 * v : 1.055 * pow(v, 1.0/2.4) - 0.055;
-          }
-          vec3 linear_srgb_to_srgb(vec3 linear_srgb) {
-            return vec3(srgb_companding(linear_srgb.x), srgb_companding(linear_srgb.y), srgb_companding(linear_srgb.z));
-          }
-          vec3 srgb_to_srgb255(vec3 srgb) {
-            return roundAwayFromZero(srgb * 255.0);
-          }
-
-          uniform vec2 u_viewport;
-          uniform vec3 u_background_color;
-          uniform int u_input_mode;
-          uniform float u_slider;
-          uniform float u_chroma_max;
-          out vec4 out_color;
-          void main() {
-            vec2 center = u_viewport.xy * 0.5;
-            // circle
-            float radius = min(center.x, center.y);
-            vec2 position = (gl_FragCoord.xy - center);
-            float distance = sqrt(sum(position * position));
-            float angle = atan(position.y, position.x);
-            //float alpha = clamp(radius - distance, 0.0, 1.0); // circle alpha
-            float alpha = 1.0;
-            // colors
-            float L, C;
-            if (u_input_mode == 0) {
-              L = distance / radius;
-              C = u_slider;
-            } else {
-              L = u_slider;
-              C = distance / radius * u_chroma_max;
+  const {data: oklchInput_fragmentShader} = useCachedRequest({
+    component: this,
+    url: '/jsgui/docs/components/inputs/oklch_input.frag',
+    responseType: 'text',
+  });
+  if (oklchInput_fragmentShader == null) {
+    circleInputWrapper.append(div({style: {width: '100%', height: '100%', background: `rgb(${BACKGROUND_COLOR.map(v => 255*v)})`}}));
+  } else {
+    circleInputWrapper.append(webgl({
+      events: {
+        pointerdown: LHCircleOnPointerDown,
+      },
+      programs: {
+        colorWheel: {
+          vertex: `
+            in vec2 v_position;
+            void main() {
+              gl_Position = vec4(v_position, 0, 1);
             }
-            vec3 oklch = vec3(L, C, angle);
-            vec3 oklab = oklch_to_oklab(oklch);
-
-            vec3 linear_srgb = oklab_to_linear_srgb(oklab);
-            vec3 srgb = linear_srgb_to_srgb(linear_srgb);
-            vec3 srgb255 = srgb_to_srgb255(srgb);
-            // emulate round to screen color
-            if (min3(srgb) < 0.0 || max3(srgb255) > 255.0) {
-              alpha = 0.0;
-            }
-            srgb = srgb255 / 255.0;
-
-            vec3 background_color = u_background_color;
-            if (abs(position.x) <= 2.0 || abs(position.y) <= 2.0) {
-              background_color = vec3(0.0, 0.0, 0.0);
-            }
-
-            vec3 color = lerp3(alpha, background_color, srgb);
-            out_color = vec4(color, 1.0); // NOTE: browsers don't anti-alias alpha correctly..
-          }
-        `,
+          `,
+          fragment: oklchInput_fragmentShader,
+        }
+      },
+      renderResolutionMultiplier: 4,
+      render: ({gl, programs: {colorWheel}, rect}) => {
+        glUseProgram(gl, colorWheel);
+        gl.uniform2f(colorWheel.u_viewport, rect.width, rect.height);
+        gl.uniform3f(colorWheel.u_background_color, ...BACKGROUND_COLOR);
+        gl.uniform1i(colorWheel.u_input_mode, inputMode);
+        gl.uniform1f(colorWheel.u_slider, state.slider);
+        gl.uniform1f(colorWheel.u_chroma_max, chroma_max);
+        glSetBuffer(gl, colorWheel.v_position, new Float32Array([
+          -1, -1,
+          +1, -1,
+          +1, +1,
+          -1, +1,
+        ]));
+        gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
       }
-    },
-    renderResolutionMultiplier: 4,
-    render: ({gl, programs: {colorWheel}, rect}) => {
-      glUseProgram(gl, colorWheel);
-      gl.uniform2f(colorWheel.u_viewport, rect.width, rect.height);
-      gl.uniform3f(colorWheel.u_background_color, ...BACKGROUND_COLOR);
-      gl.uniform1i(colorWheel.u_input_mode, inputMode);
-      gl.uniform1f(colorWheel.u_slider, state.slider);
-      gl.uniform1f(colorWheel.u_chroma_max, chroma_max);
-      glSetBuffer(gl, colorWheel.v_position, new Float32Array([
-        -1, -1,
-        +1, -1,
-        +1, +1,
-        -1, +1,
-      ]));
-      gl.drawArrays(gl.TRIANGLE_FAN, 0, 4);
-    }
-  }));
+    }));
+  }
   circleInputWrapper.append(div({
     className: "color-circle-dot",
     style: {left: addPercent(state.dotOffset.x), top: addPercent(state.dotOffset.y)}
@@ -3489,69 +3535,6 @@ const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/)
 
   // hex string
   wrapper.append(span("#" + [srgb255.x, srgb255.y, srgb255.z].map(v => v.toString(16).padStart(2, "0")).join(""), {style: {marginLeft: 4}}))
-});
-export const dialogPage = makeComponent(function dialogPage() {
-    const [state, setState] = this.useState({dialogOpen: false});
-
-    const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
-    row.append(coloredButton("Open dialog", {color: "secondary", onClick: () => setState({dialogOpen: true})}));
-
-    const closeDialog = () => setState({dialogOpen: false});
-    const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
-    dialogWrapper.append(span("Hello world"));
-});
-export const notFoundPage = makeComponent(function notFoundPage() {
-  this.append(span("Page not found"));
-});
-export const mediaQueryPage = makeComponent(function mediaQueryPage() {
-    const column = this.append(div({className: "display-column"}));
-    const smOrBigger = this.useMedia({minWidth: 600});
-    column.append(span(`smOrBigger: ${smOrBigger}`));
-
-    const mdOrBigger = this.useMedia({minWidth: 900});
-    column.append(span(`mdOrBigger: ${mdOrBigger}`));
-
-    const lgOrBigger = this.useMedia({minWidth: 1200});
-    column.append(span(`lgOrBigger: ${lgOrBigger}`));
-
-    const xlOrBigger = this.useMedia({minWidth: 1500});
-    column.append(span(`xlOrBigger: ${xlOrBigger}`));
-});
-export const debugKeysPage = makeComponent(function debugKeysPage() {
-  const [state, setState] = this.useState({
-    toggle: false,
-  });
-  this.append(button("Toggle", {events: {
-    click: () => {
-      setState({toggle: !state.toggle});
-    }
-  }}));
-  if (state.toggle) {
-    //this.append(span("wow"));
-    this.append(span("wow", {key: undefined}));
-    //this.append(span("wow", {key: null}));
-    //this.append(span("wow", {key: ''}));
-  }
-});
-export const textInputPage = makeComponent(function textInputPage() {
-  // username
-  const [state, setState] = this.useState({username: ""});
-
-  let row = this.append(div({className: "display-row"}));
-  row.append(
-    textInput({
-      label: "Username",
-      value: state.username,
-      onInput: (event) => {
-        setState({username: event.target.value});
-      },
-      //autoFocus: true,
-    })
-  );
-  row.append(span("This input is stored in the component state."));
-
-  row = this.append(div({className: "display-row"}));
-  row.append(span(`state: ${JSON.stringify(state)}`));
 });
 export const numberInputsPage = makeComponent(function numberInputsPage() {
   // count
@@ -3919,38 +3902,30 @@ export const progressPage = makeComponent(function progressPage() {
         }
     }));
 });
-export const popupPage = makeComponent(function popupPage() {
-    for (let direction of ["up", "right", "down", "left", "mouse"] /*as PopupDirection[]*/) {
-        const row = this.append(div({className: "wide-display-row"}));
-        const leftPopup = row.append(popupWrapper({
-            content: span("Tiny"),
-            direction,
-            interactable: direction !== "mouse",
-        }));
-        leftPopup.append(span(`direction: "${direction}"`));
-        const rightPopup = row.append(popupWrapper({
-            content: span("I can be too big to naively fit on the screen!"),
-            direction,
-            interactable: direction !== "mouse",
-        }));
-        rightPopup.append(span(`direction: "${direction}"`));
+export const themeCreatorPage = makeComponent(function themeCreatorPage() {
+  const wrapper = this.append(div());
+  wrapper.append(oklchInput({
+    defaultValue: vec3(0.7482, 0.127, -2.7041853071795865),
+    inputMode: OKLCH_InputMode.LH_C,
+    onChange: (oklch) => {
+      const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
+      console.log('onchange', {
+        oklch,
+        srgb255i,
+      });
     }
-
-    const [state, setState] = this.useState({buttonPopupOpen: false});
-
-    const row = this.append(div({className: "wide-display-row"}));
-    const popup = row.append(popupWrapper({
-        content: span("Tiny"),
-        direction: "down",
-        open: state.buttonPopupOpen,
-        interactable: true,
-    }));
-
-    popup.append(coloredButton(`Toggle popup`, {
-        onClick: () => {
-            setState({buttonPopupOpen: !state.buttonPopupOpen});
-        },
-    }));
+  }));
+  wrapper.append(oklchInput({
+    defaultValue: vec3(0.6939, 0.1614, 57.18 * Math.PI / 180),
+    inputMode: OKLCH_InputMode.CH_L,
+    onChange: (oklch) => {
+      const srgb255i = oklch != null && oklch_to_srgb255i(oklch);
+      console.log('onchange', {
+        oklch,
+        srgb255i,
+      });
+    }
+  }));
 });
 export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   {

@@ -605,7 +605,7 @@ parse_value :: proc(
 	outer: for {
 		for (parser.token_type >= .UNARY_OPS_START && parser.token_type <= .UNARY_OPS_END) ||
 		    (parser.token_type == .Alphanumeric &&
-				    (parser.token == "typeof" || parser.token == "new")) ||
+				    (parser.token == "typeof" || parser.token == "new" || parser.token == "async" || parser.token == "await")) ||
 		    parser.token_type == .TripleDot { 	// SPEC: cba to only parse .TripleDot inside function calls
 			next_token(parser, sb)
 		}
