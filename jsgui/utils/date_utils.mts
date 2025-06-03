@@ -3,22 +3,34 @@ export function getCurrentTimeZone(): string {
 }
 
 const DEFAULT_DATE_FORMAT: Intl.DateTimeFormatOptions = {
-  hourCycle: "h23",
   year: "numeric",
   month: "2-digit",
   day: "2-digit",
-  hour: "2-digit",
-  minute: "2-digit",
   timeZoneName: "shortOffset",
 };
 export function formatDate(
   date: Date,
   timeZone: string | undefined,
   locale?: string,
-  options?: Omit<Intl.DateTimeFormatOptions, "timeZone">,
-): string {
+  options?: Pick<Intl.DateTimeFormatOptions, 'year' | 'month' | 'day' | 'timeZoneName'>,
+) {
   return new Intl.DateTimeFormat(locale, {...DEFAULT_DATE_FORMAT, ...options, timeZone}).format(date);
 }
+
+const DEFAULT_TIME_FORMAT: Intl.DateTimeFormatOptions = {
+  hourCycle: "h23",
+  hour: "2-digit",
+  minute: "2-digit",
+};
+export function formatDateTime(
+  date: Date,
+  timeZone: string | undefined,
+  locale?: string,
+  options?: Omit<Intl.DateTimeFormatOptions, "timeZone">,
+): string {
+  return new Intl.DateTimeFormat(locale, {...DEFAULT_DATE_FORMAT, ...DEFAULT_TIME_FORMAT, ...options, timeZone}).format(date);
+}
+
 export function formatDateIso(
   date: Date,
   timeZone: string = "GMT",
@@ -42,4 +54,7 @@ export function formatDateIso(
   const {year, month, day, hour, minute, second, fractionalSecond, timeZoneName} = parts;
   const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.${fractionalSecond}${timeZoneName.slice(3) || 'Z'}`;
   return isoString;
+}
+export function areDatesEqual(a: Date | null | undefined, b: Date | null | undefined) {
+  return a == null || b == null ? a == b : formatDateIso(a) === formatDateIso(b);
 }
