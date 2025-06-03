@@ -15,7 +15,7 @@ export function formatDate(
   date: Date,
   timeZone: string | undefined,
   locale?: string,
-  options?: Omit<Intl.DateTimeFormatOptions, "timeZone">
+  options?: Omit<Intl.DateTimeFormatOptions, "timeZone">,
 ): string {
   return new Intl.DateTimeFormat(locale, {...DEFAULT_DATE_FORMAT, ...options, timeZone}).format(date);
 }
@@ -40,6 +40,6 @@ export function formatDateIso(
     parts[part.type] = part.value;
   }
   const {year, month, day, hour, minute, second, fractionalSecond, timeZoneName} = parts;
-  const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.${fractionalSecond}${timeZoneName.slice(3) || 'Z'}`
+  const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.${fractionalSecond}${timeZoneName.slice(3) || 'Z'}`;
   return isoString;
 }
