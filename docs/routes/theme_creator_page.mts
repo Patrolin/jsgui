@@ -6,6 +6,8 @@ import { oklch_to_srgb255i } from "../utils/color_utils.mts";
 // TODO: use LH_C mode, clamp to unit circle and clamp chroma in shader (and have toggle for clamp vs alpha)
 // TODO: delete CH_L mode
 
+// TODO: color sphere mode
+
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
   const wrapper = this.append(div());
