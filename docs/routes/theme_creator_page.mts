@@ -6,7 +6,14 @@ import { oklch_to_srgb255i } from "../utils/color_utils.mts";
 // TODO: use LH_C mode, clamp to unit circle and clamp chroma in shader (and have toggle for clamp vs alpha)
 // TODO: delete CH_L mode
 
-// TODO: color sphere mode
+// TODO: color sphere mode?
+
+/* TODO:
+  - H = angle(click, center), C = distance(click, center), L = distance(pixel, center)
+  - draw a line from the center through the click
+  - then find_min_L(line) and find_max_L(line), and interpolate between them
+  - (optionally also have sliders for H, C)
+*/
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
 export const themeCreatorPage = makeComponent(function themeCreatorPage() {
