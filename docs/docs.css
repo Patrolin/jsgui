@@ -72,7 +72,7 @@ code * {
   align-items: flex-start;
 }
 .oklch-input {
-  --inputWidth: 600px;
+  --inputWidth: 400px;
 }
 .color-circle-wrapper {
   width: var(--inputWidth);

@@ -3,7 +3,7 @@ import { getGithubPagesPrefix, GITHUB_PAGES_PREFIX } from '../utils/utils.mts';
 import { debugKeysPage } from './debug_keys_page.mts';
 import {docsPage} from './docs_page.mts';
 import { notFoundPage } from './not_found_page.mts';
-import {themeCreatorPage} from './theme_creator_page.mts'
+import {palettePickerPage} from './palette_picker_page.mts'
 
 export const ROUTES: Route[] = [
   {
@@ -32,17 +32,17 @@ export const ROUTES: Route[] = [
     label: "Docs",
   },
   {
-    path: `/themeCreator`,
-    component: themeCreatorPage,
+    path: `/palettePicker`,
+    component: palettePickerPage,
     showInNavigation: true,
     wrapper: true,
-    label: "Theme creator",
+    label: "Palette Picker",
   },
   {
     path: `/debugKeys`,
     component: debugKeysPage,
     wrapper: false,
-    label: "Theme creator",
+    label: "Debug keys",
   },
 ];
 export const root = makeComponent(function root() {

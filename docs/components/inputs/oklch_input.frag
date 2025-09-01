@@ -51,7 +51,7 @@ vec3 srgb_to_srgb255(vec3 srgb) {
 uniform vec2 u_viewport;
 uniform vec3 u_background_color;
 uniform int u_input_mode;
-uniform float u_slider;
+uniform float u_chroma;
 uniform float u_chroma_max;
 out vec4 out_color;
 void main() {
@@ -64,14 +64,8 @@ void main() {
   //float alpha = clamp(radius - distance, 0.0, 1.0); // circle alpha
   float alpha = 1.0;
   // colors
-  float L, C;
-  if (u_input_mode == 0) {
-    L = distance / radius;
-    C = u_slider;
-  } else {
-    L = u_slider;
-    C = distance / radius * u_chroma_max;
-  }
+  float L = distance / radius;
+  float C = u_chroma;
   vec3 oklch = vec3(L, C, angle);
   vec3 oklab = oklch_to_oklab(oklch);
 

@@ -66,7 +66,6 @@ export const numberInput = makeComponent(function numberInput(props: NumberInput
     onRawInput,
     onInput,
     onChange,
-    ...extraProps,
     allowDisplayString: (value) => value.split("").every((c, i) => {
       if (c === "-" && i === 0) return true;
       if (c === "." && ((step ?? 1) % 1) !== 0) return true;
