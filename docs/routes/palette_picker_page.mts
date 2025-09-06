@@ -16,6 +16,9 @@ import { oklch_to_srgb255i } from "../utils/color_utils.mts";
 */
 
 // TODO!: theme creator with: L, L_step, C%, H, H_step?
+
+// TODO pt2: pick and interpolate through OKLab + pick through OKLCH
+
 export const palettePickerPage = makeComponent(function themeCreatorPage() {
   const wrapper = this.append(div());
   wrapper.append(oklchInput({
