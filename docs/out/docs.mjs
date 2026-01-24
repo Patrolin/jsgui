@@ -375,197 +375,158 @@ function sortByArray/*<T, K extends Comparable>*/(arr/*: T[]*/, key/*: (v: T) =>
 		return 0;
 	});
 }
-/*export type DialogProps = BaseProps & ({
-  open: boolean;
-  onClose?: () => void;
-  closeOnClickBackdrop?: boolean;
-})*/;
-export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
-  const {open, onClose, closeOnClickBackdrop} = props;
-  const [state] = this.useState({prevOpen: false});
-  const element = this.useNode(() => document.createElement("dialog"));
-  element.onclick = (event) => {
-    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
-  }
-  return {
-    onMount: () => {
-      if (open !== state.prevOpen) {
-        if (open) {
-          element.showModal();
-        } else {
-          element.close();
-        }
-        state.prevOpen = open;
-      }
-    },
-  };
-});
+function camelCaseToKebabCase(key/*: string*/) {
+  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
+}
+function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
+function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
+  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
+}
 
-// popup
-/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
-function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
-  mouse: {x: number, y: number},
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  const {mouse, popupRect, wrapperRect} = props;
-  switch (direction) {
-    case "up":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top - popupRect.height
-      ];
-    case "right":
-      return [
-        wrapperRect.left + wrapperRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "down":
-      return [
-        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
-        wrapperRect.top + wrapperRect.height
-      ]
-    case "left":
-      return [
-        wrapperRect.left - popupRect.width,
-        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
-      ];
-    case "mouse":
-      return [
-        mouse.x,
-        mouse.y - popupRect.height
-      ];
-  }
+// css
+function rgbFromHexString(hexString/*: string*/)/*: string*/ {
+  let hexString2 = removePrefix(hexString.trim(), '#');
+  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
 }
-function _getPopupLeftTopWithFlipAndClamp(props/*: {
-  direction: PopupDirection,
-  mouse: {x: number, y: number},
-  windowRight: number;
-  windowBottom: number;
-  wrapperRect: DOMRect,
-  popupRect: DOMRect,
-}*/) {
-  let {direction, windowBottom, windowRight, popupRect} = props;
-  // flip
-  let [left, top] = _getPopupLeftTop(direction, props);
-  switch (direction) {
-    case "up":
-      if (top < 0) {
-        direction = "down";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "down": {
-      const bottom = top + popupRect.height;
-      if (bottom >= windowBottom) {
-        direction = "up";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-    case "left":
-      if (left < 0) {
-        direction = "right";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    case "right": {
-      const right = left + popupRect.width;
-      if (right >= windowRight) {
-        direction = "left";
-        [left, top] = _getPopupLeftTop(direction, props);
-      }
-      break;
-    }
-  }
-  // clamp
-  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
-  left = clamp(left, 0, maxLeft);
-  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
-  top = clamp(top, 0, maxTop);
-  return [left, top] /*as [number, number]*/;
+function addPx(pixelsOrString/*: string | number*/) {
+  return is_number(pixelsOrString) ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
 }
-/*export type PopupWrapperProps = {
-  content: Component;
-  direction?: PopupDirection;
-  // TODO: arrow?: boolean;
-  /** NOTE: open on hover if undefined *//*
-  open?: boolean;
-  interactable?: boolean;
+function addPercent(fractionOrString/*: string | number*/) {
+  return is_number(fractionOrString) ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
+}
+
+/** Return stringified JSON with extra undefineds for printing */
+function stringifyJs(v/*: any*/)/*: string*/ {
+  if (v === undefined) return "undefined";
+  return JSON.stringify(v); // TODO: also handle nested undefineds
+}
+
+// json
+function stringifyJson(v/*: any*/)/*: string*/ {
+  return JSON.stringify(v);
+}
+function parseJson(v/*: string*/)/*: any*/ {
+  return JSON.parse(v);
+}
+/** Return stringified JSON with object keys and arrays sorted */
+function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
+  const replacer = (_key/*: string*/, value/*: any*/) =>
+    value instanceof Object
+      ? value instanceof Array
+        ? [...value].sort()
+        : Object.keys(value)
+            .sort()
+            .reduce((sorted/*: Record<string, any>*/, key) => {
+              sorted[key] = value[key];
+              return sorted;
+            }, {})
+      : value;
+  return JSON.stringify(data, replacer);
+}
+
+// path
+/*export type PathParts = {
+  origin?: string;
+  pathname?: string;
+  query?: string | Record<string, string>;
+  hash?: string;
 }*/;
-export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
-  const {content, direction: _direction = "up", open, interactable = false} = props;
-  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
-  const wrapper = this.useNode(() => document.createElement("div"));
-  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
-  const movePopup = () => {
-    if (!state.open) return;
-    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
-    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
-    const wrapperRect = wrapper.getBoundingClientRect();
-    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
-    popupNode.style.top = "0px";
-    const popupRect = popupContentWrapperNode.getBoundingClientRect();
-    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
-      direction: _direction,
-      mouse: state.mouse,
-      popupRect,
-      windowBottom,
-      windowRight,
-      wrapperRect
-    });
-    popupNode.style.left = addPx(left);
-    popupNode.style.top = addPx(top);
+/** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
+function makePath(parts/*: string | PathParts*/)/*: string*/ {
+  if (is_string(parts)) {return parts}
+  let origin = parts.origin ?? window.location.origin;
+  let pathname = parts.pathname ?? window.location.pathname;
+  let query = parts.query ?? window.location.search;
+  let hash = parts.hash ?? window.location.hash;
+  // build path
+  let pathLocation = (origin ?? "") + (pathname ?? "");
+  if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
+  pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
+  let queryString = '';
+  if (is_string(query)) {
+    queryString = query;
+  } else if (Object.keys(query ?? {}).length) {
+    const queryObject = query /*as any*/;
+    queryString = `?${Object.entries(queryObject).map(([k, v]) => `${k}=${v}`).join("&")}`;
   }
-  const openPopup = () => {
-    state.open = true;
-    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
-    movePopup();
+  let hashString = hash ?? "";
+  if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
+  return pathLocation + queryString + hashString;
+}
+
+// search
+/** return `patternMask` for bitap_search() */
+function bitap_pattern_mask(pattern/*: string*/)/*: Record<string, number>*/ {
+  if (pattern.length > 31) throw new Error("Pattern too long! Bitap supports patterns up to 31 characters.");
+  const patternMask/*: Record<string, number>*/ = {};
+  for (let i = 0; i < pattern.length; i++) {
+    patternMask[pattern[i]] = (patternMask[pattern[i]] || ~0) & ~(1 << i);
   }
-  const closePopup = () => {
-    state.open = false;
-    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
-  };
-  if (open == null) {
-    wrapper.onmouseenter = openPopup;
-    wrapper.onmouseleave = closePopup;
-  }
-  if (_direction === "mouse") {
-    wrapper.onmousemove = (event) => {
-      state.mouse = {x: event.clientX, y: event.clientY};
-      movePopup();
+  return patternMask;
+}
+/** Usage:
+ * ```ts
+ * const patternMask = bitap_pattern_mask(pattern);
+ * bitap_search(text1, pattern.length, patternMask);
+ * bitap_search(text2, pattern.length, patternMask);
+ * ```
+ *
+ * return `[index_of_pattern_in_text, number_of_edits]` (up to 1 add/replace/delete), return `[-1, -1]` if not found */
+function bitap_search(text/*: string*/, patternLength/*: number*/, patternMask/*: Record<string, number>*/)/*: [number, number]*/ {
+  if (patternLength === 0) return [0, 0];
+
+  let R_0 = ~1;
+  let R_1 = ~1;
+  let best_match_i = -1;
+  for (let i = 0; i < text.length; i++) {
+    let oldPrevR = R_0;
+    R_0 |= (patternMask[text[i]] || ~0);
+    R_0 <<= 1;
+
+    /* allow 1 edit */
+    //tmp = R_1
+    const match = (R_1 | (patternMask[text[i]] || ~0));
+    const replace = oldPrevR;
+    const add_or_delete = oldPrevR << 1;
+    R_1 = match & replace & add_or_delete;
+    R_1 <<= 1;
+    //oldPrevR = tmp;
+
+    if ((R_0 & (1 << patternLength)) === 0) {
+      return [i, 0];
+    } else if ((R_1 & (1 << patternLength)) === 0) {
+      best_match_i = i;
     }
   }
-  const popup = this.append(div({
-    className: "popup",
-    attribute: {popover: "manual", dataInteractable: interactable},
-  }));
-  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
-  popupContentWrapper.append(content);
-  return {
-    onMount: () => {
-      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-        acc.addEventListener("scroll", movePopup, {passive: true});
-      }
-      state.prevOnScroll = movePopup;
-      if (open == null) return;
-      if (open != state.open) {
-        if (open) {
-          openPopup();
-        } else {
-          closePopup();
-        }
-      }
-    },
-    onUnmount: (removed/*: boolean*/) => {
-      if (!removed) return;
-      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
-        acc.removeEventListener("scroll", state.prevOnScroll);
-      }
-    },
-  };
-});
+
+  return best_match_i == -1 ? [-1, -1] : [best_match_i, 1];
+}
+function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*/ {
+  if (pattern.length === 0) return options;
+  const patternMask = bitap_pattern_mask(pattern);
+
+  /*type SearchInfo = {
+    option: string;
+    index: number;
+    editCount: number;
+  }*/;
+  const infos/*: SearchInfo[]*/ = [];
+  for (let option of options) {
+    let index, editCount = 0;
+    if (pattern.length > 31) {
+      index = option.indexOf(pattern);
+    } else {
+      [index, editCount] = bitap_search(option, pattern.length, patternMask);
+    }
+    if (index !== -1) {
+      infos.push({option, index, editCount});
+    }
+  }
+
+  return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
+}
 export const JSGUI_VERSION = "v0.19-dev";
 function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
@@ -1265,112 +1226,67 @@ TODO: documentation
 // TODO: snackbar api
 // https://developer.mozilla.org/en-US/docs/Web/CSS/-webkit-line-clamp ?
 // TODO: dateTimeInput({locale: {daysInWeek: string[], firstDay: number, utcOffset: number}})
-/*export type Route = {
-  path: string;
-  defaultPath?: string;
-  component: ComponentFunction<[routeParams: any]>
-  roles?: string[];
-  wrapper?: boolean;
-  showInNavigation?: boolean;
-  label?: string;
-  group?: string;
+const request_cache/*: Record<string, any>*/ = {};
+function defaultOnError(error/*: Response*/) {
+  console.error(error);
+}
+/*type ResponseType = 'json' | 'text' | 'blob'*/;
+
+/*type UseCachedRequestProps<R extends ResponseType> = {
+  component: Component | undefined;
+  url: RequestInfo | URL;
+  responseType?: R;
+  onError?: (error: Response) => void;
+} & RequestInit*/;
+/*type UseCachedRequest<T, R extends ResponseType> = {
+  data: R extends 'text' ? string | undefined : (
+    R extends 'blob' ? Blob | undefined : T | undefined
+  );
+  refetch: () => void;
 }*/;
-/*export type FallbackRoute = Omit<Route, "path">*/;
-/*export type RouterProps = {
-  prefix?: string;
-  routes: Route[];
-  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
-  contentWrapperComponent?: ComponentFunction<any>,
-  currentRoles?: string[];
-  isLoggedIn?: boolean;
-  notLoggedInRoute?: FallbackRoute;
-  notFoundRoute?: FallbackRoute;
-  unauthorizedRoute?: FallbackRoute;
-}*/;
-/*export type PageWrapperProps = {
-  routes: Route[];
-  currentRoute: Route;
-  routeParams: Record<string, string>,
-  contentWrapperComponent: ComponentFunction<any>,
-}*/;
-export const router = makeComponent(function router(props/*: RouterProps*/) {
-  const {
-    prefix = "",
-    routes,
-    pageWrapperComponent = () => fragment(),
-    contentWrapperComponent = () => div({ className: "page-content" }),
-    currentRoles,
-    isLoggedIn,
-    notLoggedInRoute = { component: fragment },
-    notFoundRoute,
-    unauthorizedRoute = { component: fragment },
-  } = props;
-  this.useLocation(); // rerender on location change
-  let currentPath = makePath({origin: '', query: '', hash: ''});
-  let currentRoute/*: Route | null*/ = null;
-  let currentRouteParams/*: Record<string, string>*/ = {};
-  /*type RouteInfo = {
-    route: Route;
-    paramNames: string[];
-    pathRegex: string;
-    sortKey: string;
-  }*/;
-  const routeInfos/*: RouteInfo[]*/ = routes.map(route => {
-    const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
-    const path = makePath({
-      origin: '',
-      pathname: routePrefix + route.path,
-      query: '',
-      hash: '',
-    });
-    const paramNames/*: string[]*/ = [];
-    const pathRegex = path.replace(/:([^/]*)/g, (_m, g1) => {
-      paramNames.push(g1);
-      return `([^/?]*)`;
-    });
-    const sortKey = path.replace(/:([^/]*)/g, '');
-    return {route, paramNames, pathRegex, sortKey};
-  }).sort((a, b) => {
-    const aKey = a.sortKey;
-    const bKey = b.sortKey;
-    return +(aKey < bKey) - +(aKey > bKey); // NOTE: sort descending
-  });
-  for (let routeInfo of routeInfos) {
-    const regex = new RegExp(`^${routeInfo.pathRegex}$`);
-    const match = currentPath.match(regex);
-    if (match != null) {
-      const routeParamEntries = routeInfo.paramNames.map((key, i) => [key, match[i + 1]]);
-      currentRouteParams = Object.fromEntries(routeParamEntries);
-      const route = routeInfo.route;
-      const roles = route.roles ?? [];
-      const needSomeRole = (roles.length > 0);
-      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
-      if (!needSomeRole || haveSomeRole) {
-        currentRoute = route;
-      } else {
-        currentRoute = {
-          path: ".*",
-          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
-        };
+function useCachedRequest/*<T, R extends ResponseType = 'json'>*/(props/*: UseCachedRequestProps<R>*/)/*: UseCachedRequest<T, R>*/ {
+  const {component, url, responseType = 'json', onError = defaultOnError, ...extraOptions} = props;
+  const cache_key = [
+    url,
+    props.method ?? 'GET',
+    JSON.stringify(props.headers ?? {}),
+    JSON.stringify(props.body ?? {}),
+  ].join(',');
+  const cached_response = request_cache[cache_key];
+  if (cached_response === undefined) {
+    request_cache[cache_key] = null;
+    fetch(url, extraOptions).then(async (response) => {
+      let response_mapped;
+      switch (responseType) {
+      case 'json':
+        response_mapped = await response.json();
+        break;
+      case 'text':
+        response_mapped = await response.text();
+        break;
+      case 'blob':
+        response_mapped = await response.blob();
+        break;
       }
-      break;
+      request_cache[cache_key] = response_mapped;
+      component?.rerender();
+    }).catch(onError);
+  }
+  return {
+    data: cached_response ?? undefined,
+    refetch: () => {
+      delete request_cache[cache_key];
+      component?.rerender();
+    },
+  };
+}
+function clearRequestCache(prefix/*: string*/ = '') {
+  for (let key of Object.keys(request_cache)) {
+    if (key.startsWith(prefix)) {
+      delete request_cache[key];
     }
   }
-  if (!currentRoute) {
-    currentRoute = {path: '*', component: () => span("404 Not found")};
-    if (notFoundRoute) {
-      currentRoute = {...currentRoute, ...notFoundRoute};
-    } else {
-      console.warn(`Route '${currentPath}' not found. routes:`, routes);
-    }
-  }
-  if (currentRoute.wrapper ?? true) {
-    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
-  } else {
-    const contentWrapper = this.append(contentWrapperComponent());
-    contentWrapper.append(currentRoute.component(currentRouteParams));
-  }
-});
+}
 export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
 export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
@@ -2316,219 +2232,303 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
     }));
   });
 });
-const request_cache/*: Record<string, any>*/ = {};
-function defaultOnError(error/*: Response*/) {
-  console.error(error);
-}
-/*type ResponseType = 'json' | 'text' | 'blob'*/;
-
-/*type UseCachedRequestProps<R extends ResponseType> = {
-  component: Component | undefined;
-  url: RequestInfo | URL;
-  responseType?: R;
-  onError?: (error: Response) => void;
-} & RequestInit*/;
-/*type UseCachedRequest<T, R extends ResponseType> = {
-  data: R extends 'text' ? string | undefined : (
-    R extends 'blob' ? Blob | undefined : T | undefined
-  );
-  refetch: () => void;
+/*export type Route = {
+  path: string;
+  defaultPath?: string;
+  component: ComponentFunction<[routeParams: any]>
+  roles?: string[];
+  wrapper?: boolean;
+  showInNavigation?: boolean;
+  label?: string;
+  group?: string;
 }*/;
-function useCachedRequest/*<T, R extends ResponseType = 'json'>*/(props/*: UseCachedRequestProps<R>*/)/*: UseCachedRequest<T, R>*/ {
-  const {component, url, responseType = 'json', onError = defaultOnError, ...extraOptions} = props;
-  const cache_key = [
-    url,
-    props.method ?? 'GET',
-    JSON.stringify(props.headers ?? {}),
-    JSON.stringify(props.body ?? {}),
-  ].join(',');
-  const cached_response = request_cache[cache_key];
-  if (cached_response === undefined) {
-    request_cache[cache_key] = null;
-    fetch(url, extraOptions).then(async (response) => {
-      let response_mapped;
-      switch (responseType) {
-      case 'json':
-        response_mapped = await response.json();
-        break;
-      case 'text':
-        response_mapped = await response.text();
-        break;
-      case 'blob':
-        response_mapped = await response.blob();
-        break;
+/*export type FallbackRoute = Omit<Route, "path">*/;
+/*export type RouterProps = {
+  prefix?: string;
+  routes: Route[];
+  pageWrapperComponent?: ComponentFunction<[props: PageWrapperProps]>;
+  contentWrapperComponent?: ComponentFunction<any>,
+  currentRoles?: string[];
+  isLoggedIn?: boolean;
+  notLoggedInRoute?: FallbackRoute;
+  notFoundRoute?: FallbackRoute;
+  unauthorizedRoute?: FallbackRoute;
+}*/;
+/*export type PageWrapperProps = {
+  routes: Route[];
+  currentRoute: Route;
+  routeParams: Record<string, string>,
+  contentWrapperComponent: ComponentFunction<any>,
+}*/;
+export const router = makeComponent(function router(props/*: RouterProps*/) {
+  const {
+    prefix = "",
+    routes,
+    pageWrapperComponent = () => fragment(),
+    contentWrapperComponent = () => div({ className: "page-content" }),
+    currentRoles,
+    isLoggedIn,
+    notLoggedInRoute = { component: fragment },
+    notFoundRoute,
+    unauthorizedRoute = { component: fragment },
+  } = props;
+  this.useLocation(); // rerender on location change
+  let currentPath = makePath({origin: '', query: '', hash: ''});
+  let currentRoute/*: Route | null*/ = null;
+  let currentRouteParams/*: Record<string, string>*/ = {};
+  /*type RouteInfo = {
+    route: Route;
+    paramNames: string[];
+    pathRegex: string;
+    sortKey: string;
+  }*/;
+  const routeInfos/*: RouteInfo[]*/ = routes.map(route => {
+    const routePrefix = currentPath.startsWith(prefix) ? prefix : "";
+    const path = makePath({
+      origin: '',
+      pathname: routePrefix + route.path,
+      query: '',
+      hash: '',
+    });
+    const paramNames/*: string[]*/ = [];
+    const pathRegex = path.replace(/:([^/]*)/g, (_m, g1) => {
+      paramNames.push(g1);
+      return `([^/?]*)`;
+    });
+    const sortKey = path.replace(/:([^/]*)/g, '');
+    return {route, paramNames, pathRegex, sortKey};
+  }).sort((a, b) => {
+    const aKey = a.sortKey;
+    const bKey = b.sortKey;
+    return +(aKey < bKey) - +(aKey > bKey); // NOTE: sort descending
+  });
+  for (let routeInfo of routeInfos) {
+    const regex = new RegExp(`^${routeInfo.pathRegex}$`);
+    const match = currentPath.match(regex);
+    if (match != null) {
+      const routeParamEntries = routeInfo.paramNames.map((key, i) => [key, match[i + 1]]);
+      currentRouteParams = Object.fromEntries(routeParamEntries);
+      const route = routeInfo.route;
+      const roles = route.roles ?? [];
+      const needSomeRole = (roles.length > 0);
+      const haveSomeRole = (currentRoles ?? []).some(role => roles.includes(role));
+      if (!needSomeRole || haveSomeRole) {
+        currentRoute = route;
+      } else {
+        currentRoute = {
+          path: ".*",
+          ...(isLoggedIn ? notLoggedInRoute : unauthorizedRoute),
+        };
       }
-      request_cache[cache_key] = response_mapped;
-      component?.rerender();
-    }).catch(onError);
+      break;
+    }
+  }
+  if (!currentRoute) {
+    currentRoute = {path: '*', component: () => span("404 Not found")};
+    if (notFoundRoute) {
+      currentRoute = {...currentRoute, ...notFoundRoute};
+    } else {
+      console.warn(`Route '${currentPath}' not found. routes:`, routes);
+    }
+  }
+  if (currentRoute.wrapper ?? true) {
+    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
+  } else {
+    const contentWrapper = this.append(contentWrapperComponent());
+    contentWrapper.append(currentRoute.component(currentRouteParams));
+  }
+});
+/*export type DialogProps = BaseProps & ({
+  open: boolean;
+  onClose?: () => void;
+  closeOnClickBackdrop?: boolean;
+})*/;
+export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
+  const {open, onClose, closeOnClickBackdrop} = props;
+  const [state] = this.useState({prevOpen: false});
+  const element = this.useNode(() => document.createElement("dialog"));
+  element.onclick = (event) => {
+    if (closeOnClickBackdrop && (event.target === element) && onClose) onClose();
   }
   return {
-    data: cached_response ?? undefined,
-    refetch: () => {
-      delete request_cache[cache_key];
-      component?.rerender();
+    onMount: () => {
+      if (open !== state.prevOpen) {
+        if (open) {
+          element.showModal();
+        } else {
+          element.close();
+        }
+        state.prevOpen = open;
+      }
     },
   };
-}
-function clearRequestCache(prefix/*: string*/ = '') {
-  for (let key of Object.keys(request_cache)) {
-    if (key.startsWith(prefix)) {
-      delete request_cache[key];
-    }
+});
+
+// popup
+/*export type PopupDirection = "up" | "right" | "down" | "left" | "mouse"*/;
+function _getPopupLeftTop(direction/*: PopupDirection*/, props/*: {
+  mouse: {x: number, y: number},
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  const {mouse, popupRect, wrapperRect} = props;
+  switch (direction) {
+    case "up":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top - popupRect.height
+      ];
+    case "right":
+      return [
+        wrapperRect.left + wrapperRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "down":
+      return [
+        wrapperRect.left + 0.5 * (wrapperRect.width - popupRect.width),
+        wrapperRect.top + wrapperRect.height
+      ]
+    case "left":
+      return [
+        wrapperRect.left - popupRect.width,
+        wrapperRect.top + 0.5 * (wrapperRect.height - popupRect.height)
+      ];
+    case "mouse":
+      return [
+        mouse.x,
+        mouse.y - popupRect.height
+      ];
   }
 }
-function camelCaseToKebabCase(key/*: string*/) {
-  return (key.match(/[A-Z][a-z]*|[a-z]+/g) ?? []).map(v => v.toLowerCase()).join("-");
+function _getPopupLeftTopWithFlipAndClamp(props/*: {
+  direction: PopupDirection,
+  mouse: {x: number, y: number},
+  windowRight: number;
+  windowBottom: number;
+  wrapperRect: DOMRect,
+  popupRect: DOMRect,
+}*/) {
+  let {direction, windowBottom, windowRight, popupRect} = props;
+  // flip
+  let [left, top] = _getPopupLeftTop(direction, props);
+  switch (direction) {
+    case "up":
+      if (top < 0) {
+        direction = "down";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "down": {
+      const bottom = top + popupRect.height;
+      if (bottom >= windowBottom) {
+        direction = "up";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+    case "left":
+      if (left < 0) {
+        direction = "right";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    case "right": {
+      const right = left + popupRect.width;
+      if (right >= windowRight) {
+        direction = "left";
+        [left, top] = _getPopupLeftTop(direction, props);
+      }
+      break;
+    }
+  }
+  // clamp
+  const maxLeft = windowRight - popupRect.width - SCROLLBAR_WIDTH;
+  left = clamp(left, 0, maxLeft);
+  const maxTop = windowBottom - popupRect.height - SCROLLBAR_WIDTH;
+  top = clamp(top, 0, maxTop);
+  return [left, top] /*as [number, number]*/;
 }
-function removePrefix(value/*: string*/, prefix/*: string*/)/*: string*/ {
-  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
-}
-function removeSuffix(value/*: string*/, prefix/*: string*/)/*: string*/ {
-  return value.endsWith(prefix) ? value.slice(value.length - prefix.length) : value;
-}
-
-// css
-function rgbFromHexString(hexString/*: string*/)/*: string*/ {
-  let hexString2 = removePrefix(hexString.trim(), '#');
-  return `${parseInt(hexString2.slice(0, 2), 16)}, ${parseInt(hexString2.slice(2, 4), 16)}, ${parseInt(hexString2.slice(4, 6), 16)}`;
-}
-function addPx(pixelsOrString/*: string | number*/) {
-  return is_number(pixelsOrString) ? `${pixelsOrString}px` : pixelsOrString /*as string*/;
-}
-function addPercent(fractionOrString/*: string | number*/) {
-  return is_number(fractionOrString) ? `${(fractionOrString * 100).toFixed(2)}%` : fractionOrString /*as string*/;
-}
-
-/** Return stringified JSON with extra undefineds for printing */
-function stringifyJs(v/*: any*/)/*: string*/ {
-  if (v === undefined) return "undefined";
-  return JSON.stringify(v); // TODO: also handle nested undefineds
-}
-
-// json
-function stringifyJson(v/*: any*/)/*: string*/ {
-  return JSON.stringify(v);
-}
-function parseJson(v/*: string*/)/*: any*/ {
-  return JSON.parse(v);
-}
-/** Return stringified JSON with object keys and arrays sorted */
-function stringifyJsonStable(data/*: Record<string, any>*/)/*: string*/ {
-  const replacer = (_key/*: string*/, value/*: any*/) =>
-    value instanceof Object
-      ? value instanceof Array
-        ? [...value].sort()
-        : Object.keys(value)
-            .sort()
-            .reduce((sorted/*: Record<string, any>*/, key) => {
-              sorted[key] = value[key];
-              return sorted;
-            }, {})
-      : value;
-  return JSON.stringify(data, replacer);
-}
-
-// path
-/*export type PathParts = {
-  origin?: string;
-  pathname?: string;
-  query?: string | Record<string, string>;
-  hash?: string;
+/*export type PopupWrapperProps = {
+  content: Component;
+  direction?: PopupDirection;
+  // TODO: arrow?: boolean;
+  /** NOTE: open on hover if undefined *//*
+  open?: boolean;
+  interactable?: boolean;
 }*/;
-/** Make path `${origin}${pathname}?${queryString}#{hash}` and normalize to no trailing `"/"` */
-function makePath(parts/*: string | PathParts*/)/*: string*/ {
-  if (is_string(parts)) {return parts}
-  let origin = parts.origin ?? window.location.origin;
-  let pathname = parts.pathname ?? window.location.pathname;
-  let query = parts.query ?? window.location.search;
-  let hash = parts.hash ?? window.location.hash;
-  // build path
-  let pathLocation = (origin ?? "") + (pathname ?? "");
-  if (pathLocation.endsWith("/index.html")) pathLocation = pathLocation.slice(0, -10);
-  pathLocation = pathLocation.replace(/(\/*$)/g, "") || "/";
-  let queryString = '';
-  if (is_string(query)) {
-    queryString = query;
-  } else if (Object.keys(query ?? {}).length) {
-    const queryObject = query /*as any*/;
-    queryString = `?${Object.entries(queryObject).map(([k, v]) => `${k}=${v}`).join("&")}`;
+export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
+  const {content, direction: _direction = "up", open, interactable = false} = props;
+  const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
+  const wrapper = this.useNode(() => document.createElement("div"));
+  const {windowBottom, windowRight} = this.useWindowResize(); // TODO: just add a window listener?
+  const movePopup = () => {
+    if (!state.open) return;
+    const popupNode = popup._.prevNode /*as HTMLDivElement*/;
+    const popupContentWrapperNode = popupContentWrapper._.prevNode /*as HTMLDivElement*/;
+    const wrapperRect = wrapper.getBoundingClientRect();
+    popupNode.style.left = "0px"; // NOTE: we move popup to top left to allow it to grow
+    popupNode.style.top = "0px";
+    const popupRect = popupContentWrapperNode.getBoundingClientRect();
+    const [left, top] = _getPopupLeftTopWithFlipAndClamp({
+      direction: _direction,
+      mouse: state.mouse,
+      popupRect,
+      windowBottom,
+      windowRight,
+      wrapperRect
+    });
+    popupNode.style.left = addPx(left);
+    popupNode.style.top = addPx(top);
   }
-  let hashString = hash ?? "";
-  if (hashString && !hashString.startsWith("#")) hashString = "#" + hashString;
-  return pathLocation + queryString + hashString;
-}
-
-// search
-/** return `patternMask` for bitap_search() */
-function bitap_pattern_mask(pattern/*: string*/)/*: Record<string, number>*/ {
-  if (pattern.length > 31) throw new Error("Pattern too long! Bitap supports patterns up to 31 characters.");
-  const patternMask/*: Record<string, number>*/ = {};
-  for (let i = 0; i < pattern.length; i++) {
-    patternMask[pattern[i]] = (patternMask[pattern[i]] || ~0) & ~(1 << i);
+  const openPopup = () => {
+    state.open = true;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.showPopover();
+    movePopup();
   }
-  return patternMask;
-}
-/** Usage:
- * ```ts
- * const patternMask = bitap_pattern_mask(pattern);
- * bitap_search(text1, pattern.length, patternMask);
- * bitap_search(text2, pattern.length, patternMask);
- * ```
- *
- * return `[index_of_pattern_in_text, number_of_edits]` (up to 1 add/replace/delete), return `[-1, -1]` if not found */
-function bitap_search(text/*: string*/, patternLength/*: number*/, patternMask/*: Record<string, number>*/)/*: [number, number]*/ {
-  if (patternLength === 0) return [0, 0];
-
-  let R_0 = ~1;
-  let R_1 = ~1;
-  let best_match_i = -1;
-  for (let i = 0; i < text.length; i++) {
-    let oldPrevR = R_0;
-    R_0 |= (patternMask[text[i]] || ~0);
-    R_0 <<= 1;
-
-    /* allow 1 edit */
-    //tmp = R_1
-    const match = (R_1 | (patternMask[text[i]] || ~0));
-    const replace = oldPrevR;
-    const add_or_delete = oldPrevR << 1;
-    R_1 = match & replace & add_or_delete;
-    R_1 <<= 1;
-    //oldPrevR = tmp;
-
-    if ((R_0 & (1 << patternLength)) === 0) {
-      return [i, 0];
-    } else if ((R_1 & (1 << patternLength)) === 0) {
-      best_match_i = i;
+  const closePopup = () => {
+    state.open = false;
+    (popup._.prevNode /*as HTMLDivElement | null*/)?.hidePopover();
+  };
+  if (open == null) {
+    wrapper.onmouseenter = openPopup;
+    wrapper.onmouseleave = closePopup;
+  }
+  if (_direction === "mouse") {
+    wrapper.onmousemove = (event) => {
+      state.mouse = {x: event.clientX, y: event.clientY};
+      movePopup();
     }
   }
-
-  return best_match_i == -1 ? [-1, -1] : [best_match_i, 1];
-}
-function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*/ {
-  if (pattern.length === 0) return options;
-  const patternMask = bitap_pattern_mask(pattern);
-
-  /*type SearchInfo = {
-    option: string;
-    index: number;
-    editCount: number;
-  }*/;
-  const infos/*: SearchInfo[]*/ = [];
-  for (let option of options) {
-    let index, editCount = 0;
-    if (pattern.length > 31) {
-      index = option.indexOf(pattern);
-    } else {
-      [index, editCount] = bitap_search(option, pattern.length, patternMask);
-    }
-    if (index !== -1) {
-      infos.push({option, index, editCount});
-    }
-  }
-
-  return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
-}
+  const popup = this.append(div({
+    className: "popup",
+    attribute: {popover: "manual", dataInteractable: interactable},
+  }));
+  const popupContentWrapper = popup.append(div({className: "popup-content-wrapper"}));
+  popupContentWrapper.append(content);
+  return {
+    onMount: () => {
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+        acc.addEventListener("scroll", movePopup, {passive: true});
+      }
+      state.prevOnScroll = movePopup;
+      if (open == null) return;
+      if (open != state.open) {
+        if (open) {
+          openPopup();
+        } else {
+          closePopup();
+        }
+      }
+    },
+    onUnmount: (removed/*: boolean*/) => {
+      if (!removed) return;
+      for (let acc = (this._.prevNode /*as ParentNode | null*/); acc != null; acc = acc.parentNode) {
+        acc.removeEventListener("scroll", state.prevOnScroll);
+      }
+    },
+  };
+});
 /*export type TableColumn = {
   label: string;
   render: ComponentFunction<[data: {row: any, rowIndex: number, column: TableColumn, columnIndex: number}]>;
