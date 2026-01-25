@@ -2332,7 +2332,8 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
     }
   }
   if (currentRoute.wrapper ?? true) {
-    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
+    const pageWrapper = this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
+    pageWrapper.append(currentRoute.component(currentRouteParams));
   } else {
     const contentWrapper = this.append(contentWrapperComponent());
     contentWrapper.append(currentRoute.component(currentRouteParams));
