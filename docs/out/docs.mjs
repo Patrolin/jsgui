@@ -1346,6 +1346,14 @@ export const code = makeComponent(function code(text/*: string*/, _props/*: Base
   this.useNode(() => document.createElement("code"));
   this.append(text);
 });
+/*type HyperlinkProps = BaseProps & {
+  href?: string;
+}*/;
+export const hyperlink = makeComponent(function a(text/*: string*/, props/*: HyperlinkProps*/ = {}) {
+  const node = this.useNode(() => document.createElement("a"));
+  node.href = props.href ?? "";
+  this.append(text);
+});
 export const button = makeComponent(function button(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("button"));
   this.append(text);
