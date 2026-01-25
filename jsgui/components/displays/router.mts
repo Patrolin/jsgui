@@ -34,7 +34,7 @@ export const router = makeComponent(function router(props: RouterProps) {
   const {
     prefix = "",
     routes,
-    pageWrapperComponent = () => fragment(),
+    pageWrapperComponent,
     contentWrapperComponent = () => div({ className: "page-content" }),
     currentRoles,
     isLoggedIn,
@@ -101,9 +101,8 @@ export const router = makeComponent(function router(props: RouterProps) {
       console.warn(`Route '${currentPath}' not found. routes:`, routes);
     }
   }
-  if (currentRoute.wrapper ?? true) {
-    const pageWrapper = this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
-    pageWrapper.append(currentRoute.component(currentRouteParams));
+  if (currentRoute.wrapper && pageWrapperComponent != null) {
+    this.append(pageWrapperComponent({routes, currentRoute, routeParams: currentRouteParams, contentWrapperComponent}));
   } else {
     const contentWrapper = this.append(contentWrapperComponent());
     contentWrapper.append(currentRoute.component(currentRouteParams));
