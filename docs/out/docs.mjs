@@ -527,7 +527,7 @@ function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*
 
   return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
 }
-export const JSGUI_VERSION = "v0.19-dev";
+export const JSGUI_VERSION = "v0.20";
 function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
