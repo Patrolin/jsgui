@@ -14,7 +14,7 @@ app.mjs
 ```js
   import { makeComponent, renderRoot, span } from "jsgui.mjs";
 
-  const root = makeComponent(function root() {
+  const root = makeComponent("root", function() {
     this.append(span("Hello world"));
   });
   renderRoot(root());
