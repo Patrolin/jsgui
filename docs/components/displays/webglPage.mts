@@ -1,6 +1,6 @@
 import { glSetBuffer, glUseProgram, makeComponent, webgl } from "../../../jsgui/out/jsgui.mts";
 
-export const webglPage = makeComponent(function webglPage() {
+export const webglPage = makeComponent("webglPage", function() {
   this.append(webgl({
     style: {width: 150, height: 150},
     programs: {

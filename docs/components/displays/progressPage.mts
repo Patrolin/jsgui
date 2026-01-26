@@ -1,6 +1,6 @@
 import { coloredButton, div, loadingSpinner, makeComponent, progress, Size } from "../../../jsgui/out/jsgui.mts";
 
-export const progressPage = makeComponent(function progressPage() {
+export const progressPage = makeComponent("progressPage", function() {
     // loading spinner
     let row = this.append(div({className: "display-row"}));
     for (let size of Object.values(Size)) row.append(loadingSpinner({size, color: 'secondary-1'}));

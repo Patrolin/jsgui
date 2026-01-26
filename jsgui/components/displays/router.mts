@@ -30,7 +30,7 @@ export type PageWrapperProps = {
   routeParams: Record<string, string>,
   contentWrapperComponent: ComponentFunction<any>,
 };
-export const router = makeComponent(function router(props: RouterProps) {
+export const router = makeComponent("router", function(props: RouterProps) {
   const {
     prefix = "",
     routes,

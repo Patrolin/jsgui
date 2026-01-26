@@ -66,7 +66,7 @@ export type SliderInputProps = BaseProps & {
   railProps?: BaseProps;
   knobProps?: BaseProps;
 };
-export const sliderInput = makeComponent(function sliderInput(props: SliderInputProps) {
+export const sliderInput = makeComponent("sliderInput", function(props: SliderInputProps) {
   const {range, decimalPlaces, value, onInput, onChange, railProps, knobProps} = props;
   const [state, setState] = this.useState({
     value: range[0],

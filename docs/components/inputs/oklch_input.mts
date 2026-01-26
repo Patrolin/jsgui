@@ -53,7 +53,7 @@ type OKLCHInputProps = BaseProps & {
   defaultValue?: vec3;
   onChange?: (newValue: vec3 | null) => void;
 };
-export const oklchInput = makeComponent(function oklchInput(props: OKLCHInputProps) {
+export const oklchInput = makeComponent("oklchInput", function(props: OKLCHInputProps) {
   const {defaultValue = vec3(0.50, 0.10, 0.4), onChange} = props;
 
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] as [number, number, number];

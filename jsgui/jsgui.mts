@@ -1,7 +1,7 @@
 import { addPx, camelCaseToKebabCase, makePath, PathParts, stringifyJs } from "./utils/string_utils.mts";
 
 // utils
-export const JSGUI_VERSION = "v0.20";
+export const JSGUI_VERSION = "v0.21";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -88,7 +88,7 @@ export function getDiffArray(oldValues: string[], newValues: string[]): Diff<str
 // NOTE: tsc is stupid and removes comments before types
 export type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component;
 export type ComponentOptions = {
-  name?: string;
+  name: string;
 };
 export type BaseProps = {
   key?: string | number;
@@ -275,7 +275,15 @@ export class Component {
     console.log({ ...component, _: { ...component?._ } });
   }
 }
-export function makeComponent<A extends Parameters<any>>(onRender: RenderFunction<A>, options: ComponentOptions = {}): ComponentFunction<A> {
+export function makeComponent<A extends Parameters<any>>(name: string, onRender: RenderFunction<A>, extra: Omit<ComponentOptions, 'name'> = {}): ComponentFunction<A> {
+  if (typeof name === "function") {
+    console.warn(`makeComponent(function name(){}) is deprecated, since js bundlers mess up the names...\nPrefer makeComponent("name", function(){})`);
+    const legacy_onRender = name as RenderFunction<A>;
+    const legacy_options = onRender as ComponentOptions | undefined;
+    name = legacy_options?.name ?? legacy_onRender.name;
+    onRender = legacy_onRender;
+  }
+  const options: ComponentOptions = {...extra, name};
   return (...argsOrProps: any[]) => {
     const argCount = (onRender+"").split("{")[0].split(",").length; // NOTE: allow multiple default arguments
     const args = new Array(argCount).fill(undefined);
@@ -285,7 +293,7 @@ export function makeComponent<A extends Parameters<any>>(onRender: RenderFunctio
     const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {}) as BaseProps & StringMap;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} as EventsMap, ...props} = propsAndBaseProps;
     if (('key' in propsAndBaseProps) && ((key == null) || (key === ""))) {
-      const name = options.name ?? onRender.name;
+      const name = options.name;
       console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
     }
     const baseProps: RenderedBaseProps = {
@@ -299,7 +307,7 @@ export function makeComponent<A extends Parameters<any>>(onRender: RenderFunctio
     return new Component(onRender, args, baseProps, props, options);
   }
 }
-export const text = makeComponent(function text(str: string, _props: {} = {}) {
+export const text = makeComponent("text", function(str: string, _props: {} = {}) {
   const [state] = this.useState({prevStr: ""});
   const textNode = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {

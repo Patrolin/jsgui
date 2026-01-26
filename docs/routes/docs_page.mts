@@ -56,7 +56,7 @@ type RouteParams = {
   subsectionId: string,
   routerDemoId: string,
 };
-export const docsPage = makeComponent(function docsPage(routeParams: RouteParams) {
+export const docsPage = makeComponent("docsPage", function(routeParams: RouteParams) {
   const [state, setState] = this.useState({
     sectionId: routeParams.sectionId ?? DOCS_SECTIONS[0].id,
     subsectionId: routeParams.subsectionId ?? DOCS_SECTIONS[0].pages[0].id,

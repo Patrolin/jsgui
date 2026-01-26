@@ -1,6 +1,6 @@
 import { makeComponent, webgpu } from "../../../jsgui/out/jsgui.mts";
 
-export const webgpuPage = makeComponent(function webgpuPage() {
+export const webgpuPage = makeComponent("webgpuPage", function() {
   this.append(webgpu({
     style: {width: 150, height: 150},
     shaderCode: `

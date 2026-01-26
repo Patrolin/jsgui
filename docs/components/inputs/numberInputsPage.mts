@@ -1,6 +1,6 @@
 import { div, makeComponent, numberInput, sliderInput, span } from "../../../jsgui/out/jsgui.mts";
 
-export const numberInputsPage = makeComponent(function numberInputsPage() {
+export const numberInputsPage = makeComponent("numberInputsPage", function() {
   // count
   const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
 

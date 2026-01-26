@@ -1,7 +1,7 @@
 import { audio, BASE_COLORS, button, COLOR_SHADE_COUNT, coloredButton, div, icon, img, input, makeComponent, NavType, Size, span, svg, textarea, video } from "../../../jsgui/out/jsgui.mts";
 import { getSizeLabel } from "../../utils/utils.mts";
 
-export const htmlPage = makeComponent(function htmlPage() {
+export const htmlPage = makeComponent("htmlPage", function() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
 
@@ -37,7 +37,7 @@ export const htmlPage = makeComponent(function htmlPage() {
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
     ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
-export const spanPage = makeComponent(function spanPage() {
+export const spanPage = makeComponent("spanPage", function() {
   for (let href of [undefined]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: Size.small, href}));
@@ -54,7 +54,7 @@ export const spanPage = makeComponent(function spanPage() {
     }
   }
 });
-export const anchorPage = makeComponent(function anchorPage() {
+export const anchorPage = makeComponent("anchorPage", function() {
   for (let href of ["https://www.google.com"]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: Size.small, href}));
@@ -70,7 +70,7 @@ export const anchorPage = makeComponent(function anchorPage() {
     row.append(span("Open in new tab", {size: Size.small, href, navType: NavType.OpenInNewTab}));
   }
 });
-export const buttonPage = makeComponent(function buttonPage() {
+export const buttonPage = makeComponent("buttonPage", function() {
   let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(Size)) row.append(coloredButton(getSizeLabel(size), {size}));
 
@@ -80,7 +80,7 @@ export const buttonPage = makeComponent(function buttonPage() {
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   for (let size of Object.values(Size)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-export const iconPage = makeComponent(function iconPage() {
+export const iconPage = makeComponent("iconPage", function() {
   let row = this.append(div({className: "display-row"}));
   row.append(span("Static icon font from:"))
   row.append(span("https://fonts.google.com/icons", {href: "https://fonts.google.com/icons"}));

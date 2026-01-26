@@ -1,6 +1,6 @@
 import { BaseProps, clamp, makeComponent, numberInput, span, table } from "../../../jsgui/out/jsgui.mts";
 
-export const tablePage = makeComponent(function tablePage() {
+export const tablePage = makeComponent("tablePage", function() {
     const [count, setCount] = this.useLocalStorage("count", 0 as number | null);
     this.append(
       numberInput({
@@ -42,6 +42,6 @@ export const tablePage = makeComponent(function tablePage() {
       this.append(testKeysComponent({key: "testKeysComponent"}));
     }
   });
-  const testKeysComponent = makeComponent(function testKeysComponent(_: BaseProps = {}) {
+  const testKeysComponent = makeComponent("testKeysComponent", function(_: BaseProps = {}) {
     this.append(span(""));
   });

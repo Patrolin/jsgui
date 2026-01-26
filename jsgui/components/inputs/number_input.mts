@@ -6,7 +6,7 @@ export type NumberArrowProps = {
   onClickUp?: (event: PointerEvent) => void;
   onClickDown?: (event: PointerEvent) => void;
 } & BaseProps;
-export const numberArrows = makeComponent(function numberArrows(props: NumberArrowProps = {}) {
+export const numberArrows = makeComponent("numberArrows", function(props: NumberArrowProps = {}) {
   const { onClickUp, onClickDown } = props;
   this.useNode(() => document.createElement("div"));
   this.append(icon("arrow_drop_up", {size: Size.small, onClick: onClickUp}));
@@ -24,7 +24,7 @@ export type NumberInputProps = InputProps & Omit<LabeledInputProps, "inputCompon
   onInput?: ((event: InputEventWithTarget) => void);
   onChange?: ((event: ChangeEventWithTarget) => void)
 };
-export const numberInput = makeComponent(function numberInput(props: NumberInputProps) {
+export const numberInput = makeComponent("numberInput", function(props: NumberInputProps) {
   const {
     label, leftComponent, rightComponent, error, // labeledInput
     value, min, max, step, stepPrecision, clearable = true, onKeyDown, onRawInput, onInput, onChange, ...extraProps // numberInput

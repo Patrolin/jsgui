@@ -147,7 +147,7 @@ parse_statement :: proc(
 			start_comment(parser, sb)
 			print_prev_token(parser, sb, statement_start)
 			next_token(parser, sb)
-			parse_name_with_generic(parser, sb) or_return
+			parse_name_with_generic(parser, sb, false) or_return
 			parse_equals(parser, sb) or_return
 			parse_type(parser, sb) or_return
 			end_comment(parser, sb)
@@ -203,7 +203,7 @@ parse_statement :: proc(
 				   (parser.token == "get" || parser.token == "set" || parser.token == "static") {
 					next_token(parser, sb)
 				}
-				parse_name_with_generic(parser, sb) or_return // SPEC: technically we shouldn't parse generic if it's a class field
+				parse_name_with_generic(parser, sb, false) or_return // SPEC: technically we shouldn't parse generic if it's a class field
 				#partial switch parser.token_type {
 				case .Colon, .QuestionMarkColon:
 					parse_question_mark_colon_equals_value(parser, sb) or_return
@@ -358,8 +358,16 @@ parse_extends_type :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: Par
 	}
 	return .None
 }
-parse_name_with_generic :: proc(parser: ^Parser, sb: ^strings.Builder) -> (error: ParseError) {
-	parse_name(parser, sb) or_return
+parse_name_with_generic :: proc(
+	parser: ^Parser,
+	sb: ^strings.Builder,
+	name_is_optional: bool,
+) -> (
+	error: ParseError,
+) {
+	if !name_is_optional || parser.token_type == .Alphanumeric {
+		parse_name(parser, sb) or_return
+	}
 	if parser.token_type == .BracketLeftAngle {
 		prev_debug_indent := debug_print_start(parser, "generic")
 		start_comment(parser, sb)
@@ -605,7 +613,10 @@ parse_value :: proc(
 	outer: for {
 		for (parser.token_type >= .UNARY_OPS_START && parser.token_type <= .UNARY_OPS_END) ||
 		    (parser.token_type == .Alphanumeric &&
-				    (parser.token == "typeof" || parser.token == "new" || parser.token == "async" || parser.token == "await")) ||
+				    (parser.token == "typeof" ||
+						    parser.token == "new" ||
+						    parser.token == "async" ||
+						    parser.token == "await")) ||
 		    parser.token_type == .TripleDot { 	// SPEC: cba to only parse .TripleDot inside function calls
 			next_token(parser, sb)
 		}
@@ -617,7 +628,7 @@ parse_value :: proc(
 			if parser.token == "function" {
 				debug_print(parser, "value.function")
 				next_token(parser, sb)
-				parse_name_with_generic(parser, sb) or_return
+				parse_name_with_generic(parser, sb, true) or_return
 				debug_print(parser, "value.function.args")
 				parse_function_args(parser, sb, "function.args.cont") or_return
 				if parser.token_type == .Colon {

@@ -1,11 +1,11 @@
 import { div, makeComponent, PageWrapperProps, Route, router, span } from "../../../jsgui/out/jsgui.mts";
 
-export const routerPage = makeComponent(function routerPage() {
+export const routerPage = makeComponent("routerPage", function() {
   // someComponent
   type SomeComponentParams = {
     routerDemoId: string;
   };
-  const someComponent = makeComponent(function someComponent(routeParams: SomeComponentParams) {
+  const someComponent = makeComponent("someComponent", function(routeParams: SomeComponentParams) {
     this.append(`routeParams: ${JSON.stringify(routeParams)}`);
     // location
     const location = this.useLocation();
@@ -14,7 +14,7 @@ export const routerPage = makeComponent(function routerPage() {
   });
 
   // default component
-  const notFoundComponent = makeComponent(function notFoundComponent() {
+  const notFoundComponent = makeComponent("notFoundComponent", function() {
     this.append("notFoundComponent");
   });
 
@@ -37,7 +37,7 @@ export const routerPage = makeComponent(function routerPage() {
   ];
 
   // pageWrapperComponent
-  const pageWrapperComponent = makeComponent(function pageWrapperComponent(props: PageWrapperProps) {
+  const pageWrapperComponent = makeComponent("pageWrapperComponent", function(props: PageWrapperProps) {
     const {routes, currentRoute, contentWrapperComponent, routeParams} = props;
     const navmenu = this.append(div({style: {display: "flex", gap: 8}}));
     for (let route of routes) {

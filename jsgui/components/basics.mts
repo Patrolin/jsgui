@@ -1,84 +1,91 @@
 import { BaseProps, makeComponent, navigate, NavigateFunction, NavType, NodeType, Size } from "../jsgui.mts";
 
 // basic components
-export const fragment = makeComponent(function fragment(_props: BaseProps = {}) {}, { name: '' });
-export const ul = makeComponent(function ul(_props: BaseProps = {}) {
+export const fragment = makeComponent("fragment", function(_props: BaseProps = {}) {}, { name: '' });
+export const ul = makeComponent("ul", function(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("ul"));
 });
-export const ol = makeComponent(function ol(_props: BaseProps = {}) {
+export const ol = makeComponent("ol", function(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("ol"));
 });
-export const li = makeComponent(function li(text: string, _props: BaseProps = {}) {
+export const li = makeComponent("li", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("li"));
   this.append(text);
 });
-export const h1 = makeComponent(function h1(text: string, _props: BaseProps = {}) {
+export const h1 = makeComponent("h1", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("h1"));
   this.append(text);
 });
-export const h2 = makeComponent(function h2(text: string, _props: BaseProps = {}) {
+export const h2 = makeComponent("h2", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("h2"));
   this.append(text);
 });
-export const h3 = makeComponent(function h3(text: string, _props: BaseProps = {}) {
+export const h3 = makeComponent("h3", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("h3"));
   this.append(text);
 });
-export const h4 = makeComponent(function h4(text: string, _props: BaseProps = {}) {
+export const h4 = makeComponent("h4", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("h4"));
   this.append(text);
 });
-export const h5 = makeComponent(function h5(text: string, _props: BaseProps = {}) {
+export const h5 = makeComponent("h5", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("h5"));
   this.append(text);
 });
-export const h6 = makeComponent(function h6(text: string, _props: BaseProps = {}) {
+export const h6 = makeComponent("h6", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("h6"));
   this.append(text);
 });
-export const divider = makeComponent(function divider(vertical: boolean = false, _props: BaseProps = {}) {
+export const divider = makeComponent("divider", function(vertical: boolean = false, _props: BaseProps = {}) {
   this.append(div({
     attribute: {dataVertical: vertical},
   }));
 });
-export const p = makeComponent(function p(text: string, _props: BaseProps = {}) {
+export const p = makeComponent("p", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("p"));
   this.append(text);
 });
-export const b = makeComponent(function b(text: string, _props: BaseProps = {}) {
+export const b = makeComponent("b", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("b"));
   this.append(text);
 });
-export const em = makeComponent(function em(text: string, _props: BaseProps = {}) {
+export const em = makeComponent("em", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("em"));
   this.append(text);
 });
-export const br = makeComponent(function br(_props: BaseProps = {}) {
+export const br = makeComponent("br", function(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("br"));
 });
-export const code = makeComponent(function code(text: string, _props: BaseProps = {}) {
+export const code = makeComponent("code", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("code"));
   this.append(text);
 });
 type HyperlinkProps = BaseProps & {
   href?: string;
 };
-export const hyperlink = makeComponent(function a(text: string, props: HyperlinkProps = {}) {
+export const hyperlink = makeComponent("a", function(text: string, props: HyperlinkProps = {}) {
   const node = this.useNode(() => document.createElement("a"));
   node.href = props.href ?? "";
   this.append(text);
 });
-export const button = makeComponent(function button(text: string, _props: BaseProps = {}) {
+export const form = makeComponent("form", function(_props: BaseProps = {}) {
+  this.useNode(() => document.createElement("form"));
+});
+export const button = makeComponent("button", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("button"));
   this.append(text);
 });
-export const input = makeComponent(function input(_props: BaseProps = {}) {
+export const inputLabel = makeComponent("label", function(text: string, _props: BaseProps = {}) {
+  this.useNode(() => document.createElement("label"));
+  this.append(text);
+});
+export const input = makeComponent("input", function(_props: BaseProps = {}) {
   this.useNode(() => document.createElement("input"));
 });
 export type TextAreaProps = BaseProps & {
   onPaste?: (event: ClipboardEvent, clipboardData: DataTransfer) => string;
 };
-export const textarea = makeComponent(function textarea(props: TextAreaProps = {}) {
+export const textarea = makeComponent("textarea", function(props: TextAreaProps = {}) {
   const {onPaste = (_event, clipboardData) => {
     return clipboardData.getData("Text");
   }} = props;
@@ -101,22 +108,22 @@ export const textarea = makeComponent(function textarea(props: TextAreaProps = {
     }
   }
 });
-export const img = makeComponent(function img(src: string, _props: BaseProps = {}) {
+export const img = makeComponent("img", function(src: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("img"));
   this.baseProps.attribute.src = src;
 });
-export const svg = makeComponent(function svg(svgText: string, _props: BaseProps = {}) {
+export const svg = makeComponent("svg", function(svgText: string, _props: BaseProps = {}) {
   this.useNode(() => {
     const tmp = document.createElement("span");
     tmp.innerHTML = svgText;
     return (tmp.children[0] ?? document.createElement("svg")) as NodeType;
   });
 });
-export const audio = makeComponent(function audio(src: string, _props: BaseProps = {}) {
+export const audio = makeComponent("audio", function(src: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("audio"));
   this.baseProps.attribute.src = src;
 });
-export const video = makeComponent(function video(sources: string[], _props: BaseProps = {}) {
+export const video = makeComponent("video", function(sources: string[], _props: BaseProps = {}) {
   this.useNode(() => {
     const node = document.createElement("video");
     for (let source of sources) {
@@ -127,10 +134,10 @@ export const video = makeComponent(function video(sources: string[], _props: Bas
     return node;
   }, JSON.stringify(sources));
 });
-export const div = makeComponent(function div(_props: BaseProps = {}) {
+export const div = makeComponent("div", function(_props: BaseProps = {}) {
   this.useNode(() => document.createElement('div'));
 });
-export const legend = makeComponent(function legend(text: string, _props: BaseProps = {}) {
+export const legend = makeComponent("legend", function(text: string, _props: BaseProps = {}) {
   this.useNode(() => document.createElement("legend"));
   this.append(text);
   this.baseProps.className.push("ellipsis");
@@ -150,7 +157,7 @@ export type SpanProps = BaseProps & {
   selfLink?: string;
   onClick?: (event: PointerEvent) => void;
 };
-export const span = makeComponent(function _span(text: string | number | null | undefined, props: SpanProps = {}) {
+export const span = makeComponent("span", function(text: string | number | null | undefined, props: SpanProps = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, download, navType, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
@@ -193,10 +200,10 @@ export const span = makeComponent(function _span(text: string | number | null | 
     }
   }
   this.append(iconName || (text == null ? "" : String(text)))
-}, { name: "span" });
+});
 // https://fonts.google.com/icons
 export type IconProps = SpanProps;
-export const icon = makeComponent(function icon(iconName: string, props: IconProps = {}) {
+export const icon = makeComponent("icon", function(iconName: string, props: IconProps = {}) {
   let {size, style = {}, ...extraProps} = props;
   this.baseProps.attribute.dataIcon = iconName;
   this.append(span("", {iconName, size, style, ...extraProps}));

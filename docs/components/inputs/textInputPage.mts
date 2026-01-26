@@ -1,6 +1,6 @@
 import {div, makeComponent, numberInput, span, textInput} from '../../../jsgui/out/jsgui.mts';
 
-export const textInputPage = makeComponent(function textInputPage() {
+export const textInputPage = makeComponent("textInputPage", function() {
   // username
   const [state, setState] = this.useState({username: ""});
 

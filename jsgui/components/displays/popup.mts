@@ -8,7 +8,7 @@ export type DialogProps = BaseProps & ({
   onClose?: () => void;
   closeOnClickBackdrop?: boolean;
 });
-export const dialog = makeComponent(function dialog(props: DialogProps): RenderReturn {
+export const dialog = makeComponent("dialog", function(props: DialogProps): RenderReturn {
   const {open, onClose, closeOnClickBackdrop} = props;
   const [state] = this.useState({prevOpen: false});
   const element = this.useNode(() => document.createElement("dialog"));
@@ -121,7 +121,7 @@ export type PopupWrapperProps = {
   open?: boolean;
   interactable?: boolean;
 };
-export const popupWrapper = makeComponent(function popupWrapper(props: PopupWrapperProps): RenderReturn {
+export const popupWrapper = makeComponent("popupWrapper", function(props: PopupWrapperProps): RenderReturn {
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null as EventListener | null});
   const wrapper = this.useNode(() => document.createElement("div"));

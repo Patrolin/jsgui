@@ -1,6 +1,6 @@
 import { button, makeComponent, span } from "../../jsgui/out/jsgui.mts";
 
-export const debugKeysPage = makeComponent(function debugKeysPage() {
+export const debugKeysPage = makeComponent("debugKeysPage", function() {
   const [state, setState] = this.useState({
     toggle: false,
   });

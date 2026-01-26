@@ -45,7 +45,7 @@ export const ROUTES: Route[] = [
     label: "Debug keys",
   },
 ];
-export const root = makeComponent(function root() {
+export const root = makeComponent("root", function() {
   this.append(
     router({
       prefix: GITHUB_PAGES_PREFIX,
@@ -57,7 +57,7 @@ export const root = makeComponent(function root() {
     })
   );
 });
-export const pageWrapper = makeComponent(function pageWrapper(props: PageWrapperProps) {
+export const pageWrapper = makeComponent("pageWrapper", function(props: PageWrapperProps) {
   const {currentRoute, routeParams, contentWrapperComponent} = props;
   const wrapper = this.append(div({
     style: {

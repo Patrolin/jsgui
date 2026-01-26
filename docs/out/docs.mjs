@@ -527,7 +527,7 @@ function search_options(pattern/*: string*/, options/*: string[]*/)/*: string[]*
 
   return sortByArray(infos, v => [v.editCount, v.index]).map(v => v.option);
 }
-export const JSGUI_VERSION = "v0.20";
+export const JSGUI_VERSION = "v0.21";
 function parseJsonOrNull(jsonString/*: string*/)/*: JSONValue*/ {
   try {
     return JSON.parse(jsonString);
@@ -614,7 +614,7 @@ function getDiffArray(oldValues/*: string[]*/, newValues/*: string[]*/)/*: Diff<
 // NOTE: tsc is stupid and removes comments before types
 /*export type ComponentFunction<T extends any[]> = (...argsOrProps: T) => Component*/;
 /*export type ComponentOptions = {
-  name?: string;
+  name: string;
 }*/;
 /*export type BaseProps = {
   key?: string | number;
@@ -801,7 +801,15 @@ class Component {
     console.log({ ...component, _: { ...component?._ } });
   }
 }
-function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction<A>*/, options/*: ComponentOptions*/ = {})/*: ComponentFunction<A>*/ {
+function makeComponent/*<A extends Parameters<any>>*/(name/*: string*/, onRender/*: RenderFunction<A>*/, extra/*: Omit<ComponentOptions, 'name'>*/ = {})/*: ComponentFunction<A>*/ {
+  if (typeof name === "function") {
+    console.warn(`makeComponent(function name(){}) is deprecated, since js bundlers mess up the names...\nPrefer makeComponent("name", function(){})`);
+    const legacy_onRender = name /*as RenderFunction<A>*/;
+    const legacy_options = onRender /*as ComponentOptions | undefined*/;
+    name = legacy_options?.name ?? legacy_onRender.name;
+    onRender = legacy_onRender;
+  }
+  const options/*: ComponentOptions*/ = {...extra, name};
   return (...argsOrProps/*: any[]*/) => {
     const argCount = (onRender+"").split("{")[0].split(",").length; // NOTE: allow multiple default arguments
     const args = new Array(argCount).fill(undefined);
@@ -811,7 +819,7 @@ function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction
     const propsAndBaseProps = (argsOrProps[argCount - 1] ?? {}) /*as BaseProps & StringMap*/;
     const {key, style = {}, attribute = {}, className: className, cssVars = {}, events = {} /*as EventsMap*/, ...props} = propsAndBaseProps;
     if (('key' in propsAndBaseProps) && ((key == null) || (key === ""))) {
-      const name = options.name ?? onRender.name;
+      const name = options.name;
       console.warn(`${name} component was passed ${stringifyJs(key)}, did you mean to pass a string?`)
     }
     const baseProps/*: RenderedBaseProps*/ = {
@@ -825,7 +833,7 @@ function makeComponent/*<A extends Parameters<any>>*/(onRender/*: RenderFunction
     return new Component(onRender, args, baseProps, props, options);
   }
 }
-export const text = makeComponent(function text(str/*: string*/, _props/*: {}*/ = {}) {
+export const text = makeComponent("text", function(str/*: string*/, _props/*: {}*/ = {}) {
   const [state] = this.useState({prevStr: ""});
   const textNode = this.useNode(() => new Text(""));
   if (str !== state.prevStr) {
@@ -1287,84 +1295,91 @@ function clearRequestCache(prefix/*: string*/ = '') {
     }
   }
 }
-export const fragment = makeComponent(function fragment(_props/*: BaseProps*/ = {}) {}, { name: '' });
-export const ul = makeComponent(function ul(_props/*: BaseProps*/ = {}) {
+export const fragment = makeComponent("fragment", function(_props/*: BaseProps*/ = {}) {}, { name: '' });
+export const ul = makeComponent("ul", function(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ul"));
 });
-export const ol = makeComponent(function ol(_props/*: BaseProps*/ = {}) {
+export const ol = makeComponent("ol", function(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("ol"));
 });
-export const li = makeComponent(function li(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const li = makeComponent("li", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("li"));
   this.append(text);
 });
-export const h1 = makeComponent(function h1(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const h1 = makeComponent("h1", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("h1"));
   this.append(text);
 });
-export const h2 = makeComponent(function h2(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const h2 = makeComponent("h2", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("h2"));
   this.append(text);
 });
-export const h3 = makeComponent(function h3(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const h3 = makeComponent("h3", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("h3"));
   this.append(text);
 });
-export const h4 = makeComponent(function h4(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const h4 = makeComponent("h4", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("h4"));
   this.append(text);
 });
-export const h5 = makeComponent(function h5(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const h5 = makeComponent("h5", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("h5"));
   this.append(text);
 });
-export const h6 = makeComponent(function h6(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const h6 = makeComponent("h6", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("h6"));
   this.append(text);
 });
-export const divider = makeComponent(function divider(vertical/*: boolean*/ = false, _props/*: BaseProps*/ = {}) {
+export const divider = makeComponent("divider", function(vertical/*: boolean*/ = false, _props/*: BaseProps*/ = {}) {
   this.append(div({
     attribute: {dataVertical: vertical},
   }));
 });
-export const p = makeComponent(function p(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const p = makeComponent("p", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("p"));
   this.append(text);
 });
-export const b = makeComponent(function b(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const b = makeComponent("b", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("b"));
   this.append(text);
 });
-export const em = makeComponent(function em(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const em = makeComponent("em", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("em"));
   this.append(text);
 });
-export const br = makeComponent(function br(_props/*: BaseProps*/ = {}) {
+export const br = makeComponent("br", function(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("br"));
 });
-export const code = makeComponent(function code(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const code = makeComponent("code", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("code"));
   this.append(text);
 });
 /*type HyperlinkProps = BaseProps & {
   href?: string;
 }*/;
-export const hyperlink = makeComponent(function a(text/*: string*/, props/*: HyperlinkProps*/ = {}) {
+export const hyperlink = makeComponent("a", function(text/*: string*/, props/*: HyperlinkProps*/ = {}) {
   const node = this.useNode(() => document.createElement("a"));
   node.href = props.href ?? "";
   this.append(text);
 });
-export const button = makeComponent(function button(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const form = makeComponent("form", function(_props/*: BaseProps*/ = {}) {
+  this.useNode(() => document.createElement("form"));
+});
+export const button = makeComponent("button", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("button"));
   this.append(text);
 });
-export const input = makeComponent(function input(_props/*: BaseProps*/ = {}) {
+export const inputLabel = makeComponent("label", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
+  this.useNode(() => document.createElement("label"));
+  this.append(text);
+});
+export const input = makeComponent("input", function(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("input"));
 });
 /*export type TextAreaProps = BaseProps & {
   onPaste?: (event: ClipboardEvent, clipboardData: DataTransfer) => string;
 }*/;
-export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/ = {}) {
+export const textarea = makeComponent("textarea", function(props/*: TextAreaProps*/ = {}) {
   const {onPaste = (_event, clipboardData) => {
     return clipboardData.getData("Text");
   }} = props;
@@ -1387,22 +1402,22 @@ export const textarea = makeComponent(function textarea(props/*: TextAreaProps*/
     }
   }
 });
-export const img = makeComponent(function img(src/*: string*/, _props/*: BaseProps*/ = {}) {
+export const img = makeComponent("img", function(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("img"));
   this.baseProps.attribute.src = src;
 });
-export const svg = makeComponent(function svg(svgText/*: string*/, _props/*: BaseProps*/ = {}) {
+export const svg = makeComponent("svg", function(svgText/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => {
     const tmp = document.createElement("span");
     tmp.innerHTML = svgText;
     return (tmp.children[0] ?? document.createElement("svg")) /*as NodeType*/;
   });
 });
-export const audio = makeComponent(function audio(src/*: string*/, _props/*: BaseProps*/ = {}) {
+export const audio = makeComponent("audio", function(src/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("audio"));
   this.baseProps.attribute.src = src;
 });
-export const video = makeComponent(function video(sources/*: string[]*/, _props/*: BaseProps*/ = {}) {
+export const video = makeComponent("video", function(sources/*: string[]*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => {
     const node = document.createElement("video");
     for (let source of sources) {
@@ -1413,10 +1428,10 @@ export const video = makeComponent(function video(sources/*: string[]*/, _props/
     return node;
   }, JSON.stringify(sources));
 });
-export const div = makeComponent(function div(_props/*: BaseProps*/ = {}) {
+export const div = makeComponent("div", function(_props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement('div'));
 });
-export const legend = makeComponent(function legend(text/*: string*/, _props/*: BaseProps*/ = {}) {
+export const legend = makeComponent("legend", function(text/*: string*/, _props/*: BaseProps*/ = {}) {
   this.useNode(() => document.createElement("legend"));
   this.append(text);
   this.baseProps.className.push("ellipsis");
@@ -1436,7 +1451,7 @@ export const legend = makeComponent(function legend(text/*: string*/, _props/*: 
   selfLink?: string;
   onClick?: (event: PointerEvent) => void;
 }*/;
-export const span = makeComponent(function _span(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
+export const span = makeComponent("span", function(text/*: string | number | null | undefined*/, props/*: SpanProps*/ = {}) {
   let { iconName, size, color, singleLine, fontFamily, href, download, navType, id, selfLink, onClick } = props;
   if (selfLink != null) {
     const selfLinkWrapper = this.append(div({ className: "self-link", attribute: { id: id == null ? selfLink : id } }));
@@ -1479,10 +1494,10 @@ export const span = makeComponent(function _span(text/*: string | number | null 
     }
   }
   this.append(iconName || (text == null ? "" : String(text)))
-}, { name: "span" });
+});
 // https://fonts.google.com/icons
 /*export type IconProps = SpanProps*/;
-export const icon = makeComponent(function icon(iconName/*: string*/, props/*: IconProps*/ = {}) {
+export const icon = makeComponent("icon", function(iconName/*: string*/, props/*: IconProps*/ = {}) {
   let {size, style = {}, ...extraProps} = props;
   this.baseProps.attribute.dataIcon = iconName;
   this.append(span("", {iconName, size, style, ...extraProps}));
@@ -1525,7 +1540,7 @@ setTimeout(() => {
   allowDisplayString?: (value: string) => boolean;
   allowString?: (value: string) => string | undefined;
 } & BaseProps*/;
-export const controlledInput = makeComponent(function controlledInput(props/*: InputProps*/) {
+export const controlledInput = makeComponent("controlledInput", function(props/*: InputProps*/) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onRawInput, onInput, onChange,
     allowDisplayString = () => true,
     allowString = (value) => value,
@@ -1572,7 +1587,7 @@ export const controlledInput = makeComponent(function controlledInput(props/*: I
   inputComponent: Component;
   rightComponent?: () => Component;
 } & BaseProps*/;
-export const labeledInput = makeComponent(function labeledInput(props/*: LabeledInputProps*/) {
+export const labeledInput = makeComponent("labeledInput", function(props/*: LabeledInputProps*/) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
   fieldset.onpointerdown = (_event/*: PointerEvent*/) => {
@@ -1584,7 +1599,7 @@ export const labeledInput = makeComponent(function labeledInput(props/*: Labeled
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent());
 });
-export const errorMessage = makeComponent(function errorMessage(error/*: string*/, props/*: SpanProps*/ = {}) {
+export const errorMessage = makeComponent("errorMessage", function(error/*: string*/, props/*: SpanProps*/ = {}) {
   this.append(span(error, {color: "red", size: Size.small, ...props}));
 });
 
@@ -1592,7 +1607,7 @@ export const errorMessage = makeComponent(function errorMessage(error/*: string*
   error?: string,
   value: string | null | undefined;
 }*/;
-export const textInput = makeComponent(function textInput(props/*: TextInputProps*/) {
+export const textInput = makeComponent("textInput", function(props/*: TextInputProps*/) {
   const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
     label,
@@ -1664,7 +1679,7 @@ function useOnPointerMove(props/*: UseOnPointerMoveProps*/)/*: UseOnPointerMove*
   railProps?: BaseProps;
   knobProps?: BaseProps;
 }*/;
-export const sliderInput = makeComponent(function sliderInput(props/*: SliderInputProps*/) {
+export const sliderInput = makeComponent("sliderInput", function(props/*: SliderInputProps*/) {
   const {range, decimalPlaces, value, onInput, onChange, railProps, knobProps} = props;
   const [state, setState] = this.useState({
     value: range[0],
@@ -1710,7 +1725,7 @@ export const sliderInput = makeComponent(function sliderInput(props/*: SliderInp
   onClickUp?: (event: PointerEvent) => void;
   onClickDown?: (event: PointerEvent) => void;
 } & BaseProps*/;
-export const numberArrows = makeComponent(function numberArrows(props/*: NumberArrowProps*/ = {}) {
+export const numberArrows = makeComponent("numberArrows", function(props/*: NumberArrowProps*/ = {}) {
   const { onClickUp, onClickDown } = props;
   this.useNode(() => document.createElement("div"));
   this.append(icon("arrow_drop_up", {size: Size.small, onClick: onClickUp}));
@@ -1728,7 +1743,7 @@ export const numberArrows = makeComponent(function numberArrows(props/*: NumberA
   onInput?: ((event: InputEventWithTarget) => void);
   onChange?: ((event: ChangeEventWithTarget) => void)
 }*/;
-export const numberInput = makeComponent(function numberInput(props/*: NumberInputProps*/) {
+export const numberInput = makeComponent("numberInput", function(props/*: NumberInputProps*/) {
   const {
     label, leftComponent, rightComponent, error, // labeledInput
     value, min, max, step, stepPrecision, clearable = true, onKeyDown, onRawInput, onInput, onChange, ...extraProps // numberInput
@@ -1812,7 +1827,7 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   onClick?: () => void;
   disabled?: boolean;
 }
-*/export const coloredButton = makeComponent(function coloredButton(text/*: string*/, props/*: ButtonProps*/ = {}) {
+*/export const coloredButton = makeComponent("coloredButton", function(text/*: string*/, props/*: ButtonProps*/ = {}) {
   const {size, color, onClick, disabled} = props;
   const element = this.useNode(() => document.createElement("button"));
   if (text) this.append(span(text));
@@ -1876,7 +1891,7 @@ export const numberInput = makeComponent(function numberInput(props/*: NumberInp
   init?: (props: WebgpuRenderProps) => any;
   render?: (props: WebgpuRenderProps) => void;
 } & BaseProps*/;
-export const webgpu = makeComponent(function webgpu(props/*: WebgpuProps*/) {
+export const webgpu = makeComponent("webgpu", function(props/*: WebgpuProps*/) {
   const {shaderCode, init, render} = props;
   const [state] = this.useState({
     _isDeviceInitialized: false,
@@ -2097,7 +2112,7 @@ function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*
   renderResolutionMultiplier?: number;
   render?: (state: WebGLState) => void;
 }
-*/export const webgl = makeComponent(function webgl(props/*: WebGLProps*/) {
+*/export const webgl = makeComponent("webgl", function(props/*: WebGLProps*/) {
   const {
     programs,
     renderResolutionMultiplier = 1.0,
@@ -2196,14 +2211,14 @@ function glSetBuffer(gl/*: WebGL2RenderingContext*/, bufferInfo/*: GLBufferInfo*
     },
   }
 });
-export const loadingSpinner = makeComponent(function loadingSpinner(props/*: IconProps*/ = {}) {
+export const loadingSpinner = makeComponent("loadingSpinner", function(props/*: IconProps*/ = {}) {
   this.append(icon("progress_activity", props));
 });
 /*export type ProgressProps = {
   color?: string;
   fraction?: number;
 } & BaseProps*/;
-export const progress = makeComponent(function progress(props/*: ProgressProps*/ = {}) {
+export const progress = makeComponent("progress", function(props/*: ProgressProps*/ = {}) {
   const {color, fraction} = props;
   if (color) this.baseProps.style.color = `var(--${color})`;
   const wrapper = this.append(div({}));
@@ -2224,7 +2239,7 @@ export const progress = makeComponent(function progress(props/*: ProgressProps*/
   selectedId: string | number;
   setSelectedId: (newId: string | number) => void;
 }*/;
-export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
+export const tabs = makeComponent("tabs", function(props/*: TabsProps*/) {
   const {options, setSelectedId} = props;
   let {selectedId} = props;
   if (selectedId == null) selectedId = options[0].id ?? 0;
@@ -2236,7 +2251,7 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
       href: option.href,
       className: "tabs-option",
       attribute: {dataSelected: optionId === selectedId, title: option.label},
-      events: {click: () => setSelectedId(optionId)},
+      events: {pointerup: () => setSelectedId(optionId)},
     }));
   });
 });
@@ -2268,7 +2283,7 @@ export const tabs = makeComponent(function tabs(props/*: TabsProps*/) {
   routeParams: Record<string, string>,
   contentWrapperComponent: ComponentFunction<any>,
 }*/;
-export const router = makeComponent(function router(props/*: RouterProps*/) {
+export const router = makeComponent("router", function(props/*: RouterProps*/) {
   const {
     prefix = "",
     routes,
@@ -2351,7 +2366,7 @@ export const router = makeComponent(function router(props/*: RouterProps*/) {
   onClose?: () => void;
   closeOnClickBackdrop?: boolean;
 })*/;
-export const dialog = makeComponent(function dialog(props/*: DialogProps*/)/*: RenderReturn*/ {
+export const dialog = makeComponent("dialog", function(props/*: DialogProps*/)/*: RenderReturn*/ {
   const {open, onClose, closeOnClickBackdrop} = props;
   const [state] = this.useState({prevOpen: false});
   const element = this.useNode(() => document.createElement("dialog"));
@@ -2464,7 +2479,7 @@ function _getPopupLeftTopWithFlipAndClamp(props/*: {
   open?: boolean;
   interactable?: boolean;
 }*/;
-export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
+export const popupWrapper = makeComponent("popupWrapper", function(props/*: PopupWrapperProps*/)/*: RenderReturn*/ {
   const {content, direction: _direction = "up", open, interactable = false} = props;
   const [state] = this.useState({mouse: {x: -1, y: -1}, open: false, prevOnScroll: null /*as EventListener | null*/});
   const wrapper = this.useNode(() => document.createElement("div"));
@@ -2552,7 +2567,7 @@ export const popupWrapper = makeComponent(function popupWrapper(props/*: PopupWr
   minHeight?: number;
   useMaxHeight?: boolean;
 } & BaseProps*/;
-export const table = makeComponent(function table(props/*: TableProps & BaseProps*/) {
+export const table = makeComponent("table", function(props/*: TableProps & BaseProps*/) {
   // TODO: actions, filters, search, paging, selection
   // TODO: make gray fully opaque?
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;
@@ -2784,7 +2799,7 @@ function minimax(options/*: MinimaxOptions*/) {
   params: [() => 1, (v) => v*v, (v) => v*v*v*v],
   matchEnds: true,
 })*/ // {"coefficients": [1, -0.49974056901418235, 0.040398729230590104], "maxError": 0.000015342201404119158}
-export const htmlPage = makeComponent(function htmlPage() {
+export const htmlPage = makeComponent("htmlPage", function() {
     let row = this.append(div({className: "display-row"}));
     row.append(span("span"));
 
@@ -2820,7 +2835,7 @@ export const htmlPage = makeComponent(function htmlPage() {
       "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4"
     ], {style: {height: 240}, attribute: {controls: true, title: "video"}}));
 });
-export const spanPage = makeComponent(function spanPage() {
+export const spanPage = makeComponent("spanPage", function() {
   for (let href of [undefined]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: Size.small, href}));
@@ -2837,7 +2852,7 @@ export const spanPage = makeComponent(function spanPage() {
     }
   }
 });
-export const anchorPage = makeComponent(function anchorPage() {
+export const anchorPage = makeComponent("anchorPage", function() {
   for (let href of ["https://www.google.com"]) {
     let row = this.append(div({className: "display-row", style: {marginBottom: href ? 4 : 0}}))
     row.append(span("Small", {size: Size.small, href}));
@@ -2853,7 +2868,7 @@ export const anchorPage = makeComponent(function anchorPage() {
     row.append(span("Open in new tab", {size: Size.small, href, navType: NavType.OpenInNewTab}));
   }
 });
-export const buttonPage = makeComponent(function buttonPage() {
+export const buttonPage = makeComponent("buttonPage", function() {
   let row = this.append(div({className: "display-row"}));
   for (let size of Object.values(Size)) row.append(coloredButton(getSizeLabel(size), {size}));
 
@@ -2863,7 +2878,7 @@ export const buttonPage = makeComponent(function buttonPage() {
   row = this.append(div({className: "display-row", style: {marginTop: 4}}));
   for (let size of Object.values(Size)) row.append(coloredButton("Disabled", {disabled: true, size}));
 });
-export const iconPage = makeComponent(function iconPage() {
+export const iconPage = makeComponent("iconPage", function() {
   let row = this.append(div({className: "display-row"}));
   row.append(span("Static icon font from:"))
   row.append(span("https://fonts.google.com/icons", {href: "https://fonts.google.com/icons"}));
@@ -2885,7 +2900,7 @@ export const iconPage = makeComponent(function iconPage() {
   text: string;
   getTokens: (text: string) => Component[];
 }*/;
-const codeFormatter = makeComponent(function codeFormatter(props/*: CodeFormatterProps*/) {
+const codeFormatter = makeComponent("codeFormatter", function(props/*: CodeFormatterProps*/) {
   const {text, getTokens} = props;
   const wrapper = this.append(code(""));
   for (let token of getTokens(text)) {
@@ -3117,7 +3132,7 @@ function jsGetTokens(text/*: string*/)/*: Component[]*/ {
   }
   return tokens;
 }
-export const jsFormatter = makeComponent(function javascriptFormatter(text/*: string*/, props/*?: BaseProps*/) {
+export const jsFormatter = makeComponent("javascriptFormatter", function(text/*: string*/, props/*?: BaseProps*/) {
   this.append(codeFormatter({
     text,
     getTokens: jsGetTokens,
@@ -3169,7 +3184,7 @@ function _srgb255_to_srgb255i(srgb255/*: vec3*/)/*: vec3*/ {
     round_away_from_zero(srgb255.z),
   );
 }
-export const dialogPage = makeComponent(function dialogPage() {
+export const dialogPage = makeComponent("dialogPage", function() {
     const [state, setState] = this.useState({dialogOpen: false});
 
     const row = this.append(div({className: "display-row", style: {marginTop: 2}}));
@@ -3179,10 +3194,10 @@ export const dialogPage = makeComponent(function dialogPage() {
     const dialogWrapper = row.append(dialog({open: state.dialogOpen, onClose: closeDialog, closeOnClickBackdrop: true}));
     dialogWrapper.append(span("Hello world"));
 });
-export const notFoundPage = makeComponent(function notFoundPage() {
+export const notFoundPage = makeComponent("notFoundPage", function() {
   this.append(span("Page not found"));
 });
-export const mediaQueryPage = makeComponent(function mediaQueryPage() {
+export const mediaQueryPage = makeComponent("mediaQueryPage", function() {
     const column = this.append(div({className: "display-column"}));
     const smOrBigger = this.useMedia({minWidth: 600});
     column.append(span(`smOrBigger: ${smOrBigger}`));
@@ -3196,7 +3211,7 @@ export const mediaQueryPage = makeComponent(function mediaQueryPage() {
     const xlOrBigger = this.useMedia({minWidth: 1500});
     column.append(span(`xlOrBigger: ${xlOrBigger}`));
 });
-export const debugKeysPage = makeComponent(function debugKeysPage() {
+export const debugKeysPage = makeComponent("debugKeysPage", function() {
   const [state, setState] = this.useState({
     toggle: false,
   });
@@ -3212,7 +3227,7 @@ export const debugKeysPage = makeComponent(function debugKeysPage() {
     //this.append(span("wow", {key: ''}));
   }
 });
-export const popupPage = makeComponent(function popupPage() {
+export const popupPage = makeComponent("popupPage", function() {
     for (let direction of ["up", "right", "down", "left", "mouse"] /*as PopupDirection[]*/) {
         const row = this.append(div({className: "wide-display-row"}));
         const leftPopup = row.append(popupWrapper({
@@ -3245,7 +3260,7 @@ export const popupPage = makeComponent(function popupPage() {
         },
     }));
 });
-export const textInputPage = makeComponent(function textInputPage() {
+export const textInputPage = makeComponent("textInputPage", function() {
   // username
   const [state, setState] = this.useState({username: ""});
 
@@ -3315,7 +3330,7 @@ function find_max_L(oklch/*: vec3*/) {
   defaultValue?: vec3;
   onChange?: (newValue: vec3 | null) => void;
 }*/;
-export const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputProps*/) {
+export const oklchInput = makeComponent("oklchInput", function(props/*: OKLCHInputProps*/) {
   const {defaultValue = vec3(0.50, 0.10, 0.4), onChange} = props;
 
   const BACKGROUND_COLOR = [0.4, 0.4, 0.4] /*as [number, number, number]*/;
@@ -3491,7 +3506,7 @@ export const oklchInput = makeComponent(function oklchInput(props/*: OKLCHInputP
     colorWrapper.append(colorText);
   }
 });
-export const numberInputsPage = makeComponent(function numberInputsPage() {
+export const numberInputsPage = makeComponent("numberInputsPage", function() {
   // count
   const [count, setCount] = this.useLocalStorage("count", 0 /*as number | null*/);
 
@@ -3522,7 +3537,7 @@ export const numberInputsPage = makeComponent(function numberInputsPage() {
     },
   }));
 })
-export const webgpuPage = makeComponent(function webgpuPage() {
+export const webgpuPage = makeComponent("webgpuPage", function() {
   this.append(webgpu({
     style: {width: 150, height: 150},
     shaderCode: `
@@ -3635,7 +3650,7 @@ export const webgpuPage = makeComponent(function webgpuPage() {
     }
   }))
 });
-export const webglPage = makeComponent(function webglPage() {
+export const webglPage = makeComponent("webglPage", function() {
   this.append(webgl({
     style: {width: 150, height: 150},
     programs: {
@@ -3709,7 +3724,7 @@ export const webglPage = makeComponent(function webglPage() {
     }
   }));
 })
-export const tabsPage = makeComponent(function tabsPage() {
+export const tabsPage = makeComponent("tabsPage", function() {
     const [state, setState] = this.useState({selectedTab: 0 /*as string | number*/});
 
     // tabs
@@ -3730,7 +3745,7 @@ export const tabsPage = makeComponent(function tabsPage() {
         this.append(span(selectedTab.label, {key: state.selectedTab}))
     }
 });
-export const tablePage = makeComponent(function tablePage() {
+export const tablePage = makeComponent("tablePage", function() {
     const [count, setCount] = this.useLocalStorage("count", 0 /*as number | null*/);
     this.append(
       numberInput({
@@ -3772,15 +3787,15 @@ export const tablePage = makeComponent(function tablePage() {
       this.append(testKeysComponent({key: "testKeysComponent"}));
     }
   });
-  const testKeysComponent = makeComponent(function testKeysComponent(_/*: BaseProps*/ = {}) {
+  const testKeysComponent = makeComponent("testKeysComponent", function(_/*: BaseProps*/ = {}) {
     this.append(span(""));
   });
-export const routerPage = makeComponent(function routerPage() {
+export const routerPage = makeComponent("routerPage", function() {
   // someComponent
   /*type SomeComponentParams = {
     routerDemoId: string;
   }*/;
-  const someComponent = makeComponent(function someComponent(routeParams/*: SomeComponentParams*/) {
+  const someComponent = makeComponent("someComponent", function(routeParams/*: SomeComponentParams*/) {
     this.append(`routeParams: ${JSON.stringify(routeParams)}`);
     // location
     const location = this.useLocation();
@@ -3789,7 +3804,7 @@ export const routerPage = makeComponent(function routerPage() {
   });
 
   // default component
-  const notFoundComponent = makeComponent(function notFoundComponent() {
+  const notFoundComponent = makeComponent("notFoundComponent", function() {
     this.append("notFoundComponent");
   });
 
@@ -3812,7 +3827,7 @@ export const routerPage = makeComponent(function routerPage() {
   ];
 
   // pageWrapperComponent
-  const pageWrapperComponent = makeComponent(function pageWrapperComponent(props/*: PageWrapperProps*/) {
+  const pageWrapperComponent = makeComponent("pageWrapperComponent", function(props/*: PageWrapperProps*/) {
     const {routes, currentRoute, contentWrapperComponent, routeParams} = props;
     const navmenu = this.append(div({style: {display: "flex", gap: 8}}));
     for (let route of routes) {
@@ -3834,7 +3849,7 @@ export const routerPage = makeComponent(function routerPage() {
   }));
   // TODO: document navigate() function
 });
-export const progressPage = makeComponent(function progressPage() {
+export const progressPage = makeComponent("progressPage", function() {
     // loading spinner
     let row = this.append(div({className: "display-row"}));
     for (let size of Object.values(Size)) row.append(loadingSpinner({size, color: 'secondary-1'}));
@@ -3857,7 +3872,7 @@ export const progressPage = makeComponent(function progressPage() {
         }
     }));
 });
-export const palettePickerPage = makeComponent(function themeCreatorPage() {
+export const palettePickerPage = makeComponent("themeCreatorPage", function() {
   const wrapper = this.append(div());
   wrapper.append(oklchInput({
     defaultValue: vec3(0.7482, 0.127, -2.7041853071795865), // TODO: make this be in degrees
@@ -3912,7 +3927,7 @@ export const DOCS_SECTIONS/*: DocsSection[]*/ = [
   subsectionId: string,
   routerDemoId: string,
 }*/;
-export const docsPage = makeComponent(function docsPage(routeParams/*: RouteParams*/) {
+export const docsPage = makeComponent("docsPage", function(routeParams/*: RouteParams*/) {
   const [state, setState] = this.useState({
     sectionId: routeParams.sectionId ?? DOCS_SECTIONS[0].id,
     subsectionId: routeParams.subsectionId ?? DOCS_SECTIONS[0].pages[0].id,
@@ -4001,7 +4016,7 @@ export const ROUTES/*: Route[]*/ = [
     label: "Debug keys",
   },
 ];
-export const root = makeComponent(function root() {
+export const root = makeComponent("root", function() {
   this.append(
     router({
       prefix: GITHUB_PAGES_PREFIX,
@@ -4013,7 +4028,7 @@ export const root = makeComponent(function root() {
     })
   );
 });
-export const pageWrapper = makeComponent(function pageWrapper(props/*: PageWrapperProps*/) {
+export const pageWrapper = makeComponent("pageWrapper", function(props/*: PageWrapperProps*/) {
   const {currentRoute, routeParams, contentWrapperComponent} = props;
   const wrapper = this.append(div({
     style: {

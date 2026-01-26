@@ -5,7 +5,7 @@ type CodeFormatterProps = {
   text: string;
   getTokens: (text: string) => Component[];
 };
-const codeFormatter = makeComponent(function codeFormatter(props: CodeFormatterProps) {
+const codeFormatter = makeComponent("codeFormatter", function(props: CodeFormatterProps) {
   const {text, getTokens} = props;
   const wrapper = this.append(code(""));
   for (let token of getTokens(text)) {
@@ -237,7 +237,7 @@ function jsGetTokens(text: string): Component[] {
   }
   return tokens;
 }
-export const jsFormatter = makeComponent(function javascriptFormatter(text: string, props?: BaseProps) {
+export const jsFormatter = makeComponent("javascriptFormatter", function(text: string, props?: BaseProps) {
   this.append(codeFormatter({
     text,
     getTokens: jsGetTokens,

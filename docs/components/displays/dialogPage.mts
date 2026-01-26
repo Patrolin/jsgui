@@ -1,6 +1,6 @@
 import { coloredButton, dialog, div, makeComponent, span } from "../../../jsgui/out/jsgui.mts";
 
-export const dialogPage = makeComponent(function dialogPage() {
+export const dialogPage = makeComponent("dialogPage", function() {
     const [state, setState] = this.useState({dialogOpen: false});
 
     const row = this.append(div({className: "display-row", style: {marginTop: 2}}));

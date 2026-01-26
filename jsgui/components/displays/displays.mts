@@ -3,14 +3,14 @@ import { addPercent } from "../../utils/string_utils.mts";
 import { div, icon, IconProps, span } from "../basics.mts";
 
 // spinners
-export const loadingSpinner = makeComponent(function loadingSpinner(props: IconProps = {}) {
+export const loadingSpinner = makeComponent("loadingSpinner", function(props: IconProps = {}) {
   this.append(icon("progress_activity", props));
 });
 export type ProgressProps = {
   color?: string;
   fraction?: number;
 } & BaseProps;
-export const progress = makeComponent(function progress(props: ProgressProps = {}) {
+export const progress = makeComponent("progress", function(props: ProgressProps = {}) {
   const {color, fraction} = props;
   if (color) this.baseProps.style.color = `var(--${color})`;
   const wrapper = this.append(div({}));
@@ -31,7 +31,7 @@ export type TabsProps = BaseProps & {
   selectedId: string | number;
   setSelectedId: (newId: string | number) => void;
 };
-export const tabs = makeComponent(function tabs(props: TabsProps) {
+export const tabs = makeComponent("tabs", function(props: TabsProps) {
   const {options, setSelectedId} = props;
   let {selectedId} = props;
   if (selectedId == null) selectedId = options[0].id ?? 0;
@@ -43,7 +43,7 @@ export const tabs = makeComponent(function tabs(props: TabsProps) {
       href: option.href,
       className: "tabs-option",
       attribute: {dataSelected: optionId === selectedId, title: option.label},
-      events: {click: () => setSelectedId(optionId)},
+      events: {pointerup: () => setSelectedId(optionId)},
     }));
   });
 });

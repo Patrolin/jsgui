@@ -1,6 +1,6 @@
 import { makeComponent, span, tabs, TabsOption } from "../../../jsgui/out/jsgui.mts";
 
-export const tabsPage = makeComponent(function tabsPage() {
+export const tabsPage = makeComponent("tabsPage", function() {
     const [state, setState] = this.useState({selectedTab: 0 as string | number});
 
     // tabs

@@ -1,6 +1,6 @@
 import { div, makeComponent, span } from "../../../jsgui/out/jsgui.mts";
 
-export const mediaQueryPage = makeComponent(function mediaQueryPage() {
+export const mediaQueryPage = makeComponent("mediaQueryPage", function() {
     const column = this.append(div({className: "display-column"}));
     const smOrBigger = this.useMedia({minWidth: 600});
     column.append(span(`smOrBigger: ${smOrBigger}`));

@@ -167,7 +167,7 @@ export type WebGLProps = BaseProps & {
   renderResolutionMultiplier?: number;
   render?: (state: WebGLState) => void;
 }
-export const webgl = makeComponent(function webgl(props: WebGLProps) {
+export const webgl = makeComponent("webgl", function(props: WebGLProps) {
   const {
     programs,
     renderResolutionMultiplier = 1.0,

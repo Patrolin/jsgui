@@ -51,7 +51,7 @@ type WebgpuProps = {
   init?: (props: WebgpuRenderProps) => any;
   render?: (props: WebgpuRenderProps) => void;
 } & BaseProps;
-export const webgpu = makeComponent(function webgpu(props: WebgpuProps) {
+export const webgpu = makeComponent("webgpu", function(props: WebgpuProps) {
   const {shaderCode, init, render} = props;
   const [state] = this.useState({
     _isDeviceInitialized: false,

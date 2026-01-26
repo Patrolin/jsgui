@@ -19,7 +19,7 @@ import { oklch_to_srgb255i } from "../utils/color_utils.mts";
 
 // TODO pt2: pick and interpolate through OKLab + pick through OKLCH
 
-export const palettePickerPage = makeComponent(function themeCreatorPage() {
+export const palettePickerPage = makeComponent("themeCreatorPage", function() {
   const wrapper = this.append(div());
   wrapper.append(oklchInput({
     defaultValue: vec3(0.7482, 0.127, -2.7041853071795865), // TODO: make this be in degrees

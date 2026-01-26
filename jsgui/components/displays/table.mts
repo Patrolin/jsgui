@@ -17,7 +17,7 @@ export type TableProps = {
   minHeight?: number;
   useMaxHeight?: boolean;
 } & BaseProps;
-export const table = makeComponent(function table(props: TableProps & BaseProps) {
+export const table = makeComponent("table", function(props: TableProps & BaseProps) {
   // TODO: actions, filters, search, paging, selection
   // TODO: make gray fully opaque?
   const {label, columns = [], rows = [], isLoading = false, minHeight = 400, useMaxHeight = false} = props;

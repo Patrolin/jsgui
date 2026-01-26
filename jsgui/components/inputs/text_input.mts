@@ -16,7 +16,7 @@ export type InputProps = {
   allowDisplayString?: (value: string) => boolean;
   allowString?: (value: string) => string | undefined;
 } & BaseProps;
-export const controlledInput = makeComponent(function controlledInput(props: InputProps) {
+export const controlledInput = makeComponent("controlledInput", function(props: InputProps) {
   const { type = "text", placeholder, value, autoFocus, onFocus, onBlur, onKeyDown, onRawInput, onInput, onChange,
     allowDisplayString = () => true,
     allowString = (value) => value,
@@ -63,7 +63,7 @@ export type LabeledInputProps = {
   inputComponent: Component;
   rightComponent?: () => Component;
 } & BaseProps;
-export const labeledInput = makeComponent(function labeledInput(props: LabeledInputProps) {
+export const labeledInput = makeComponent("labeledInput", function(props: LabeledInputProps) {
   const {label = " ", leftComponent, inputComponent, rightComponent} = props;
   const fieldset = this.useNode(() => document.createElement("fieldset"));
   fieldset.onpointerdown = (_event: PointerEvent) => {
@@ -75,7 +75,7 @@ export const labeledInput = makeComponent(function labeledInput(props: LabeledIn
   this.append(inputComponent);
   if (rightComponent) this.append(rightComponent());
 });
-export const errorMessage = makeComponent(function errorMessage(error: string, props: SpanProps = {}) {
+export const errorMessage = makeComponent("errorMessage", function(error: string, props: SpanProps = {}) {
   this.append(span(error, {color: "red", size: Size.small, ...props}));
 });
 
@@ -83,7 +83,7 @@ export type TextInputProps = Omit<InputProps, "value"> & Omit<LabeledInputProps,
   error?: string,
   value: string | null | undefined;
 };
-export const textInput = makeComponent(function textInput(props: TextInputProps) {
+export const textInput = makeComponent("textInput", function(props: TextInputProps) {
   const {label, leftComponent, rightComponent, error, ...extraProps} = props;
   this.append(labeledInput({
     label,

@@ -1,6 +1,6 @@
 import { coloredButton, div, makeComponent, PopupDirection, popupWrapper, span } from "../../../jsgui/out/jsgui.mts";
 
-export const popupPage = makeComponent(function popupPage() {
+export const popupPage = makeComponent("popupPage", function() {
     for (let direction of ["up", "right", "down", "left", "mouse"] as PopupDirection[]) {
         const row = this.append(div({className: "wide-display-row"}));
         const leftPopup = row.append(popupWrapper({

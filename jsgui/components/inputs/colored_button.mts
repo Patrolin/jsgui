@@ -7,7 +7,7 @@ export type ButtonProps = {
   onClick?: () => void;
   disabled?: boolean;
 }
-export const coloredButton = makeComponent(function coloredButton(text: string, props: ButtonProps = {}) {
+export const coloredButton = makeComponent("coloredButton", function(text: string, props: ButtonProps = {}) {
   const {size, color, onClick, disabled} = props;
   const element = this.useNode(() => document.createElement("button"));
   if (text) this.append(span(text));
