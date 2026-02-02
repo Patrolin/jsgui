@@ -21,10 +21,12 @@ export type _EventListener<T = Event> = ((event: T) => void);
 export type EventsMap = {
   // NOTE: Safari iOS and Chrome android don't support onclick - use onpointerup instead
   // NOTE: mouseXX and touchXX events are platform-specific, so they shouldn't be used
-  touchstart?: _EventListener<TouchEvent> | null; // NOTE: if you want to prevent drag to scroll on mobile, you need to call .preventDefault() on this event specifically..
-
-  pointerenter?: _EventListener<PointerEvent> | null; // same as pointerover?
-  pointerleave?: _EventListener<PointerEvent> | null; // same as pointerout?
+  /** NOTE: if you want to prevent drag to scroll on mobile, you need to call .preventDefault() on this event specifically.. */
+  touchstart?: _EventListener<TouchEvent> | null;
+  /** same as pointerover? */
+  pointerenter?: _EventListener<PointerEvent> | null;
+  /** same as pointerout? */
+  pointerleave?: _EventListener<PointerEvent> | null;
   pointerdown?: _EventListener<PointerEvent> | null;
   pointermove?: _EventListener<PointerEvent> | null;
   pointercancel?: _EventListener<PointerEvent> | null;
@@ -103,7 +105,6 @@ export type RenderReturn = void | {
   onMount?: () => void;
   onUnmount?: (removed: boolean) => void;
   name?: string;
-  events?: EventsMap;
 };
 export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
 export type SetState<T, IsPartial = true> = (newValue: IsPartial extends true ? Partial<T> : T) => T;
@@ -526,9 +527,8 @@ export function _render(component: Component, parentNode: ParentNodeType, before
   // render elements
   const {_, args, baseProps, props, onRender} = component;
   const result = onRender.bind(component)(...args, props) ?? {};
-  const {onMount, onUnmount, events} = result;
+  const {onMount, onUnmount} = result;
   const name = result.name ?? component.name;
-  if (events) baseProps.events = events;
   const {node, children, indexedChildCount} = component; // NOTE: get after render
   const prevIndexedChildCount = _.prevIndexedChildCount;
   // inherit
