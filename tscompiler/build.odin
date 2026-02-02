@@ -3,12 +3,12 @@ import "core:fmt"
 import "core:os"
 import "core:path/filepath"
 import "core:slice"
-import "core:sort"
 import "core:strings"
 import win "core:sys/windows"
 
 BuildTaskType :: enum {
 	Copy,
+	CopyAll,
 	MtsCompile,
 }
 BuildTask :: struct {
@@ -27,6 +27,7 @@ main :: proc() {
 		BuildTask{BuildTaskType.Copy, "jsgui/jsgui.css", "jsgui/out/jsgui.css"},
 		BuildTask{BuildTaskType.MtsCompile, "jsgui", "jsgui/out"},
 		BuildTask{BuildTaskType.MtsCompile, "docs", "docs/out"},
+		BuildTask{BuildTaskType.CopyAll, "jsgui/jsreact", "jsgui/out/jsreact"},
 	}
 	fmt.printfln("ayaya.2")
 	for task in build_tasks {
@@ -36,7 +37,7 @@ main :: proc() {
 		}
 	}
 	fmt.printfln("ayaya.3")
-	for task in build_tasks {
+	for &task in build_tasks {
 		switch task.type {
 		case .Copy:
 			{
@@ -46,6 +47,29 @@ main :: proc() {
 				assert(ok)
 				fmt.printfln("+ %v", task.out)
 			}
+		case .CopyAll:
+			{
+				walk_proc :: proc(
+					info: os.File_Info,
+					err: os.Error,
+					user_data: rawptr,
+				) -> (
+					err_out: os.Error,
+					skip_dir: bool,
+				) {
+					if (!info.is_dir) {
+						task := (^BuildTask)(user_data)
+						file, ok := os.read_entire_file_from_filename(info.fullpath)
+						assert(ok)
+						out_path := fmt.tprint(task.out, info.name, sep = "/")
+						ok = os.write_entire_file(out_path, file)
+						assert(ok)
+						fmt.printfln("+ %v", out_path)
+					}
+					return
+				}
+				filepath.walk(task.src, walk_proc, &task)
+			}
 		case .MtsCompile:
 			{
 				// TODO: cache files by mtime?
@@ -54,7 +78,7 @@ main :: proc() {
 				mjs_out_file_path := strings.join({out_file_path, ".mjs"}, "")
 				fmt.printfln("--- %v, %v ---", mts_out_file_path, mjs_out_file_path)
 				// .mts
-				files_to_include := get_files_under(task.src, ".mts")
+				files_to_include := get_files_under(task.src, ".mts", "/jsreact/")
 				file_infos_to_include := resolve_imports(files_to_include[:])
 				sb: strings.Builder
 				for file_info in file_infos_to_include {
@@ -91,7 +115,13 @@ remove_files_under :: proc(dir_path: string) {
 	fmt.assertf(len(dir_path) > 5, "dir_path: %v", dir_path)
 	filepath.walk(dir_path, remove_files_under_callback, nil)
 }
-get_files_under :: proc(dir_path: string, suffix: string) -> (arr: [dynamic]string) {
+get_files_under :: proc(
+	dir_path: string,
+	suffix: string,
+	not_contains: string,
+) -> (
+	arr: [dynamic]string,
+) {
 	get_files_under_callback :: proc(
 		info: os.File_Info,
 		in_err: os.Error,
@@ -103,19 +133,22 @@ get_files_under :: proc(dir_path: string, suffix: string) -> (arr: [dynamic]stri
 		data := (^GetFilesUnderData)(user_data)
 		if !info.is_dir {
 			fullpath_with_slashes, _did_allocate := filepath.to_slash(info.fullpath)
-			if strings.ends_with(fullpath_with_slashes, data.suffix) {
+			if strings.ends_with(fullpath_with_slashes, data.suffix) &&
+			   !strings.contains(fullpath_with_slashes, data.not_contains) {
 				append(data.arr, fullpath_with_slashes)
 			}
 		}
 		return
 	}
 	GetFilesUnderData :: struct {
-		arr:    ^[dynamic]string,
-		suffix: string,
+		arr:          ^[dynamic]string,
+		suffix:       string,
+		not_contains: string,
 	}
 	data := GetFilesUnderData {
-		arr    = &arr,
-		suffix = suffix,
+		arr          = &arr,
+		suffix       = suffix,
+		not_contains = not_contains,
 	}
 	filepath.walk(dir_path, get_files_under_callback, &data)
 	return

@@ -1,7 +1,7 @@
 import { addPx, camelCaseToKebabCase, makePath, PathParts, stringifyJs } from "./utils/string_utils.mts";
 
 // utils
-export const JSGUI_VERSION = "v0.21";
+export const JSGUI_VERSION = "v0.22-dev";
 export function parseJsonOrNull(jsonString: string): JSONValue {
   try {
     return JSON.parse(jsonString);
@@ -100,8 +100,10 @@ export type BaseProps = {
 };
 export type RenderedBaseProps = UndoPartial<Omit<BaseProps, "key" | "className">> & {key?: string, className: string[]};
 export type RenderReturn = void | {
-  onMount?: () => void,
-  onUnmount?: (removed: boolean) => void,
+  onMount?: () => void;
+  onUnmount?: (removed: boolean) => void;
+  name?: string;
+  events?: EventsMap;
 };
 export type RenderFunction<T extends any[]> = (this: Component, ...argsOrProps: T) => RenderReturn;
 export type SetState<T, IsPartial = true> = (newValue: IsPartial extends true ? Partial<T> : T) => T;
@@ -522,8 +524,11 @@ export const _START_BASE_PROPS: InheritedBaseProps = {
 // TODO: make this non-recursive for cleaner console errors
 export function _render(component: Component, parentNode: ParentNodeType, beforeNodeStack: (NodeType | null)[] = [], _inheritedBaseProps: InheritedBaseProps = _START_BASE_PROPS, isTopNode = true) {
   // render elements
-  const {_, name, args, baseProps, props, onRender} = component;
-  const {onMount, onUnmount} = onRender.bind(component)(...args, props) ?? {};
+  const {_, args, baseProps, props, onRender} = component;
+  const result = onRender.bind(component)(...args, props) ?? {};
+  const {onMount, onUnmount, events} = result;
+  const name = result.name ?? component.name;
+  if (events) baseProps.events = events;
   const {node, children, indexedChildCount} = component; // NOTE: get after render
   const prevIndexedChildCount = _.prevIndexedChildCount;
   // inherit
@@ -568,7 +573,7 @@ export function _render(component: Component, parentNode: ParentNodeType, before
         }
       }
       // class
-      if (name !== node.tagName.toLowerCase()) {
+      if (name && name !== node.tagName.toLowerCase()) {
         inheritedBaseProps.className.push(camelCaseToKebabCase(name));
       };
       const classNameDiff = getDiffArray(_.prevBaseProps.className, inheritedBaseProps.className);
